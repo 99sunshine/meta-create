@@ -1,26 +1,22 @@
-# meta-create
+# Meta-Create 
 
-推送到 GitHub：**https://github.com/99sunshine/meta-create**
+## Who We Are
 
-## 首次推送到 GitHub
+Meta-Create Initiative is a global platform that empowers people to discover their vision and become creators through co-creation and experimental space. We believe creativity is not a privilege — it's a way of thinking anyone can learn.
 
-在终端执行：
+Our three pillars:
 
-```bash
-cd /Users/alicecai/Desktop/meta-create
-git init
-git branch -M main
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/99sunshine/meta-create.git
-git push -u origin main
-```
+- Awareness — know who you are and what drives you
+- Connection — find your people, across disciplines and borders
+- Creation — turn ideas into real, tangible things
 
-之后修改代码再推送：
+We address three core needs that most education ignores: a sense of direction, a sense of meaning, and creative confidence.
 
-```bash
-cd /Users/alicecai/Desktop/meta-create
-git add .
-git commit -m "描述你的修改"
-git push
-```
+**CORE PROBLEM**
+
+Cross-disciplinary collaboration is the bottleneck of the creative economy. Students have ideas but can’t find complementary teammates. Existing tools (Slack, Discord, Reddit, WeChat groups, LinkedIn) are too noisy, too professional, or not designed for project-based teaming. MetaCreate solves this with AI-powered profiles, intelligent search-based matching, and AI ice-breakers.
+
+Branding guide: https://99sunshine.github.io/meta-create-branding/
+
+The prelimary demo in: https://99sunshine.github.io/meta-create-platform/
+
