@@ -16,7 +16,16 @@ We address three core needs that most education ignores: a sense of direction, a
 
 Cross-disciplinary collaboration is the bottleneck of the creative economy. Students have ideas but can’t find complementary teammates. Existing tools (Slack, Discord, Reddit, WeChat groups, LinkedIn) are too noisy, too professional, or not designed for project-based teaming. MetaCreate solves this with AI-powered profiles, intelligent search-based matching, and AI ice-breakers.
 
-Branding guide: https://99sunshine.github.io/meta-create-branding/
+- Branding guide: https://99sunshine.github.io/meta-create-branding/
+- Prelimary demo: https://99sunshine.github.io/meta-create-platform/
+- **Interactive prototype (this repo):** https://99sunshine.github.io/meta-create/
 
-The prelimary demo in: https://99sunshine.github.io/meta-create-platform/
+### Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Push to `main` to deploy (GitHub Actions).
 
