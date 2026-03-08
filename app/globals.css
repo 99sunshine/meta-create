@@ -127,3 +127,61 @@
     @apply font-sans;
   }
 }
+
+/* Space background stars animation */
+@keyframes move-stars {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+.stars,
+.stars2,
+.stars3 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+}
+
+.stars {
+  box-shadow: 
+    1758px 1340px #FFF, 311px 605px #FFF, 1293px 1124px #FFF, 721px 835px #FFF, 
+    1822px 1741px #FFF, 806px 1211px #FFF, 1229px 375px #FFF, 82px 1627px #FFF,
+    1673px 1715px #FFF, 1307px 534px #FFF, 1571px 1788px #FFF, 705px 1223px #FFF,
+    147px 1227px #FFF, 962px 741px #FFF, 1519px 314px #FFF, 1963px 1257px #FFF,
+    733px 1813px #FFF, 1730px 1167px #FFF, 445px 1722px #FFF, 1316px 1644px #FFF,
+    851px 1080px #FFF, 1693px 813px #FFF, 1034px 561px #FFF, 566px 1967px #FFF,
+    1190px 1752px #FFF, 1825px 1431px #FFF, 1198px 1924px #FFF, 1695px 1385px #FFF,
+    379px 1539px #FFF, 1429px 750px #FFF, 1753px 1064px #FFF, 1913px 438px #FFF,
+    917px 1932px #FFF, 1707px 1895px #FFF, 267px 1315px #FFF, 1535px 1310px #FFF,
+    1301px 1945px #FFF, 622px 1723px #FFF, 1932px 1014px #FFF, 1084px 1735px #FFF;
+  animation: move-stars 100s linear infinite;
+}
+
+.stars2 {
+  width: 2px;
+  height: 2px;
+  box-shadow: 
+    779px 559px #FFF, 1559px 1371px #FFF, 1145px 620px #FFF, 419px 1746px #FFF,
+    1233px 286px #FFF, 1893px 1509px #FFF, 739px 1704px #FFF, 1311px 1001px #FFF,
+    621px 1361px #FFF, 1733px 732px #FFF, 935px 1562px #FFF, 1900px 1256px #FFF,
+    445px 1936px #FFF, 1374px 573px #FFF, 1165px 1893px #FFF, 828px 401px #FFF,
+    1685px 1316px #FFF, 300px 1097px #FFF, 1577px 1782px #FFF, 1171px 1307px #FFF;
+  animation: move-stars 150s linear infinite;
+}
+
+.stars3 {
+  width: 3px;
+  height: 3px;
+  box-shadow: 
+    612px 1843px #FFF, 1556px 929px #FFF, 259px 1514px #FFF, 1733px 458px #FFF,
+    882px 1273px #FFF, 1423px 1750px #FFF, 1080px 505px #FFF, 1726px 1344px #FFF,
+    510px 1686px #FFF, 1349px 1045px #FFF;
+  animation: move-stars 200s linear infinite;
+}

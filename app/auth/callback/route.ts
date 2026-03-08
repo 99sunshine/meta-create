@@ -1,4 +1,4 @@
-import { createClient } from '@/supabase/utils/server'
+import { createRouteClient } from '@/supabase/utils/route'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -7,20 +7,21 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/onboarding'
 
   if (code) {
-    const supabase = await createClient()
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const isLocalEnv = process.env.NODE_ENV === 'development'
     
-    if (!error && data.session) {
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      
-      const redirectUrl = isLocalEnv 
-        ? `${origin}${next}` 
-        : forwardedHost 
-          ? `https://${forwardedHost}${next}` 
-          : `${origin}${next}`
-      
-      return NextResponse.redirect(redirectUrl)
+    const redirectUrl = isLocalEnv 
+      ? `${origin}${next}` 
+      : forwardedHost 
+        ? `https://${forwardedHost}${next}` 
+        : `${origin}${next}`
+    
+    const response = NextResponse.redirect(redirectUrl)
+    const supabase = await createRouteClient(response)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error) {
+      return response
     }
   }
 

@@ -1,15 +1,16 @@
 // Enum types for user profile fields
-// These should be fetched from DB tables but typed here for TypeScript safety
+// These match the database check constraints exactly
+// See: profiles table check constraints in Supabase
 
-export type Availability = 'Available' | 'Exploring' | 'Unavailable'
+export type Availability = 'weekends' | 'evenings' | 'flexible' | 'full-time'
 
-export type CollabStyle = 'Sprint-lover' | 'Marathon-runner' | 'Flexible'
+export type CollabStyle = string // No DB constraint - can be any text
 
-export type HackathonTrack = 'Engineering' | 'Society' | 'Aesthetics' | 'Open'
+export type HackathonTrack = 'Engineering' | 'Design' | 'Business' | 'Science' | 'Social Impact'
 
-export type EducationLevel = 'High School' | 'Undergraduate' | 'Graduate' | 'PhD' | 'Other'
+export type EducationLevel = 'Undergrad' | 'Master' | 'PhD' | 'Professional'
 
-export type SubscriptionTier = 'free' | 'pro' | 'team'
+export type SubscriptionTier = 'free' | 'premium'
 
 export type Locale = 'en' | 'zh'
 
