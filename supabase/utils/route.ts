@@ -23,14 +23,14 @@ export const createRouteClient = async (response: NextResponse) => {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+            try {
               cookieStore.set(name, value, options)
-              response.cookies.set(name, value, options)
-            })
-          } catch (error) {
-            // Handle error if needed
-          }
+            } catch {
+              // cookieStore.set can fail in Route Handlers with custom responses
+            }
+          })
         },
       },
     },
