@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { sendMagicLink, signInWithPassword } from '@/supabase/auth'
+import { createClient } from '@/supabase/utils/client'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,18 +21,18 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const supabase = createClient()
 
   // Handle redirect after auth state updates
   useEffect(() => {
-    if (!loading && user && isLoggingIn) {
-      // Auth state updated, redirect based on onboarding status
+    if (!loading && user) {
       if (user.onboarding_complete) {
         router.push('/main')
       } else {
         router.push('/onboarding')
       }
     }
-  }, [loading, user, isLoggingIn, router])
+  }, [loading, user, router])
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +40,14 @@ export default function LoginPage() {
     setError('')
 
     try {
-      await signInWithPassword(email, password)
-      // Don't redirect here - let useEffect handle it after auth state updates
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (error) throw error
+      
+      // Auth state change will trigger redirect via useEffect
     } catch (err) {
       setError((err as Error).message)
       setIsLoggingIn(false)
@@ -54,7 +60,15 @@ export default function LoginPage() {
     setError('')
 
     try {
-      await sendMagicLink(email)
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      
+      if (error) throw error
+      
       setMagicLinkSent(true)
     } catch (err) {
       setError((err as Error).message)

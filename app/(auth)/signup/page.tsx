@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { sendMagicLink, signUpWithPassword, checkEmailExists } from '@/supabase/auth'
+import { createClient } from '@/supabase/utils/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +21,7 @@ export default function SignUpPage() {
   const [error, setError] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [showExistingEmailModal, setShowExistingEmailModal] = useState(false)
+  const supabase = createClient()
 
   const handlePasswordSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,30 +35,50 @@ export default function SignUpPage() {
     }
 
     try {
-      // Try to sign up - Supabase will reject if email exists
-      const result = await signUpWithPassword(email, password)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
       
-      console.log('Signup result:', result)
+      if (error) {
+        // Check if it's a duplicate email error
+        if (error.message.includes('already registered') || error.message.includes('already exists')) {
+          setShowExistingEmailModal(true)
+        } else {
+          setError(error.message)
+        }
+        setLoading(false)
+        return
+      }
       
-      // If email confirmation is required, show the email sent screen
-      if (result.needsConfirmation) {
-        console.log('Email confirmation required - showing email sent screen')
-        setEmailSent(true)
-      } else {
-        console.log('No email confirmation needed - redirecting to onboarding')
-        // Session is created instantly when email confirmation is disabled
+      // Check if we have a session - if yes, email confirmation is disabled
+      if (data.session && data.user) {
+        // No email confirmation needed - create profile and redirect
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email!,
+            name: '',
+            role: 'Builder',
+            onboarding_complete: false,
+          })
+        
+        if (profileError) {
+          console.error('Profile creation failed:', profileError)
+        }
+        
         // Redirect to onboarding
-        window.location.href = '/onboarding'
+        router.push('/onboarding')
+      } else if (data.user) {
+        // No session = email confirmation is required
+        setEmailSent(true)
       }
     } catch (err) {
-      const errorMessage = (err as Error).message
-      
-      // Check if it's a duplicate email error
-      if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
-        setShowExistingEmailModal(true)
-      } else {
-        setError(errorMessage)
-      }
+      setError((err as Error).message)
     } finally {
       setLoading(false)
     }
@@ -69,8 +90,15 @@ export default function SignUpPage() {
     setError('')
 
     try {
-      // Try to send magic link - Supabase will handle if email exists
-      await sendMagicLink(email)
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      
+      if (error) throw error
+      
       setEmailSent(true)
     } catch (err) {
       setError((err as Error).message)
