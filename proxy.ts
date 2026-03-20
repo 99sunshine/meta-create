@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/utils/middleware'
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { supabase, supabaseResponse } = createClient(request)
 
-  // Refresh session if expired - required for Server Components
-  await supabase.auth.getSession()
+  // IMPORTANT: Use getClaims() instead of getSession() to refresh the auth token
+  // getClaims() validates the JWT signature every time, ensuring secure session refresh
+  await supabase.auth.getClaims()
 
   return supabaseResponse
 }
