@@ -81,102 +81,114 @@ export default function SignUpPage() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 p-4 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="stars"></div>
-          <div className="stars2"></div>
-          <div className="stars3"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
+        {/* Radial gradient blob */}
+        <div 
+          className="absolute pointer-events-none"
+          style={{
+            width: 442,
+            height: 442,
+            left: -23,
+            top: 195,
+            background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
+            boxShadow: '6.35px 6.35px 6.35px',
+            borderRadius: 9999,
+            filter: 'blur(3.18px)',
+          }}
+        />
 
-        <Card className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border-slate-700/50 shadow-2xl relative z-10">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
-              <span className="text-3xl">📧</span>
-            </div>
-            <CardTitle className="text-white text-2xl">Check your email!</CardTitle>
-            <CardDescription className="text-slate-400 text-base mt-2">
-              We sent a {method === 'password' ? 'confirmation' : 'magic'} link to{' '}
-              <span className="text-white font-medium">{email}</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-400 text-center">
-              Click the link in the email to {method === 'password' ? 'confirm your account and get started' : 'sign in and complete your profile'}.
-            </p>
-            <Button
-              onClick={() => setEmailSent(false)}
-              variant="outline"
-              className="w-full mt-4 bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50"
-            >
-              Back to sign up
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-[381px] flex flex-col items-center gap-5 relative z-10">
+          <div className="w-20 h-20 bg-[rgba(231,119,15,0.2)] rounded-full flex items-center justify-center mb-4">
+            <span className="text-4xl">📧</span>
+          </div>
+          <h1 className="text-white text-2xl font-bold text-center">Check your email!</h1>
+          <p className="text-[#E6E6E6] text-center text-base">
+            We sent a {method === 'password' ? 'confirmation' : 'magic'} link to{' '}
+            <span className="text-white font-medium">{email}</span>
+          </p>
+          <p className="text-sm text-[#BFBFBF] text-center">
+            Click the link in the email to {method === 'password' ? 'confirm your account and get started' : 'sign in and complete your profile'}.
+          </p>
+          <button
+            onClick={() => setEmailSent(false)}
+            className="w-[233px] py-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[25px] text-white hover:bg-[rgba(255,255,255,0.15)] transition-all"
+          >
+            Back to sign up
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="stars"></div>
-        <div className="stars2"></div>
-        <div className="stars3"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
+      {/* Radial gradient blob */}
+      <div 
+        className="absolute pointer-events-none"
+        style={{
+          width: 442,
+          height: 442,
+          left: -23,
+          top: 195,
+          background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
+          boxShadow: '6.35px 6.35px 6.35px',
+          borderRadius: 9999,
+          filter: 'blur(3.18px)',
+        }}
+      />
 
       {/* Existing Email Modal */}
       {showExistingEmailModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md bg-slate-900/95 border-slate-700/50 shadow-2xl">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-4">
+          <div className="w-full max-w-md bg-[#121B3E] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-xl p-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 bg-[rgba(231,119,15,0.2)] rounded-full flex items-center justify-center">
                 <span className="text-3xl">⚠️</span>
               </div>
-              <CardTitle className="text-white text-2xl">Account Already Exists</CardTitle>
-              <CardDescription className="text-slate-400 mt-2">
+              <h2 className="text-white text-2xl font-bold text-center">Account Already Exists</h2>
+              <p className="text-[#E6E6E6] text-center">
                 An account with <span className="text-white font-medium">{email}</span> already exists
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-slate-300 text-center">
+              </p>
+              <p className="text-[#BFBFBF] text-center">
                 You already have a MetaCreate account. Please sign in instead.
               </p>
-              <Link href="/login">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12">
-                  Go to Login
-                </Button>
-              </Link>
-              <Button 
-                variant="outline"
-                onClick={() => setShowExistingEmailModal(false)}
-                className="w-full bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50 h-12"
-              >
-                Try Different Email
-              </Button>
-            </CardContent>
-          </Card>
+              <div className="flex flex-col gap-3 w-full mt-2">
+                <Link href="/login" className="w-full">
+                  <button className="w-full py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium">
+                    Go to Login
+                  </button>
+                </Link>
+                <button 
+                  onClick={() => setShowExistingEmailModal(false)}
+                  className="w-full py-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[25px] text-white hover:bg-[rgba(255,255,255,0.15)]"
+                >
+                  Try Different Email
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <Card className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border-slate-700/50 shadow-2xl relative z-10">
-        <CardHeader className="text-center">
-          <CardTitle className="text-white text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+      <div className="w-full max-w-[381px] flex flex-col items-center gap-8 relative z-10">
+        <div className="text-center">
+          <h1 className="text-white text-3xl font-bold mb-2">
             Join MetaCreate 🚀
-          </CardTitle>
-          <CardDescription className="text-slate-400 text-lg">
+          </h1>
+          <p className="text-[#E6E6E6] text-lg">
             Start finding your co-creators
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </div>
 
-        <CardContent>
+        <div className="w-full max-w-[330px] flex flex-col gap-6">
           {/* Method Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-slate-800/50 rounded-lg">
+          <div className="flex gap-2 p-1 bg-[rgba(255,255,255,0.10)] rounded-lg">
             <button
               onClick={() => setMethod('password')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'password'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#E7770F] text-white'
+                  : 'text-[#BFBFBF] hover:text-white'
               }`}
             >
               Password
@@ -185,8 +197,8 @@ export default function SignUpPage() {
               onClick={() => setMethod('magic')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'magic'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#E7770F] text-white'
+                  : 'text-[#BFBFBF] hover:text-white'
               }`}
             >
               Magic Link
@@ -195,8 +207,8 @@ export default function SignUpPage() {
 
           {/* Form */}
           <form onSubmit={method === 'password' ? handlePasswordSignUp : handleMagicLink} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300 text-base font-medium">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className="text-white text-sm leading-[14px]">
                 Email
               </Label>
               <Input
@@ -206,14 +218,14 @@ export default function SignUpPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 h-12 text-lg"
+                className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
               />
             </div>
 
             {method === 'password' && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300 text-base font-medium">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="password" className="text-white text-sm leading-[14px]">
                     Password
                   </Label>
                   <Input
@@ -224,12 +236,12 @@ export default function SignUpPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 h-12 text-lg"
+                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-slate-300 text-base font-medium">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="confirmPassword" className="text-white text-sm leading-[14px]">
                     Confirm Password
                   </Label>
                   <Input
@@ -240,9 +252,9 @@ export default function SignUpPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 h-12 text-lg"
+                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
-                  <p className="text-xs text-slate-500">Must be at least 6 characters</p>
+                  <p className="text-xs text-[#BFBFBF]">Must be at least 6 characters</p>
                 </div>
               </>
             )}
@@ -256,30 +268,30 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 text-lg font-semibold"
+              className="w-[233px] mx-auto py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium h-auto"
             >
               {loading ? 'Creating account...' : method === 'magic' ? 'Send Magic Link' : 'Create Account'}
             </Button>
 
-            <p className="text-xs text-slate-500 text-center leading-relaxed">
+            <p className="text-xs text-[#BFBFBF] text-center leading-relaxed">
               By signing up, you agree to our Terms of Service and Privacy Policy
             </p>
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 pt-6 border-t border-slate-700/50">
-            <p className="text-center text-slate-400 text-sm">
+          <div className="pt-6 border-t border-[rgba(103.45,121.38,157.25,0.30)]">
+            <p className="text-center text-[#BFBFBF] text-sm">
               Already have an account?{' '}
               <Link 
                 href="/login" 
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="text-[#E7770F] hover:text-[#d66d0d] font-medium transition-colors"
               >
                 Sign in instead
               </Link>
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

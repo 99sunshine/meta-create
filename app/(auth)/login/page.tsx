@@ -65,67 +65,80 @@ export default function LoginPage() {
 
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 p-4 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="stars"></div>
-          <div className="stars2"></div>
-          <div className="stars3"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
+        {/* Radial gradient blob */}
+        <div 
+          className="absolute pointer-events-none"
+          style={{
+            width: 442,
+            height: 442,
+            left: -23,
+            top: 195,
+            background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
+            boxShadow: '6.35px 6.35px 6.35px',
+            borderRadius: 9999,
+            filter: 'blur(3.18px)',
+          }}
+        />
 
-        <Card className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border-slate-700/50 shadow-2xl relative z-10">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
-              <span className="text-3xl">📧</span>
-            </div>
-            <CardTitle className="text-white text-2xl">Check your email!</CardTitle>
-            <CardDescription className="text-slate-400 text-base mt-2">
-              We sent a magic link to <span className="text-white font-medium">{email}</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-400 text-center">
-              Click the link in the email to sign in. You can close this tab.
-            </p>
-            <Button
-              onClick={() => setMagicLinkSent(false)}
-              variant="outline"
-              className="w-full mt-4 bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50"
-            >
-              Back to login
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-[381px] flex flex-col items-center gap-5 relative z-10">
+          <div className="w-20 h-20 bg-[rgba(231,119,15,0.2)] rounded-full flex items-center justify-center mb-4">
+            <span className="text-4xl">📧</span>
+          </div>
+          <h1 className="text-white text-2xl font-bold text-center">Check your email!</h1>
+          <p className="text-[#E6E6E6] text-center text-base">
+            We sent a magic link to <span className="text-white font-medium">{email}</span>
+          </p>
+          <p className="text-sm text-[#BFBFBF] text-center">
+            Click the link in the email to sign in. You can close this tab.
+          </p>
+          <button
+            onClick={() => setMagicLinkSent(false)}
+            className="w-[233px] py-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[25px] text-white hover:bg-[rgba(255,255,255,0.15)] transition-all"
+          >
+            Back to login
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="stars"></div>
-        <div className="stars2"></div>
-        <div className="stars3"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
+      {/* Radial gradient blob */}
+      <div 
+        className="absolute pointer-events-none"
+        style={{
+          width: 442,
+          height: 442,
+          left: -23,
+          top: 195,
+          background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
+          boxShadow: '6.35px 6.35px 6.35px',
+          borderRadius: 9999,
+          filter: 'blur(3.18px)',
+        }}
+      />
 
-      <Card className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border-slate-700/50 shadow-2xl relative z-10">
-        <CardHeader className="text-center">
-          <CardTitle className="text-white text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+      <div className="w-full max-w-[381px] flex flex-col items-center gap-8 relative z-10">
+        <div className="text-center">
+          <h1 className="text-white text-3xl font-bold mb-2">
             Welcome Back 👋
-          </CardTitle>
-          <CardDescription className="text-slate-400 text-lg">
+          </h1>
+          <p className="text-[#E6E6E6] text-lg">
             Sign in to MetaCreate
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </div>
 
-        <CardContent>
+        <div className="w-full max-w-[330px] flex flex-col gap-6">
           {/* Method Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-slate-800/50 rounded-lg">
+          <div className="flex gap-2 p-1 bg-[rgba(255,255,255,0.10)] rounded-lg">
             <button
               onClick={() => setMethod('password')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'password'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#E7770F] text-white'
+                  : 'text-[#BFBFBF] hover:text-white'
               }`}
             >
               Password
@@ -134,8 +147,8 @@ export default function LoginPage() {
               onClick={() => setMethod('magic')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'magic'
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#E7770F] text-white'
+                  : 'text-[#BFBFBF] hover:text-white'
               }`}
             >
               Magic Link
@@ -143,9 +156,9 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={method === 'password' ? handlePasswordLogin : handleMagicLink} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300 text-base font-medium">
+          <form onSubmit={method === 'password' ? handlePasswordLogin : handleMagicLink} className="space-y-6">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className="text-white text-sm leading-[14px]">
                 Email
               </Label>
               <Input
@@ -155,13 +168,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 h-12 text-lg"
+                className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
               />
             </div>
 
             {method === 'password' && (
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-300 text-base font-medium">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password" className="text-white text-sm leading-[14px]">
                   Password
                 </Label>
                 <Input
@@ -172,7 +185,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="bg-slate-800/50 border-slate-600 text-white placeholder:text-slate-500 h-12 text-lg"
+                  className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                 />
               </div>
             )}
@@ -186,26 +199,26 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoggingIn || loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 text-lg font-semibold"
+              className="w-[233px] mx-auto py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium h-auto"
             >
               {(isLoggingIn || loading) ? 'Loading...' : method === 'magic' ? 'Send Magic Link' : 'Sign In'}
             </Button>
           </form>
 
           {/* Sign Up Link */}
-          <div className="mt-6 pt-6 border-t border-slate-700/50">
-            <p className="text-center text-slate-400 text-sm">
+          <div className="pt-6 border-t border-[rgba(103.45,121.38,157.25,0.30)]">
+            <p className="text-center text-[#BFBFBF] text-sm">
               Don&apos;t have an account?{' '}
               <Link 
                 href="/signup" 
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="text-[#E7770F] hover:text-[#d66d0d] font-medium transition-colors"
               >
                 Create one now
               </Link>
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
