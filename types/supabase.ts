@@ -111,6 +111,13 @@ export type Database = {
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "collab_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_with_members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -222,6 +229,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_with_members"
             referencedColumns: ["id"]
           },
           {
@@ -344,6 +358,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "works_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "teams_with_members"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "works_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -354,7 +375,75 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      teams_with_members: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          event_id: string | null
+          event_track: string | null
+          external_chat_link: string | null
+          id: string | null
+          is_open: boolean | null
+          looking_for_roles: string[] | null
+          max_members: number | null
+          member_count: number | null
+          members: Json | null
+          name: string | null
+          owner_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      works_with_creator: {
+        Row: {
+          category: string | null
+          collaborator_ids: string[] | null
+          created_at: string | null
+          creator: Json | null
+          description: string | null
+          event_id: string | null
+          id: string | null
+          images: string[] | null
+          links: string[] | null
+          save_count: number | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "works_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "works_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "teams_with_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "works_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never

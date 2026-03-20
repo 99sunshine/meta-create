@@ -36,4 +36,22 @@ export type {
   CollabRequestStatus
 } from './interfaces/Enums'
 
+export type {
+  Work,
+  WorkCreator,
+  WorkWithCreator,
+  WorkWithCreatorView
+} from './interfaces/Work'
+
+export type {
+  Team,
+  TeamMember,
+  TeamWithMembers,
+  TeamWithMembersView
+} from './interfaces/Team'
+
 export { ROLE_COMPLEMENTARITY } from './interfaces/Role'
+
+// Schema types
+export type { TeamCreateInput } from '../schemas/team'
+export type { WorkCreateInput } from '../schemas/work'

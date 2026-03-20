@@ -17,7 +17,7 @@ export type Locale = 'en' | 'zh'
 // Category types for teams and works
 export type TeamCategory = 'Hackathon' | 'Project' | 'Startup' | 'Research' | 'Creative' | 'Other'
 
-export type WorkCategory = 'Engineering' | 'Design' | 'Art' | 'Science' | 'Business' | 'Other'
+export type WorkCategory = 'Web' | 'Mobile' | 'AI/ML' | 'Hardware' | 'Design' | 'Other'
 
 // Collab request types
 export type CollabRequestType = 'join_project' | 'invite_to_team' | 'just_connect'

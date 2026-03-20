@@ -1,0 +1,182 @@
+import { createClient } from '../utils/client'
+import type { TeamWithMembers, TeamWithMembersView, TeamMember, TeamCreateInput } from '@/types'
+import { teamCreateSchema } from '@/schemas/team'
+
+function parseTeamView(view: TeamWithMembersView): TeamWithMembers {
+  return {
+    id: view.id!,
+    name: view.name!,
+    description: view.description,
+    category: view.category!,
+    is_open: view.is_open ?? false,
+    max_members: view.max_members ?? 6,
+    owner_id: view.owner_id!,
+    created_at: view.created_at!,
+    updated_at: view.updated_at!,
+    event_id: view.event_id,
+    event_track: view.event_track,
+    external_chat_link: view.external_chat_link,
+    looking_for_roles: view.looking_for_roles,
+    members: (view.members as TeamMember[]) || [],
+    member_count: view.member_count ?? 0
+  }
+}
+
+export class TeamsRepository {
+  /**
+   * Get open teams (recruiting) with members
+   * Queries the teams_with_members view (no N+1 problem)
+   */
+  async getOpenTeams(limit: number = 20): Promise<TeamWithMembers[]> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .eq('is_open', true)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw new Error(`Failed to fetch open teams: ${error.message}`)
+    }
+
+    return (data || []).map(parseTeamView)
+  }
+
+  /**
+   * Get recent teams with members
+   */
+  async getRecentTeams(limit: number = 20): Promise<TeamWithMembers[]> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw new Error(`Failed to fetch teams: ${error.message}`)
+    }
+
+    return (data || []).map(parseTeamView)
+  }
+
+  /**
+   * Get single team by ID with members
+   */
+  async getTeamById(teamId: string): Promise<TeamWithMembers | null> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .eq('id', teamId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      throw new Error(`Failed to fetch team: ${error.message}`)
+    }
+
+    return parseTeamView(data)
+  }
+
+  /**
+   * Get teams by category
+   */
+  async getTeamsByCategory(category: string, limit: number = 20): Promise<TeamWithMembers[]> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .eq('category', category)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw new Error(`Failed to fetch teams by category: ${error.message}`)
+    }
+
+    return (data || []).map(parseTeamView)
+  }
+
+  /**
+   * Get teams where user is owner
+   */
+  async getTeamsByOwnerId(ownerId: string, limit: number = 20): Promise<TeamWithMembers[]> {
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .eq('owner_id', ownerId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw new Error(`Failed to fetch user teams: ${error.message}`)
+    }
+
+    return (data || []).map(parseTeamView)
+  }
+
+  /**
+   * Create a new team
+   * Creator automatically becomes owner and first member
+   */
+  async createTeam(teamData: TeamCreateInput, creatorId: string): Promise<TeamWithMembers> {
+    const supabase = createClient()
+    
+    // Validate input with Zod
+    const validated = teamCreateSchema.parse(teamData)
+    
+    // Insert team
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .insert({
+        name: validated.name,
+        description: validated.description,
+        category: validated.category,
+        looking_for_roles: validated.looking_for_roles || null,
+        event_id: validated.event_id || null,
+        external_chat_link: validated.external_chat_link || null,
+        is_open: validated.is_open,
+        max_members: validated.max_members,
+        owner_id: creatorId
+      })
+      .select()
+      .single()
+
+    if (teamError) {
+      throw new Error(`Failed to create team: ${teamError.message}`)
+    }
+
+    // Add creator as first member with admin rights
+    const { error: memberError } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: team.id,
+        user_id: creatorId,
+        role: 'Builder', // Default role, can be customized
+        is_admin: true
+      })
+
+    if (memberError) {
+      throw new Error(`Failed to add creator to team: ${memberError.message}`)
+    }
+
+    // Fetch the complete team with members from view
+    const createdTeam = await this.getTeamById(team.id)
+    
+    if (!createdTeam) {
+      throw new Error('Failed to fetch created team')
+    }
+
+    return createdTeam
+  }
+}
