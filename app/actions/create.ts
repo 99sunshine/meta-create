@@ -48,7 +48,7 @@ export async function createTeamAction(teamData: TeamCreateInput, userId: string
       return { success: false, error: `Failed to add creator to team: ${memberError.message}` }
     }
 
-    revalidateTag('teams')
+    revalidateTag('teams', 'default')
     return { success: true, data: team }
   } catch (error) {
     return { 
@@ -87,7 +87,7 @@ export async function createWorkAction(workData: WorkCreateInput, userId: string
       return { success: false, error: `Failed to create work: ${workError.message}` }
     }
 
-    revalidateTag('works')
+    revalidateTag('works', 'default')
     return { success: true, data: work }
   } catch (error) {
     return { 

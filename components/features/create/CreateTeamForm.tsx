@@ -57,7 +57,7 @@ export function CreateTeamForm({ onSuccess, onCancel }: CreateTeamFormProps) {
     }
   }
 
-  const toggleRole = (role: string) => {
+  const toggleRole = (role: 'Visionary' | 'Builder' | 'Strategist' | 'Connector') => {
     setFormData(prev => ({
       ...prev,
       looking_for_roles: prev.looking_for_roles?.includes(role)

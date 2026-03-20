@@ -34,19 +34,30 @@ export default function SignUpPage() {
     }
 
     try {
-      // Check if email already exists
-      const emailExists = await checkEmailExists(email)
-      if (emailExists) {
-        setShowExistingEmailModal(true)
-        setLoading(false)
-        return
+      // Try to sign up - Supabase will reject if email exists
+      const result = await signUpWithPassword(email, password)
+      
+      console.log('Signup result:', result)
+      
+      // If email confirmation is required, show the email sent screen
+      if (result.needsConfirmation) {
+        console.log('Email confirmation required - showing email sent screen')
+        setEmailSent(true)
+      } else {
+        console.log('No email confirmation needed - redirecting to onboarding')
+        // Session is created instantly when email confirmation is disabled
+        // Redirect to onboarding
+        window.location.href = '/onboarding'
       }
-
-      // Continue with signup - email confirmation disabled in Supabase
-      await signUpWithPassword(email, password)
-      router.push('/onboarding')
     } catch (err) {
-      setError((err as Error).message)
+      const errorMessage = (err as Error).message
+      
+      // Check if it's a duplicate email error
+      if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
+        setShowExistingEmailModal(true)
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -58,15 +69,7 @@ export default function SignUpPage() {
     setError('')
 
     try {
-      // Check if email already exists
-      const emailExists = await checkEmailExists(email)
-      if (emailExists) {
-        setShowExistingEmailModal(true)
-        setLoading(false)
-        return
-      }
-
-      // Continue with magic link
+      // Try to send magic link - Supabase will handle if email exists
       await sendMagicLink(email)
       setEmailSent(true)
     } catch (err) {

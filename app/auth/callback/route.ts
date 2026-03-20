@@ -22,13 +22,27 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && data.user) {
-      const { data: profile } = await supabase
+      // Ensure profile exists - create if it doesn't (handles magic link, OAuth, etc.)
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('onboarding_complete')
         .eq('id', data.user.id)
         .single()
       
-      const redirectPath = profile?.onboarding_complete ? '/' : '/onboarding'
+      // If profile doesn't exist, create it
+      if (profileError && profileError.code === 'PGRST116') {
+        await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            onboarding_complete: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+      }
+      
+      const redirectPath = profile?.onboarding_complete ? '/main' : '/onboarding'
       
       return NextResponse.redirect(
         isLocalEnv 

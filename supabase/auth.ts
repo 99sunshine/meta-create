@@ -38,11 +38,43 @@ export async function signUpWithPassword(email: string, password: string) {
     },
   })
   
+  console.log('Supabase signUp response:', { 
+    user: data.user, 
+    session: data.session,
+    confirmed_at: data.user?.confirmed_at,
+    error 
+  })
+  
   if (error) {
     throw new Error(`Sign up failed: ${error.message}`)
   }
   
-  if (data.user && !data.user.confirmed_at) {
+  // Check if we have a session - if yes, email confirmation is disabled
+  if (data.session && data.user) {
+    console.log('Session exists - user is authenticated immediately, creating profile')
+    // No email confirmation needed - create profile immediately
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: data.user.id,
+        email: data.user.email,
+        onboarding_complete: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    
+    if (profileError) {
+      console.error('Profile creation failed:', profileError)
+      // Continue anyway - profile will be created on onboarding completion
+    } else {
+      console.log('Profile created successfully')
+    }
+    
+    revalidatePath('/login')
+    return { success: true, needsConfirmation: false }
+  } else if (data.user) {
+    // No session = email confirmation is required
+    console.log('No session - user needs email confirmation')
     return { success: true, needsConfirmation: true }
   }
   

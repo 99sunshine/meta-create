@@ -15,7 +15,7 @@ export const teamCreateSchema = z.object({
     .max(500, 'Description must be less than 500 characters'),
   
   category: z.enum(['Hackathon', 'Project', 'Startup', 'Research', 'Creative', 'Other'], {
-    errorMap: () => ({ message: 'Please select a valid category' })
+    message: 'Please select a valid category'
   }),
   
   looking_for_roles: z.array(
