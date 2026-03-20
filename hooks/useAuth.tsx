@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Profile fetch failed:', err)
       setUser(null)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -50,12 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSessionUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        await fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -64,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fetchProfile(session.user.id)
       } else {
         setUser(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
