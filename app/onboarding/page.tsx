@@ -17,6 +17,7 @@ import {
   TrackSelection,
   ResumeUpload,
   PhotoUpload,
+  AuthBackground,
 } from '@/components/features/onboarding'
 
 type Step = 'track' | 1 | 2 | 3
@@ -112,23 +113,10 @@ export default function OnboardingPage() {
   const currentStepNumber = step === 'track' ? 0 : step as number
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
-      {/* Radial gradient blob */}
-      <div 
-        className="absolute pointer-events-none"
-        style={{
-          width: 442,
-          height: 442,
-          left: -23,
-          top: 195,
-          background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
-          boxShadow: '6.35px 6.35px 6.35px',
-          borderRadius: 9999,
-          filter: 'blur(3.18px)',
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center bg-figma-bg p-4 relative overflow-hidden">
+      <AuthBackground />
 
-      <div className="w-full max-w-[381px] flex flex-col items-center gap-5 relative z-10">
+      <div className="w-full max-w-sm flex flex-col items-center gap-5 relative z-10">
         {/* Track Selection */}
         {step === 'track' && <TrackSelection onSelectTrack={handleTrackSelect} />}
 
@@ -144,7 +132,7 @@ export default function OnboardingPage() {
               }
             />
 
-            <div className="w-full max-w-[330px] flex flex-col gap-[50px]">
+            <div className="w-full max-w-xs flex flex-col gap-[50px]">
               {track === 'fast' && (
                 <ResumeUpload
                   onFileSelect={(file) => setFormData({ ...formData, resume: file })}
@@ -169,7 +157,7 @@ export default function OnboardingPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="How should others see you?"
-                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                    className="w-full py-4 px-4 bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
@@ -182,7 +170,7 @@ export default function OnboardingPage() {
                     value={formData.school}
                     onChange={(e) => setFormData({ ...formData, school: e.target.value })}
                     placeholder="Start typing..."
-                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                    className="w-full py-4 px-4 bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
@@ -195,7 +183,7 @@ export default function OnboardingPage() {
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                     placeholder="New York, Beijing..."
-                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                    className="w-full py-4 px-4 bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
@@ -208,7 +196,7 @@ export default function OnboardingPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@school.edu"
-                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                    className="w-full py-4 px-4 bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                     disabled
                   />
                 </div>
@@ -217,7 +205,7 @@ export default function OnboardingPage() {
               <Button
                 onClick={() => setStep(2)}
                 disabled={!formData.name || !formData.city || !formData.school}
-                className="w-[233px] mx-auto py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium h-auto"
+                className="w-56 mx-auto py-4 bg-[#E7770F] hover:bg-[#d66d0d] rounded-full text-white text-base font-medium h-auto"
               >
                 Next →
               </Button>
@@ -232,7 +220,7 @@ export default function OnboardingPage() {
             
             <MetaFire message="Now... what are your superpowers?<br/>Pick at least 3. This helps me match you with<br/>other meta-creators." />
 
-            <div className="w-full max-w-[330px] flex flex-col gap-[50px]">
+            <div className="w-full max-w-xs flex flex-col gap-[50px]">
               <div className="flex flex-col gap-[25px]">
                 <div>
                   <Label className="text-white text-base font-medium mb-4 block">
@@ -330,7 +318,7 @@ export default function OnboardingPage() {
             
             <MetaFire message="Almost there!<br/>Add a personal touch to your profile." />
 
-            <div className="w-full max-w-[330px] flex flex-col gap-[50px]">
+            <div className="w-full max-w-xs flex flex-col gap-[50px]">
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="manifesto" className="text-white text-sm leading-[14px]">
@@ -341,7 +329,7 @@ export default function OnboardingPage() {
                     value={formData.manifesto}
                     onChange={(e) => setFormData({ ...formData, manifesto: e.target.value })}
                     placeholder="I build things that matter..."
-                    className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                    className="w-full py-4 px-4 bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                   <p className="text-xs text-slate-500">
                     One sentence about what drives you as a creator

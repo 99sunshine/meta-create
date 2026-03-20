@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AuthBackground } from '@/components/features/onboarding'
 
 type AuthMethod = 'password' | 'magic'
 
@@ -65,36 +65,23 @@ export default function LoginPage() {
 
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
-        {/* Radial gradient blob */}
-        <div 
-          className="absolute pointer-events-none"
-          style={{
-            width: 442,
-            height: 442,
-            left: -23,
-            top: 195,
-            background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
-            boxShadow: '6.35px 6.35px 6.35px',
-            borderRadius: 9999,
-            filter: 'blur(3.18px)',
-          }}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-figma-bg p-4 relative overflow-hidden">
+        <AuthBackground />
 
-        <div className="w-full max-w-[381px] flex flex-col items-center gap-5 relative z-10">
-          <div className="w-20 h-20 bg-[rgba(231,119,15,0.2)] rounded-full flex items-center justify-center mb-4">
+        <div className="w-full max-w-sm flex flex-col items-center gap-5 relative z-10">
+          <div className="w-20 h-20 bg-figma-accent/20 rounded-full flex items-center justify-center mb-4">
             <span className="text-4xl">📧</span>
           </div>
-          <h1 className="text-white text-2xl font-bold text-center">Check your email!</h1>
-          <p className="text-[#E6E6E6] text-center text-base">
-            We sent a magic link to <span className="text-white font-medium">{email}</span>
+          <h1 className="text-figma-text-primary text-2xl font-bold text-center">Check your email!</h1>
+          <p className="text-figma-text-secondary text-center text-base">
+            We sent a magic link to <span className="text-figma-text-primary font-medium">{email}</span>
           </p>
-          <p className="text-sm text-[#BFBFBF] text-center">
+          <p className="text-sm text-figma-text-tertiary text-center">
             Click the link in the email to sign in. You can close this tab.
           </p>
           <button
             onClick={() => setMagicLinkSent(false)}
-            className="w-[233px] py-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[25px] text-white hover:bg-[rgba(255,255,255,0.15)] transition-all"
+            className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-figma-input-bg/80 transition-all"
           >
             Back to login
           </button>
@@ -104,41 +91,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#121B3E] p-4 relative overflow-hidden">
-      {/* Radial gradient blob */}
-      <div 
-        className="absolute pointer-events-none"
-        style={{
-          width: 442,
-          height: 442,
-          left: -23,
-          top: 195,
-          background: 'radial-gradient(ellipse 50% 50% at 50% 50%, rgba(193, 126, 69, 0.65) 0%, rgba(105.50, 76.50, 65.50, 0.82) 50%, #3E3440 70%, rgba(39.87, 39.37, 62.87, 0.96) 84%, #121B3E 100%)',
-          boxShadow: '6.35px 6.35px 6.35px',
-          borderRadius: 9999,
-          filter: 'blur(3.18px)',
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center bg-figma-bg p-4 relative overflow-hidden">
+      <AuthBackground />
 
-      <div className="w-full max-w-[381px] flex flex-col items-center gap-8 relative z-10">
+      <div className="w-full max-w-sm flex flex-col items-center gap-8 relative z-10">
         <div className="text-center">
-          <h1 className="text-white text-3xl font-bold mb-2">
+          <h1 className="text-figma-text-primary text-3xl font-bold mb-2">
             Welcome Back 👋
           </h1>
-          <p className="text-[#E6E6E6] text-lg">
+          <p className="text-figma-text-secondary text-lg">
             Sign in to MetaCreate
           </p>
         </div>
 
-        <div className="w-full max-w-[330px] flex flex-col gap-6">
+        <div className="w-full max-w-xs flex flex-col gap-6">
           {/* Method Toggle */}
-          <div className="flex gap-2 p-1 bg-[rgba(255,255,255,0.10)] rounded-lg">
+          <div className="flex gap-2 p-1 bg-figma-input-bg rounded-lg">
             <button
               onClick={() => setMethod('password')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'password'
-                  ? 'bg-[#E7770F] text-white'
-                  : 'text-[#BFBFBF] hover:text-white'
+                  ? 'bg-figma-accent text-figma-text-primary'
+                  : 'text-figma-text-tertiary hover:text-figma-text-primary'
               }`}
             >
               Password
@@ -147,8 +121,8 @@ export default function LoginPage() {
               onClick={() => setMethod('magic')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
                 method === 'magic'
-                  ? 'bg-[#E7770F] text-white'
-                  : 'text-[#BFBFBF] hover:text-white'
+                  ? 'bg-figma-accent text-figma-text-primary'
+                  : 'text-figma-text-tertiary hover:text-figma-text-primary'
               }`}
             >
               Magic Link
@@ -158,7 +132,7 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={method === 'password' ? handlePasswordLogin : handleMagicLink} className="space-y-6">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-white text-sm leading-[14px]">
+              <Label htmlFor="email" className="text-figma-text-primary text-sm leading-[14px]">
                 Email
               </Label>
               <Input
@@ -168,13 +142,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                className="w-full py-4 px-4 bg-figma-input-bg border border-figma-input-border rounded-lg text-figma-text-primary placeholder:text-figma-text-tertiary text-sm h-auto"
               />
             </div>
 
             {method === 'password' && (
               <div className="flex flex-col gap-2">
-                <Label htmlFor="password" className="text-white text-sm leading-[14px]">
+                <Label htmlFor="password" className="text-figma-text-primary text-sm leading-[14px]">
                   Password
                 </Label>
                 <Input
@@ -185,7 +159,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full py-[15px] px-[15px] bg-[rgba(255,255,255,0.10)] border border-[rgba(103.45,121.38,157.25,0.50)] rounded-[10px] text-white placeholder:text-[#BFBFBF] text-sm h-auto"
+                  className="w-full py-4 px-4 bg-figma-input-bg border border-figma-input-border rounded-lg text-figma-text-primary placeholder:text-figma-text-tertiary text-sm h-auto"
                 />
               </div>
             )}
@@ -199,19 +173,19 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoggingIn || loading}
-              className="w-[233px] mx-auto py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium h-auto"
+              className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium h-auto"
             >
               {(isLoggingIn || loading) ? 'Loading...' : method === 'magic' ? 'Send Magic Link' : 'Sign In'}
             </Button>
           </form>
 
           {/* Sign Up Link */}
-          <div className="pt-6 border-t border-[rgba(103.45,121.38,157.25,0.30)]">
-            <p className="text-center text-[#BFBFBF] text-sm">
+          <div className="pt-6 border-t border-figma-input-border/60">
+            <p className="text-center text-figma-text-tertiary text-sm">
               Don&apos;t have an account?{' '}
               <Link 
                 href="/signup" 
-                className="text-[#E7770F] hover:text-[#d66d0d] font-medium transition-colors"
+                className="text-figma-accent hover:text-figma-accent/90 font-medium transition-colors"
               >
                 Create one now
               </Link>
