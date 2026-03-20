@@ -1,16 +1,24 @@
 'use client'
 
+import { useState } from 'react'
 import { TeamWithMembers } from '@/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users } from 'lucide-react'
 import { getRoleMetadata } from '@/constants/roles'
+import { JoinTeamDialog } from '@/components/features/teams/JoinTeamDialog'
+import type { Role } from '@/types/interfaces/Role'
 
 interface TeamCardProps {
   team: TeamWithMembers
+  currentUserId?: string
+  onJoinTeam?: (teamId: string, role: Role) => void | Promise<void>
+  isJoining?: boolean
 }
 
-export function TeamCard({ team }: TeamCardProps) {
+export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }: TeamCardProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const displayDescription = team.description 
     ? (team.description.length > 150 
         ? team.description.slice(0, 150) + '...' 
@@ -25,6 +33,21 @@ export function TeamCard({ team }: TeamCardProps) {
   const missingRoles = allRoles.filter(role => !memberRoles.has(role))
 
   const lookingForRoles = team.looking_for_roles || missingRoles
+
+  const isAlreadyMember = currentUserId ? team.members.some(member => member.id === currentUserId) : false
+
+  const handleJoinClick = () => {
+    if (onJoinTeam) {
+      setDialogOpen(true)
+    }
+  }
+
+  const handleJoinConfirm = async (role: Role) => {
+    if (onJoinTeam) {
+      await onJoinTeam(team.id, role)
+      setDialogOpen(false)
+    }
+  }
 
   return (
     <Card className="overflow-hidden border-slate-700 bg-slate-800/50 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
@@ -103,13 +126,26 @@ export function TeamCard({ team }: TeamCardProps) {
           </div>
         )}
 
-        {team.is_open && (
-          <Button 
-            variant="outline"
-            className="w-full bg-blue-500/10 border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400"
-          >
-            Join Team
-          </Button>
+        {team.is_open && onJoinTeam && (
+          <>
+            <Button 
+              variant="outline"
+              onClick={handleJoinClick}
+              disabled={isJoining}
+              className="w-full bg-blue-500/10 border-blue-500/50 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400"
+            >
+              {isJoining ? 'Joining...' : 'Join Team'}
+            </Button>
+
+            <JoinTeamDialog
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              teamName={team.name}
+              onJoin={handleJoinConfirm}
+              loading={isJoining}
+              isAlreadyMember={isAlreadyMember}
+            />
+          </>
         )}
       </div>
     </Card>

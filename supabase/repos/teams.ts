@@ -1,6 +1,8 @@
 import { createClient } from '../utils/client'
 import type { TeamWithMembers, TeamWithMembersView, TeamMember, TeamCreateInput } from '@/types'
 import { teamCreateSchema } from '@/schemas/team'
+import { ROLES } from '@/constants/roles'
+import type { Role } from '@/types/interfaces/Role'
 
 function parseTeamView(view: TeamWithMembersView): TeamWithMembers {
   return {
@@ -178,5 +180,49 @@ export class TeamsRepository {
     }
 
     return createdTeam
+  }
+
+  /**
+   * Join an open team
+   * User must provide their role (Visionary, Builder, Strategist, Connector)
+   * Validates team is open and not full before joining
+   */
+  async joinTeam(teamId: string, userId: string, role: Role): Promise<void> {
+    const supabase = createClient()
+    
+    // First check if team exists and is open
+    const team = await this.getTeamById(teamId)
+    
+    if (!team) {
+      throw new Error('Team not found')
+    }
+    
+    if (!team.is_open) {
+      throw new Error('This team is not accepting new members')
+    }
+    
+    if (team.member_count >= team.max_members) {
+      throw new Error('This team is full')
+    }
+    
+    // Validate role is one of the 4 valid roles
+    const validRoles = ROLES.map(r => r.name)
+    if (!validRoles.includes(role)) {
+      throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`)
+    }
+    
+    // Add user to team (RLS policy ensures user_id matches auth.uid())
+    const { error } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: teamId,
+        user_id: userId,
+        role: role,
+        is_admin: false
+      })
+
+    if (error) {
+      throw new Error(`Failed to join team: ${error.message}`)
+    }
   }
 }

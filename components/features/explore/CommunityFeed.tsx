@@ -6,14 +6,29 @@ import { TeamCard } from './TeamCard'
 import { FeedToggle } from './FeedToggle'
 import { useWorks } from '@/hooks/useWorks'
 import { useTeams } from '@/hooks/useTeams'
+import { useAuth } from '@/hooks/useAuth'
 import type { WorkWithCreator, TeamWithMembers } from '@/types'
+import type { Role } from '@/types/interfaces/Role'
 
 export function CommunityFeed() {
+  const { user } = useAuth()
   const { works, loading: worksLoading, error: worksError } = useWorks({ limit: 20 })
-  const { teams, loading: teamsLoading, error: teamsError } = useTeams({ openOnly: true, limit: 20 })
+  const { teams, loading: teamsLoading, error: teamsError, joinTeam, joiningTeamId } = useTeams({ openOnly: true, limit: 20 })
   const [activeFilter, setActiveFilter] = useState<'all' | 'works' | 'teams'>('all')
 
   const loading = worksLoading || teamsLoading
+
+  const handleJoinTeam = async (teamId: string, role: Role) => {
+    if (!user) {
+      return
+    }
+    
+    try {
+      await joinTeam(teamId, user.id, role)
+    } catch (err) {
+      console.error('Failed to join team:', err)
+    }
+  }
 
   const filteredItems = () => {
     if (activeFilter === 'works') return works.map(w => ({ type: 'work' as const, item: w }))
@@ -72,7 +87,12 @@ export function CommunityFeed() {
               {item.type === 'work' ? (
                 <WorkCard work={item.item as WorkWithCreator} />
               ) : (
-                <TeamCard team={item.item as TeamWithMembers} />
+                <TeamCard 
+                  team={item.item as TeamWithMembers}
+                  currentUserId={user?.id}
+                  onJoinTeam={handleJoinTeam}
+                  isJoining={joiningTeamId === (item.item as TeamWithMembers).id}
+                />
               )}
             </div>
           ))}
