@@ -1,221 +1,108 @@
-# Community Feed Implementation - Complete ✅
+# 社区 Feed 实现文档
 
-## Summary
+> 最后更新：2026-04-15  分支：`fix/auth-flow`
 
-Successfully implemented a database-first architecture for the MetaCreate community feed with proper database views, repositories, and React hooks. All data fetching is optimized to avoid N+1 queries.
+---
 
-## What Was Built
+## 概述
 
-### Phase 1: UI Components (Previously Completed)
-- ✅ `WorkCard` - Display individual works with creator info
-- ✅ `TeamCard` - Display teams with member avatars
-- ✅ `FeedToggle` - Filter between All/Works/Teams
-- ✅ `CommunityFeed` - Main feed component
+社区 Feed（Community Feed）是主界面 `/main` 的核心内容区，展示所有用户创建的 **Team** 和 **Work** 卡片，支持筛选、加入团队、创建内容后实时刷新。
 
-### Phase 2: Data Layer (Just Completed)
+---
 
-#### Database Views (SQL)
-- ✅ `works_with_creator` view - Joins works with profiles
-- ✅ `teams_with_members` view - Joins teams with aggregated members
-- ✅ Views created in Supabase dashboard
-- ✅ TypeScript types regenerated successfully
-
-#### Repositories
-- ✅ `WorksRepository` (`supabase/repos/works.ts`)
-  - `getRecentWorks(limit)` - Fetch recent works
-  - `getWorksByCategory(category, limit)` - Filter by category
-  - `getWorkById(workId)` - Single work lookup
-  - `getWorksByUserId(userId, limit)` - User's works
-
-- ✅ `TeamsRepository` (`supabase/repos/teams.ts`)
-  - `getOpenTeams(limit)` - Only recruiting teams
-  - `getRecentTeams(limit)` - All recent teams
-  - `getTeamById(teamId)` - Single team lookup
-  - `getTeamsByCategory(category, limit)` - Filter by category
-  - `getTeamsByOwnerId(ownerId, limit)` - User's teams
-
-#### Hooks
-- ✅ `useWorks` (`hooks/useWorks.ts`)
-  - Handles loading/error states
-  - Supports filtering by category, userId
-  - Returns: `{ works, loading, error, refetch }`
-
-- ✅ `useTeams` (`hooks/useTeams.ts`)
-  - Handles loading/error states
-  - Supports filtering by category, ownerId, openOnly
-  - Returns: `{ teams, loading, error, refetch }`
-
-#### Integration
-- ✅ `CommunityFeed` component updated to use hooks (no props needed)
-- ✅ `app/main/page.tsx` updated - mock data removed
-- ✅ All TypeScript types properly integrated
-
-## Architecture Flow
+## 数据流
 
 ```
-User visits /main
-    ↓
-CommunityFeed component mounts
-    ↓
-Calls useWorks() & useTeams() hooks
-    ↓
-Hooks call WorksRepository & TeamsRepository
-    ↓
-Repositories query database views:
-  - works_with_creator
-  - teams_with_members
-    ↓
-Postgres executes joins at DB level (efficient!)
-    ↓
-Data flows back through hooks to component
-    ↓
-UI renders WorkCard & TeamCard components
+/main/page.tsx
+  ├─ feedRefreshKey: number
+  ├─ handleCreateSuccess() → feedRefreshKey++
+  │
+  ├─ <CommunityFeed refreshKey={feedRefreshKey}>
+  │     ├─ useWorks({ limit: 20 })  → works[], loading, error, refetch
+  │     ├─ useTeams({ openOnly: true, limit: 20 }) → teams[], loading, error, joinTeam, refetch
+  │     ├─ useEffect([refreshKey]) → refetchWorks() + refetchTeams()
+  │     ├─ 筛选（all / works / teams）→ 按 created_at 降序排列
+  │     └─ WorkCard / TeamCard
+  │
+  └─ <CreateModal onCreated={handleCreateSuccess}>
+        ├─ <CreateTeamForm onSuccess={handleSuccess}>
+        └─ <CreateWorkForm onSuccess={handleSuccess}>
 ```
 
-## Key Features
+---
 
-### No N+1 Problem ✅
-All joins happen in database views, not in application code. Single query per resource type.
+## 刷新机制
 
-### Type Safety ✅
-Supabase generates TypeScript types for views automatically. Full end-to-end type safety.
+创建完 team 或 work 后，`main/page.tsx` 的 `feedRefreshKey` 自增，`CommunityFeed` 监听该值变化后触发 `refetchWorks()` 和 `refetchTeams()`，无需整页刷新。
 
-### Scalability ✅
-Database handles joins efficiently. Can add indexes on views for better performance.
+---
 
-### Clean Architecture ✅
-Clear separation: Component → Hook → Repository → View → Tables
+## 错误状态
 
-### Flexibility ✅
-Easy to extend:
-- Add new filters (by date range, tags, etc.)
-- Implement pagination
-- Add search functionality
-- Cache results with React Query
+网络请求失败时，Feed 顶部展示红色错误 banner，包含错误信息和 **Retry** 按钮。Retry 按钮直接调用 `refetchWorks()` + `refetchTeams()`。
 
-## Current State
+加载中使用骨架屏（6 个 `animate-pulse` 占位块）。
 
-### Dev Server
-- **Status**: Running at http://localhost:3000
-- **Compilation**: All files compiling successfully
-- **No errors**: Clean build
+---
 
-### Database
-- **Views**: Created and active in Supabase
-- **Types**: Generated and up-to-date
-- **Queries**: Ready to execute
+## 加入团队流程
 
-### UI
-- **Components**: All built and styled with cosmic theme
-- **Loading states**: Skeleton loaders implemented
-- **Empty states**: Helpful messages for no content
-- **Filters**: Toggle between All/Works/Teams
-
-## Testing the Implementation
-
-### 1. View Empty State
-- Navigate to http://localhost:3000/main
-- You should see the empty state with filters working
-- Loading skeletons appear briefly during fetch
-
-### 2. Add Test Data (via Supabase Dashboard)
-
-**Create a test work:**
-```sql
-INSERT INTO works (user_id, title, description, category, tags, save_count)
-VALUES (
-  '<your-user-id>',
-  'Test Project',
-  'This is a test project to verify the feed is working',
-  'Engineering',
-  ARRAY['Test', 'Demo'],
-  0
-);
+```
+用户点击 TeamCard 上的 "Join Team"
+      ↓
+JoinTeamDialog 弹出（选择加入角色）
+      ↓
+确认后调用 joinTeam(teamId, userId, role)
+      ↓
+成功 → 右下角绿色 Toast："You have joined the team!"
+失败 → 右下角红色 Toast：错误信息
+      ↓
+useTeams 内部 joinTeam() 成功后自动 refetch 最新团队列表
 ```
 
-**Create a test team:**
-```sql
--- First create the team
-INSERT INTO teams (owner_id, name, description, category, is_open, max_members)
-VALUES (
-  '<your-user-id>',
-  'Test Team',
-  'Looking for collaborators!',
-  'Hackathon',
-  true,
-  6
-);
+### Toast 通知
 
--- Then add yourself as a member
-INSERT INTO team_members (team_id, user_id, role, is_admin)
-VALUES (
-  '<team-id-from-above>',
-  '<your-user-id>',
-  'Builder',
-  true
-);
+`CommunityFeed` 内置轻量 Toast 系统（无额外依赖），右下角固定位置，3.5 秒后自动消失，支持 `success`（绿色）和 `error`（红色）两种类型。
+
+---
+
+## 筛选
+
+通过 `FeedToggle` 组件切换：
+- **All**：teams 和 works 混合，按 `created_at` 降序
+- **Works**：仅展示作品卡片
+- **Teams**：仅展示团队卡片
+
+---
+
+## 关键文件
+
+```
+components/features/explore/CommunityFeed.tsx  — Feed 容器（含 Toast、错误 banner、筛选）
+components/features/explore/TeamCard.tsx       — 团队卡片（含加入按钮、成员列表、招募角色）
+components/features/explore/WorkCard.tsx       — 作品卡片
+components/features/explore/FeedToggle.tsx     — 筛选 Tab
+components/features/teams/JoinTeamDialog.tsx   — 加入团队角色选择弹窗
+components/features/create/CreateModal.tsx     — 创建弹窗（含 onCreated 回调）
+hooks/useTeams.ts                              — 团队数据 hook（含 joinTeam / refetch）
+hooks/useWorks.ts                              — 作品数据 hook（含 refetch）
+supabase/repos/teams.ts                        — TeamsRepository（DB CRUD）
+supabase/repos/works.ts                        — WorksRepository（DB CRUD）
 ```
 
-### 3. Verify Feed
-- Refresh /main page
-- You should see your test work and team appear
-- Try filtering with the toggle buttons
-- Check browser console for any errors
+---
 
-## Next Steps (Future Enhancements)
+## 数据来源
 
-### Search Functionality
-- Add search bar component
-- Implement text search in repositories
-- Filter by skills, tags, name
+Feed 数据来自数据库视图（需在 Supabase 执行 `supabase/migrations/create_views.sql`）：
+- `works_with_creator`：works 表 JOIN profiles 表，包含创作者信息
+- `teams_with_members`：teams 表 JOIN team_members 表 JOIN profiles 表
 
-### Pagination
-- Implement infinite scroll or "Load More"
-- Add offset/cursor to repository methods
-- Update hooks to handle pagination state
+---
 
-### Real-time Updates
-- Use Supabase realtime subscriptions
-- Auto-update feed when new works/teams are created
-- Show "New content available" notification
+## 已知限制 / 后续规划
 
-### Caching & Performance
-- Add React Query for client-side caching
-- Implement optimistic updates
-- Add stale-while-revalidate pattern
-
-## Files Modified/Created
-
-### Created
-- `supabase/migrations/create_views.sql`
-- `supabase/repos/works.ts`
-- `supabase/repos/teams.ts`
-- `hooks/useWorks.ts`
-- `hooks/useTeams.ts`
-- `types/interfaces/Work.ts`
-- `types/interfaces/Team.ts`
-- `components/features/explore/WorkCard.tsx`
-- `components/features/explore/TeamCard.tsx`
-- `components/features/explore/FeedToggle.tsx`
-- `components/features/explore/CommunityFeed.tsx`
-- `components/features/explore/index.ts`
-- `docs/database-views-setup.md`
-- `docs/community-feed-implementation.md` (this file)
-
-### Modified
-- `types/index.ts` - Added Work and Team exports
-- `types/supabase.ts` - Regenerated with views
-- `app/main/page.tsx` - Integrated CommunityFeed
-
-## Success Metrics
-
-✅ Database views created and working  
-✅ No N+1 queries (all joins in DB)  
-✅ TypeScript types fully integrated  
-✅ Zero compilation errors  
-✅ All components rendering correctly  
-✅ Loading and empty states working  
-✅ Filter toggle functional  
-✅ Architecture follows .cursorrules patterns  
-
-**Status**: Ready for production! 🚀
+- 目前无搜索和筛选（按技能/角色/可用性），计划在阶段六实现
+- 分页尚未实现（当前 limit=20），Feed 数据量大时需要无限滚动
+- WorkCard 和 TeamCard 的详情页（点击后弹出完整信息）尚未实现
+- TeamCard 仅当 `team.is_open === true` 才显示 Join 按钮，关闭招募的团队无法加入
