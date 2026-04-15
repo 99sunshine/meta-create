@@ -71,20 +71,21 @@ export default function MainApp() {
         )}
 
         <header className="border-b border-slate-800/50 backdrop-blur-sm bg-slate-900/30">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent truncate">
                   MetaCreate
                 </h1>
-                <p className="text-sm text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-400 truncate">
                   {user?.name ? `Welcome back, ${user.name}!` : 'Welcome!'}
                 </p>
               </div>
-              <Button 
+              <Button
                 onClick={logout}
                 variant="outline"
-                className="bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50"
+                size="sm"
+                className="shrink-0 bg-slate-800/50 border-slate-600 text-white hover:bg-slate-700/50 text-xs sm:text-sm"
               >
                 Sign Out
               </Button>
@@ -92,28 +93,30 @@ export default function MainApp() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <div className="mb-8 flex items-start justify-between">
+        <main className="container mx-auto px-3 sm:px-4 py-5 sm:py-8">
+          {/* Section header + create buttons */}
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">
                 Explore Community
               </h2>
-              <p className="text-slate-400">
+              <p className="text-sm sm:text-base text-slate-400">
                 Discover amazing works and join exciting teams
               </p>
             </div>
-            
-            {/* Temporary test buttons for Phase 1 */}
-            <div className="flex gap-2">
+
+            <div className="flex gap-2 shrink-0">
               <Button
                 onClick={() => { setModalType('team'); setModalOpen(true); }}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
+                size="sm"
+                className="flex-1 sm:flex-none bg-blue-500 hover:bg-blue-600 text-white text-sm"
               >
                 + Team
               </Button>
               <Button
                 onClick={() => { setModalType('work'); setModalOpen(true); }}
-                className="bg-purple-500 hover:bg-purple-600 text-white"
+                size="sm"
+                className="flex-1 sm:flex-none bg-purple-500 hover:bg-purple-600 text-white text-sm"
               >
                 + Work
               </Button>
