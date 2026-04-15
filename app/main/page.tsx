@@ -8,22 +8,27 @@ import { CommunityFeed } from '@/components/features/explore'
 import { CreateModal } from '@/components/features/create'
 
 export default function MainApp() {
-  const { user, loading, logout } = useAuth()
+  const { user, sessionUser, loading, profileLoading, logout } = useAuth()
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'team' | 'work'>('team')
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0)
+
+  const handleCreateSuccess = () => {
+    setModalOpen(false)
+    setFeedRefreshKey(k => k + 1)
+  }
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/login')
-      } else if (!user.onboarding_complete) {
-        router.push('/onboarding')
-      }
+    if (!loading && !sessionUser) {
+      // No session at all → go to login
+      router.push('/login')
     }
-  }, [loading, user, router])
+    // Users who haven't finished onboarding can still browse — they'll see a
+    // banner prompt instead of being forced back to /onboarding.
+  }, [loading, sessionUser, router])
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
@@ -36,7 +41,7 @@ export default function MainApp() {
     )
   }
 
-  if (!user || !user.onboarding_complete) {
+  if (!sessionUser) {
     return null
   }
 
@@ -49,6 +54,22 @@ export default function MainApp() {
       </div>
       
       <div className="relative z-10">
+        {/* Onboarding prompt banner for users who skipped onboarding */}
+        {user && !user.onboarding_complete && (
+          <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-center">
+            <span className="text-amber-300 text-sm">
+              Your profile is incomplete.{' '}
+              <button
+                onClick={() => router.push('/onboarding')}
+                className="underline text-amber-200 hover:text-white font-medium"
+              >
+                Complete it now
+              </button>{' '}
+              to get matched with co-creators.
+            </span>
+          </div>
+        )}
+
         <header className="border-b border-slate-800/50 backdrop-blur-sm bg-slate-900/30">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -57,7 +78,7 @@ export default function MainApp() {
                   MetaCreate
                 </h1>
                 <p className="text-sm text-slate-400">
-                  Welcome back, {user.name}!
+                  {user?.name ? `Welcome back, ${user.name}!` : 'Welcome!'}
                 </p>
               </div>
               <Button 
@@ -99,13 +120,14 @@ export default function MainApp() {
             </div>
           </div>
 
-          <CommunityFeed />
+          <CommunityFeed refreshKey={feedRefreshKey} />
         </main>
       </div>
 
       <CreateModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        onCreated={handleCreateSuccess}
         type={modalType}
       />
     </div>

@@ -14,7 +14,7 @@ export const workCreateSchema = z.object({
     .min(20, 'Description must be at least 20 characters')
     .max(500, 'Description must be less than 500 characters'),
   
-  category: z.enum(['Web', 'Mobile', 'AI/ML', 'Hardware', 'Design', 'Other'], {
+  category: z.enum(['Engineering', 'Design', 'Art', 'Science', 'Business', 'Other'], {
     message: 'Please select a valid category'
   }),
   

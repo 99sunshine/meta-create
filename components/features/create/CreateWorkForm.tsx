@@ -14,7 +14,8 @@ interface CreateWorkFormProps {
   onCancel?: () => void
 }
 
-const CATEGORIES = ['Web', 'Mobile', 'AI/ML', 'Hardware', 'Design', 'Other'] as const
+// Must match the works_category_check DB constraint exactly.
+const CATEGORIES = ['Engineering', 'Design', 'Art', 'Science', 'Business', 'Other'] as const
 
 export function CreateWorkForm({ onSuccess, onCancel }: CreateWorkFormProps) {
   const { user } = useAuth()
@@ -24,7 +25,7 @@ export function CreateWorkForm({ onSuccess, onCancel }: CreateWorkFormProps) {
   const [formData, setFormData] = useState<WorkCreateInput>({
     title: '',
     description: '',
-    category: 'Web',
+    category: 'Engineering',
     tags: [],
     images: [],
     links: []

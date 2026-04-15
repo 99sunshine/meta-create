@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { WorkCard } from './WorkCard'
 import { TeamCard } from './TeamCard'
 import { FeedToggle } from './FeedToggle'
@@ -10,10 +10,21 @@ import { useAuth } from '@/hooks/useAuth'
 import type { WorkWithCreator, TeamWithMembers } from '@/types'
 import type { Role } from '@/types/interfaces/Role'
 
-export function CommunityFeed() {
+interface CommunityFeedProps {
+  refreshKey?: number
+}
+
+export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
   const { user } = useAuth()
-  const { works, loading: worksLoading, error: worksError } = useWorks({ limit: 20 })
-  const { teams, loading: teamsLoading, error: teamsError, joinTeam, joiningTeamId } = useTeams({ openOnly: true, limit: 20 })
+  const { works, loading: worksLoading, error: worksError, refetch: refetchWorks } = useWorks({ limit: 20 })
+  const { teams, loading: teamsLoading, error: teamsError, joinTeam, joiningTeamId, refetch: refetchTeams } = useTeams({ openOnly: true, limit: 20 })
+
+  useEffect(() => {
+    if (refreshKey > 0) {
+      refetchWorks()
+      refetchTeams()
+    }
+  }, [refreshKey])
   const [activeFilter, setActiveFilter] = useState<'all' | 'works' | 'teams'>('all')
 
   const loading = worksLoading || teamsLoading

@@ -15,7 +15,7 @@ type AuthMethod = 'password' | 'magic'
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const { sessionUser, loading: authLoading } = useAuth()
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,13 +27,14 @@ export default function SignUpPage() {
   const [signingUp, setSigningUp] = useState(false)
   const supabase = createClient()
 
-  // N2: Wait for useAuth to confirm the session before redirecting,
-  // rather than calling router.push() the instant signUp() resolves.
+  // Wait for the Supabase session to be established (sessionUser) rather than
+  // waiting for the full UserProfile fetch (user). New signups always go to
+  // /onboarding since onboarding_complete is false by definition.
   useEffect(() => {
-    if (signingUp && !authLoading && user) {
-      router.push(user.onboarding_complete ? '/main' : '/onboarding')
+    if (signingUp && !authLoading && sessionUser) {
+      router.push('/onboarding')
     }
-  }, [signingUp, authLoading, user, router])
+  }, [signingUp, authLoading, sessionUser, router])
 
   const handlePasswordSignUp = async (e: React.FormEvent) => {
     e.preventDefault()

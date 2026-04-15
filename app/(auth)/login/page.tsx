@@ -14,7 +14,7 @@ type AuthMethod = 'password' | 'magic'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { sessionUser, loading } = useAuth()
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,16 +23,12 @@ export default function LoginPage() {
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const supabase = createClient()
 
-  // Handle redirect after auth state updates
+  // Redirect as soon as we have a session — /main handles onboarding redirect.
   useEffect(() => {
-    if (!loading && user) {
-      if (user.onboarding_complete) {
-        router.push('/main')
-      } else {
-        router.push('/onboarding')
-      }
+    if (!loading && sessionUser) {
+      router.push('/main')
     }
-  }, [loading, user, router])
+  }, [loading, sessionUser, router])
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -186,10 +182,10 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={isLoggingIn || loading}
+              disabled={isLoggingIn}
               className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium h-auto"
             >
-              {(isLoggingIn || loading) ? 'Loading...' : method === 'magic' ? 'Send Magic Link' : 'Sign In'}
+              {isLoggingIn ? 'Loading...' : method === 'magic' ? 'Send Magic Link' : 'Sign In'}
             </Button>
           </form>
 

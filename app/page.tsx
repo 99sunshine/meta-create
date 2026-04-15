@@ -7,19 +7,16 @@ import { Button } from '@/components/ui/button'
 import { useEffect } from 'react'
 
 export default function Home() {
-  const { user, loading } = useAuth()
+  const { sessionUser, loading } = useAuth()
   const router = useRouter()
 
+  // Redirect authenticated users without waiting for profile fetch.
+  // /main already redirects to /onboarding when onboarding_complete is false.
   useEffect(() => {
-    if (!loading && user) {
-      // User is signed in, check onboarding
-      if (user.onboarding_complete) {
-        router.push('/main')
-      } else {
-        router.push('/onboarding')
-      }
+    if (!loading && sessionUser) {
+      router.push('/main')
     }
-  }, [loading, user, router])
+  }, [loading, sessionUser, router])
 
   if (loading) {
     return (

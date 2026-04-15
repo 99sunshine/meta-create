@@ -8,10 +8,15 @@ import { CreateWorkForm } from './CreateWorkForm'
 interface CreateModalProps {
   isOpen: boolean
   onClose: () => void
+  onCreated?: () => void
   type: 'team' | 'work'
 }
 
-export function CreateModal({ isOpen, onClose, type }: CreateModalProps) {
+export function CreateModal({ isOpen, onClose, onCreated, type }: CreateModalProps) {
+  const handleSuccess = () => {
+    onCreated?.()
+    onClose()
+  }
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -62,9 +67,9 @@ export function CreateModal({ isOpen, onClose, type }: CreateModalProps) {
         {/* Content */}
         <div className="p-6">
           {type === 'team' ? (
-            <CreateTeamForm onSuccess={onClose} onCancel={onClose} />
+            <CreateTeamForm onSuccess={handleSuccess} onCancel={onClose} />
           ) : (
-            <CreateWorkForm onSuccess={onClose} onCancel={onClose} />
+            <CreateWorkForm onSuccess={handleSuccess} onCancel={onClose} />
           )}
         </div>
       </div>
