@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { TeamWithMembers } from '@/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,9 +15,11 @@ interface TeamCardProps {
   currentUserId?: string
   onJoinTeam?: (teamId: string, role: Role) => void | Promise<void>
   isJoining?: boolean
+  matchScore?: number
+  matchReasons?: string[]
 }
 
-export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }: TeamCardProps) {
+export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false, matchScore, matchReasons }: TeamCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const displayDescription = team.description 
@@ -52,6 +55,18 @@ export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }:
   return (
     <Card className="overflow-hidden border-slate-700 bg-slate-800/50 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
       <div className="p-5 space-y-4">
+        {/* Match score badge */}
+        {matchScore !== undefined && matchScore > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                  style={{ backgroundColor: 'rgba(231,119,15,0.15)', color: '#f5a623', border: '1px solid rgba(231,119,15,0.3)' }}>
+              🎯 {matchScore}% match
+            </span>
+            {matchReasons?.map((r) => (
+              <span key={r} className="text-xs text-white/40">{r}</span>
+            ))}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -77,26 +92,24 @@ export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }:
 
         <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
-            {displayMembers.map((member) => {
-              const roleMetadata = getRoleMetadata(member.role as Role)
-              return (
-                <div
-                  key={member.id}
-                  className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-800 relative group"
-                  title={`${member.name} (${member.role})`}
-                >
-                  {member.avatar_url ? (
-                    <img 
-                      src={member.avatar_url} 
-                      alt={member.name}
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    member.name.charAt(0).toUpperCase()
-                  )}
-                </div>
-              )
-            })}
+            {displayMembers.map((member) => (
+              <Link
+                key={member.id}
+                href={`/creator/${member.id}`}
+                title={`${member.name} (${member.role})`}
+                className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-800 hover:opacity-80 transition-opacity"
+              >
+                {member.avatar_url ? (
+                  <img
+                    src={member.avatar_url}
+                    alt={member.name}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  member.name.charAt(0).toUpperCase()
+                )}
+              </Link>
+            ))}
             {hasMoreMembers && (
               <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 text-xs font-medium border-2 border-slate-800">
                 +{team.members.length - 5}

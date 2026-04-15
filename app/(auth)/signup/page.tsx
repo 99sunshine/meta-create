@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AuthBackground } from '@/components/features/onboarding'
+import { trackEvent } from '@/lib/analytics'
 
 type AuthMethod = 'password' | 'magic'
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { sessionUser, loading: authLoading } = useAuth()
+  const { sessionUser, loading: authLoading, refreshProfile } = useAuth()
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,14 +28,15 @@ export default function SignUpPage() {
   const [signingUp, setSigningUp] = useState(false)
   const supabase = createClient()
 
-  // Wait for the Supabase session to be established (sessionUser) rather than
-  // waiting for the full UserProfile fetch (user). New signups always go to
-  // /onboarding since onboarding_complete is false by definition.
+  // After session is established, force-refresh the profile to ensure the row
+  // inserted during signup is loaded into AuthContext (user.onboarding_complete
+  // = false). Without this, onAuthStateChange can race with the INSERT and
+  // fetchProfile returns null, causing the /main onboarding banner to not show.
   useEffect(() => {
     if (signingUp && !authLoading && sessionUser) {
-      router.push('/onboarding')
+      refreshProfile().finally(() => router.push('/onboarding'))
     }
-  }, [signingUp, authLoading, sessionUser, router])
+  }, [signingUp, authLoading, sessionUser, router, refreshProfile])
 
   const handlePasswordSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,6 +90,7 @@ export default function SignUpPage() {
           console.error('Profile creation failed:', profileError)
         }
 
+        trackEvent('user_signed_up', { method: 'password' })
         setSigningUp(true)
       } else if (data.user) {
         // Email confirmation required — show "check your email" screen.

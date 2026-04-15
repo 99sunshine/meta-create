@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { WorkWithCreator } from '@/types'
 import { Card } from '@/components/ui/card'
 import { getRoleMetadata } from '@/constants/roles'
@@ -7,9 +8,11 @@ import type { Role } from '@/types/interfaces/Role'
 
 interface WorkCardProps {
   work: WorkWithCreator
+  matchScore?: number
+  matchReasons?: string[]
 }
 
-export function WorkCard({ work }: WorkCardProps) {
+export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
   const roleMetadata = getRoleMetadata(work.creator.role as Role)
   const RoleIcon = roleMetadata?.icon
 
@@ -31,6 +34,18 @@ export function WorkCard({ work }: WorkCardProps) {
       )}
       
       <div className="p-5 space-y-3">
+        {/* Match score badge */}
+        {matchScore !== undefined && matchScore > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                  style={{ backgroundColor: 'rgba(231,119,15,0.15)', color: '#f5a623', border: '1px solid rgba(231,119,15,0.3)' }}>
+              🎯 {matchScore}% match
+            </span>
+            {matchReasons?.map((r) => (
+              <span key={r} className="text-xs text-white/40">{r}</span>
+            ))}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-lg font-semibold text-white line-clamp-2">
             {work.title}
@@ -58,7 +73,7 @@ export function WorkCard({ work }: WorkCardProps) {
         )}
 
         <div className="flex items-center justify-between pt-3 border-t border-slate-700">
-          <div className="flex items-center gap-2">
+          <Link href={`/creator/${work.creator.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
               {work.creator.avatar_url ? (
                 <img 
@@ -79,7 +94,7 @@ export function WorkCard({ work }: WorkCardProps) {
                 <span>{work.creator.role}</span>
               </div>
             </div>
-          </div>
+          </Link>
 
           {work.save_count > 0 && (
             <div className="flex items-center gap-1 text-sm text-slate-400">

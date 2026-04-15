@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
+import { trackEvent } from '@/lib/analytics'
 import { ROLES } from '@/constants/roles'
 import { COLLAB_STYLES, AVAILABILITIES, SKILLS_POOL, INTERESTS_POOL, TAGS_POOL } from '@/constants/enums'
 import type { Role } from '@/types/interfaces/Role'
@@ -75,7 +76,7 @@ export default function OnboardingPage() {
 
   const handleTrackSelect = (selectedTrack: 'fast' | 'manual' | 'browse') => {
     if (selectedTrack === 'browse') {
-      router.push('/main')
+      router.push('/explore')
       return
     }
     setTrack(selectedTrack)
@@ -112,7 +113,8 @@ export default function OnboardingPage() {
       })
 
       await refreshProfile()
-      router.push('/main')
+      trackEvent('onboarding_completed', { role: formData.role, skills_count: formData.skills.length })
+      router.push('/explore')
     } catch (error) {
       console.error('Onboarding failed:', error)
       setSaveError(error instanceof Error ? error.message : 'Failed to save profile. Please try again.')

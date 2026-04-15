@@ -14,7 +14,7 @@ export default function Home() {
   // /main already redirects to /onboarding when onboarding_complete is false.
   useEffect(() => {
     if (!loading && sessionUser) {
-      router.push('/main')
+      router.push('/explore')
     }
   }, [loading, sessionUser, router])
 
