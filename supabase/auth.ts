@@ -57,7 +57,9 @@ export async function signUpWithPassword(email: string, password: string) {
       .from('profiles')
       .insert({
         id: data.user.id,
-        email: data.user.email,
+        email: data.user.email!,
+        name: '',
+        role: 'Builder',
         onboarding_complete: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

@@ -49,7 +49,7 @@ export function JoinTeamDialog({
               <span className="text-3xl">👥</span>
             </div>
             <p className="text-slate-400">
-              You're already part of this team. Check your team dashboard to see your role and collaborate with your teammates.
+              You&apos;re already part of this team. Check your team dashboard to see your role and collaborate with your teammates.
             </p>
           </div>
         ) : (

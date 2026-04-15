@@ -78,7 +78,7 @@ export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }:
         <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
             {displayMembers.map((member) => {
-              const roleMetadata = getRoleMetadata(member.role as any)
+              const roleMetadata = getRoleMetadata(member.role as Role)
               return (
                 <div
                   key={member.id}
@@ -110,7 +110,7 @@ export function TeamCard({ team, currentUserId, onJoinTeam, isJoining = false }:
             <p className="text-xs text-slate-500 mb-2">Looking for:</p>
             <div className="flex flex-wrap gap-2">
               {lookingForRoles.slice(0, 3).map((role, idx) => {
-                const roleMetadata = getRoleMetadata(role as any)
+                const roleMetadata = getRoleMetadata(role as Role)
                 const RoleIcon = roleMetadata?.icon
                 return (
                   <span 

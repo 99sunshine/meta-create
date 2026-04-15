@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { UserProfile } from '@/types'
 import { createClient } from '@/supabase/utils/client'
 import { ProfileRepository } from '@/supabase/repos/profile'
@@ -29,7 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionUser, setSessionUser] = useState<User | null>(null)
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // Stable ref avoids the lint warning about missing useEffect dependency
+  // while ensuring the client is created only once per provider mount.
+  const supabaseRef = useRef(createClient())
+  const supabase = supabaseRef.current
   const router = useRouter()
 
   const fetchProfile = async (userId: string) => {

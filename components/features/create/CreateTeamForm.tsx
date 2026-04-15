@@ -109,7 +109,7 @@ export function CreateTeamForm({ onSuccess, onCancel }: CreateTeamFormProps) {
         <select
           id="category"
           value={formData.category}
-          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
+          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as typeof CATEGORIES[number] }))}
           className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
         >
           {CATEGORIES.map(cat => (

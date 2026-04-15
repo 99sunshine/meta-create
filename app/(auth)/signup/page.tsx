@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/supabase/utils/client'
+import { checkEmailExists } from '@/supabase/auth'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +15,7 @@ type AuthMethod = 'password' | 'magic'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +24,16 @@ export default function SignUpPage() {
   const [error, setError] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [showExistingEmailModal, setShowExistingEmailModal] = useState(false)
+  const [signingUp, setSigningUp] = useState(false)
   const supabase = createClient()
+
+  // N2: Wait for useAuth to confirm the session before redirecting,
+  // rather than calling router.push() the instant signUp() resolves.
+  useEffect(() => {
+    if (signingUp && !authLoading && user) {
+      router.push(user.onboarding_complete ? '/main' : '/onboarding')
+    }
+  }, [signingUp, authLoading, user, router])
 
   const handlePasswordSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +47,15 @@ export default function SignUpPage() {
     }
 
     try {
+      // N1: Check for duplicate email before calling signUp to avoid relying
+      // on fragile error-message string matching.
+      const exists = await checkEmailExists(email)
+      if (exists) {
+        setShowExistingEmailModal(true)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -42,21 +63,16 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      
+
       if (error) {
-        // Check if it's a duplicate email error
-        if (error.message.includes('already registered') || error.message.includes('already exists')) {
-          setShowExistingEmailModal(true)
-        } else {
-          setError(error.message)
-        }
+        setError(error.message)
         setLoading(false)
         return
       }
-      
-      // Check if we have a session - if yes, email confirmation is disabled
+
       if (data.session && data.user) {
-        // No email confirmation needed - create profile and redirect
+        // Email confirmation is disabled — session is available immediately.
+        // Create a minimal profile and let the useEffect above handle the redirect.
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
@@ -66,15 +82,14 @@ export default function SignUpPage() {
             role: 'Builder',
             onboarding_complete: false,
           })
-        
+
         if (profileError) {
           console.error('Profile creation failed:', profileError)
         }
-        
-        // Redirect to onboarding
-        router.push('/onboarding')
+
+        setSigningUp(true)
       } else if (data.user) {
-        // No session = email confirmation is required
+        // Email confirmation required — show "check your email" screen.
         setEmailSent(true)
       }
     } catch (err) {

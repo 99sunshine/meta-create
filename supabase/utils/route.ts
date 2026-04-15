@@ -29,7 +29,7 @@ export const createRouteClient = async (response: NextResponse) => {
               response.cookies.set(name, value, options)
             })
           } catch (error) {
-            // Handle error if needed
+            console.error('Failed to set auth cookies in route handler:', error)
           }
         },
       },

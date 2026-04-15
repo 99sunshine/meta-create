@@ -3,13 +3,14 @@
 import { WorkWithCreator } from '@/types'
 import { Card } from '@/components/ui/card'
 import { getRoleMetadata } from '@/constants/roles'
+import type { Role } from '@/types/interfaces/Role'
 
 interface WorkCardProps {
   work: WorkWithCreator
 }
 
 export function WorkCard({ work }: WorkCardProps) {
-  const roleMetadata = getRoleMetadata(work.creator.role as any)
+  const roleMetadata = getRoleMetadata(work.creator.role as Role)
   const RoleIcon = roleMetadata?.icon
 
   const displayTags = work.tags?.slice(0, 3) || []

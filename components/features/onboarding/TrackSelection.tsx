@@ -36,7 +36,7 @@ export function TrackSelection({ onSelectTrack }: TrackSelectionProps) {
           onClick={() => onSelectTrack('browse')}
           className="text-[#E6E6E6] text-[11px] underline leading-[14px]"
         >
-          I'll browse first
+          I&apos;ll browse first
         </button>
       </div>
     </div>
