@@ -100,4 +100,25 @@ export class ProfileRepository {
     const profile = await this.getProfile(userId)
     return profile?.onboarding_complete ?? false
   }
+
+  /**
+   * Get profiles created in the last N days (for "New Creators This Week" section).
+   * Only returns users who have completed onboarding (have a role set).
+   */
+  async getRecentProfiles(days = 7, limit = 20): Promise<UserProfile[]> {
+    const supabase = createClient()
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .gte('created_at', since)
+      .not('role', 'is', null)
+      .eq('onboarding_complete', true)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw new Error(`Recent profiles fetch failed: ${error.message}`)
+    return (data ?? []) as UserProfile[]
+  }
 }

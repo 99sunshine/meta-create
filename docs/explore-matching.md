@@ -1,141 +1,166 @@
-# Search & Explore + 加权匹配算法文档
+# Explore 页面 & 匹配算法文档
 
-## Overview
-
-Explore 模块让用户通过文本搜索和多维筛选快速找到匹配的创作者、作品和团队，并根据当前用户的 profile 计算个性化推荐分数。
+> 最后更新：2026-04 · 对应代码分支：`fix/auth-flow`
 
 ---
 
-## 涉及文件
-
-| 文件 | 说明 |
-|------|------|
-| `components/features/explore/SearchFilterBar.tsx` | 搜索框 + 筛选 chip 行 |
-| `components/features/explore/CommunityFeed.tsx` | 主 Feed，整合搜索/筛选/匹配排序 |
-| `components/features/explore/TeamCard.tsx` | 团队卡片，新增 matchScore badge |
-| `components/features/explore/WorkCard.tsx` | 作品卡片，新增 matchScore badge |
-| `components/features/layout/TopNav.tsx` | 导航栏，头像改为下拉菜单 |
-| `lib/matching.ts` | 纯函数加权匹配算法 |
-
----
-
-## 搜索 & 筛选参数
-
-| 参数 | URL query key | 说明 |
-|------|--------------|------|
-| 文本搜索 | `q` | 模糊匹配 title / description / creator name / tags |
-| 内容类型 | `type` | `all` \| `works` \| `teams` |
-| 角色筛选 | `role` | `Visionary` \| `Builder` \| `Strategist` \| `Connector` |
-| 分类筛选 | `category` | `Engineering` \| `Design` \| `Art` \| `Science` \| `Business` \| `Other` |
-
-所有参数均同步到 URL query string，刷新后保持筛选状态，可以直接分享链接。
-
-### 示例 URL
+## 一、架构概览
 
 ```
-/main?q=Python&role=Builder&type=teams
-/main?category=Engineering
+/explore  (page.tsx)
+  └── CommunityFeed          ← 数据聚合 + 过滤 + 排序
+        ├── NewCreatorsSection ← 本周新创作者横滑区
+        ├── SearchFilterBar   ← 搜索框 + 多维筛选 chips
+        ├── WorkCard          ← 作品卡片（含 Connect 按钮）
+        └── TeamCard          ← 团队卡片（含 Connect 按钮）
+
+lib/matching.ts               ← 纯函数匹配算法（无副作用）
+supabase/repos/profile.ts     ← getRecentProfiles() 等 DB 方法
 ```
 
 ---
 
-## 加权匹配算法（`lib/matching.ts`）
+## 二、匹配算法（PRD §6.1 完整对齐）
 
-### 设计原则
+### 加权公式
 
-- **纯函数**：无副作用，无数据库调用，易于单元测试。
-- **透明规则**：不使用 ML / 向量数据库，所有权重明确可审计。
-- **可解释**：每个 `MatchResult` 返回最多 2 条人类可读的推荐理由。
-
-### 权重配置（`WEIGHTS`）
-
-| 维度 | 满分 | 说明 |
-|------|------|------|
-| 技能重叠 (skills) | 40 pts | 用户 skills ∩ 对方 skills；4 项共同技能即满分，递增计算 |
-| 角色互补 (role) | 25 pts | 基于 `ROLE_COMPLEMENTARITY` 矩阵：HIGH=100%, MEDIUM=60%, NEUTRAL=30%, LOW=10% |
-| 领域匹配 (domain) | 20 pts | 用户 hackathon_track vs 团队/作品 category；相关领域得一半 |
-| 可用性契合 (availability) | 15 pts | 相同=满分；相邻（按 full-time > flexible > evenings > weekends 排序）=一半 |
-
-### 两个接口
-
-```typescript
-scoreTeamMatch(currentUser: UserProfile | null, team: TeamWithMembers): MatchResult
-scoreWorkMatch(currentUser: UserProfile | null, work: WorkWithCreator): MatchResult
+```
+SCORE = (技能互补 × 40) + (角色互补 × 25) + (兴趣重叠 × 20) + (时间匹配 × 15)
 ```
 
-`MatchResult` 结构：
+总分范围：0–100（整数），卡片上以 `🎯 XX%` 展示。
 
-```typescript
-{
-  score: number      // 0–100 整数
-  topReasons: string[] // 最多 2 条，如 ["3 shared skills", "complementary roles"]
-}
+### 维度详解
+
+#### 1. 技能互补（40 分）
+
+**公式**：对称式互补率
+
+```
+complement(A→B) = B 有 A 没有的技能数 / 两人技能并集数
+complement(B→A) = A 有 B 没有的技能数 / 两人技能并集数
+得分 = (complement(A→B) + complement(B→A)) / 2 × 40
 ```
 
-### 排序逻辑
+**边界情况**：任一方技能 < 3 个，得分上限 0.5（数据不足，降低置信度）。
 
-- 已登录：按 `matchScore` 降序（分数相同时按 `created_at` 降序）
-- 未登录：按 `created_at` 降序
+**设计理由**：同质化技能重叠（共享相同技能）匹配价值低；互补（对方有我没有）才能组建高效团队。
+
+#### 2. 角色互补（25 分）
+
+基于 PRD §4 四角色矩阵：
+
+| 角色对 | 兼容度 | 得分 |
+|---|---|---|
+| Visionary ↔ Builder | HIGH | 25 分 |
+| Visionary ↔ Strategist | HIGH | 25 分 |
+| Builder ↔ Strategist | MEDIUM | 12.5 分 |
+| Builder ↔ Connector | MEDIUM | 12.5 分 |
+| Strategist ↔ Connector | MEDIUM | 12.5 分 |
+| Visionary ↔ Connector | MEDIUM | 12.5 分 |
+| 同角色（除 Visionary） | LOW | 5 分 |
+| Visionary ↔ Visionary | NEUTRAL | 7.5 分 |
+
+完整矩阵见：`types/interfaces/Role.ts` → `ROLE_COMPLEMENTARITY`
+
+#### 3. 兴趣重叠（20 分，Jaccard 相似度）
+
+```
+Jaccard(A, B) = |A ∩ B| / |A ∪ B|
+得分 = Jaccard × 20
+```
+
+当 interests 为空时，降级为 tags 重叠（系数 × 0.7）。
+
+#### 4. 时间匹配（15 分）
+
+**可用度规范化**：
+
+| DB 值 | 标准化 |
+|---|---|
+| full-time | Available |
+| flexible | Available |
+| evenings | Exploring |
+| weekends | Exploring |
+| unavailable | Unavailable |
+
+**规则**：
+- 双方 Available → 15 分
+- Available + Exploring → 7.5 分
+- 任一方 Unavailable → 0 分
+- 同一 hackathon_track → +3 分（上限 15 分）
 
 ---
 
-## TopNav 下拉菜单
+## 三、用户 vs 团队匹配
 
-点击右上角头像圆形，展开含以下选项的下拉菜单：
+团队没有 skills/interests 字段，做如下适配：
 
-- 用户名 + 邮箱（展示区，不可点击）
-- **My Profile** → `/profile`
-- **Edit Onboarding** → `/onboarding`
-- 分隔线
-- **Logout**（红色，点击登出并跳转 `/login`）
-
-点击菜单外部自动关闭（`mousedown` 事件监听）。移动端与桌面端表现一致，不再出现布局压缩问题。
-
----
-
-## 扩展指南
-
-### 添加新筛选维度
-
-1. 在 `SearchFilterBar.tsx` 的 `ExploreFilters` 接口添加新字段
-2. 在 `SearchFilterBar` 组件新增对应 chip 行
-3. 在 `CommunityFeed.tsx` 的 `applyFilters()` 中添加过滤逻辑
-4. 在 `handleFilterChange` 的 `updateUrl` 中添加对应 URL key
-
-### 扩展匹配算法维度
-
-1. 在 `lib/matching.ts` 的 `WEIGHTS` 中添加新权重项（确保总和不超过 100）
-2. 实现对应评分函数
-3. 在 `scoreTeamMatch` / `scoreWorkMatch` 中调用并添加 `reasons` 条目
-
-### 升级为服务端搜索
-
-当数据量增大（> 1000 条），将 `applyFilters()` 迁移到服务端：
-
-1. 在 `supabase/repos/explore.ts` 实现 `.ilike()` 查询
-2. 新建 `hooks/useExplore.ts`，在 debounce 后触发 Supabase 查询
-3. `CommunityFeed` 改用 `useExplore` 替代客户端过滤
+| 维度 | 适配方式 |
+|---|---|
+| 技能互补 | 用户技能 vs 成员角色名（作为技能代理） |
+| 角色互补 | 用户角色 vs 团队 `looking_for_roles[0]` |
+| 兴趣/赛道 | 用户 `hackathon_track` vs 团队 `category`，完全匹配 +20，相近领域 +10 |
+| 时间 | 仅看用户端（团队无 availability 字段） |
 
 ---
 
-## 测试验收
+## 四、用户 vs 作品匹配
 
+作品的 `creator` 字段在 DB view 中携带扩展信息，但 TypeScript 类型只声明了基础字段（`id/name/role/avatar_url`）。
+
+算法代码通过 `creator as unknown as Record<string, unknown>` 访问可能存在的 `skills`/`interests` 字段。当这些字段存在时用标准 Jaccard，否则降级为 tags 重叠。
+
+---
+
+## 五、筛选维度（SearchFilterBar）
+
+| 参数（URL query） | 字段 | 说明 |
+|---|---|---|
+| `q` | searchQuery | 全文搜索（标题/描述/名字/tag） |
+| `role` | roleFilter | 4 角色之一 |
+| `category` | categoryFilter | Engineering/Design/Art/Science/Business/Other |
+| `availability` | availabilityFilter | full-time/flexible/evenings/weekends |
+| `track` | trackFilter | 赛道（Engineering/Design/Business/Science/Social Impact） |
+| `type` | contentType | all/works/teams |
+
+筛选结果实时同步到 URL，支持分享与刷新复原。
+
+---
+
+## 六、New Creators This Week 区块
+
+- 数据源：`ProfileRepository.getRecentProfiles(days=7, limit=20)`
+- 过滤：`onboarding_complete = true` 且 `role IS NOT NULL`
+- 展示：水平横滑卡片，显示头像、角色徽章、匹配分数、首条技能
+- 空数据时自动隐藏整个区块
+
+---
+
+## 七、Connect 按钮
+
+**WorkCard**：点击打开 `SendCollabModal`，目标为作品创作者  
+**TeamCard**：点击打开 `SendCollabModal`，目标为团队 owner（`team.owner_id`）
+
+Modal 数据流：
 ```
-[ ] /main?q=Python → 只显示 title/description/tags 含 Python 的结果
-[ ] 筛选 role=Builder → 只显示 Builder 角色的创建者/团队
-[ ] 筛选 category=Engineering → 只显示 Engineering 分类
-[ ] 组合筛选：role + category 同时生效
-[ ] 刷新页面 → URL 筛选参数保留，结果不变
-[ ] 清除所有筛选 → 恢复完整列表
-[ ] 已完成 onboarding 的用户 → 卡片上出现匹配分 badge
-[ ] 未登录用户 → 无 badge，按时间排序
-[ ] 空结果 → 显示"No matches found"，提供清除筛选按钮
+useAuth().user (sender) → SendCollabModal → useSendCollabRequest → CollabRepository.sendRequest
 ```
+
+已实现去重：对同一接收方只允许一条 pending 请求（useExistingRequest）。
 
 ---
 
-## Known Issues / Future Work
+## 八、排序逻辑
 
-- 当前匹配算法为客户端计算，数据量大时建议迁移至 `supabase/repos/explore.ts` 服务端
-- `WorkCreator` 视图目前不包含 `skills` 字段（需更新 DB 视图以暴露该字段）
-- 建议后续在卡片上添加"Connect"按钮，直接触发协作请求流程（Stage 7）
+- 已登录：按 `matchScore` 降序，相同分数按 `created_at` 降序
+- 未登录：仅按 `created_at` 降序
+
+---
+
+## 九、后续优化方向
+
+- [ ] 接入真实 AI tags（DeepSeek），用向量相似度替代 Jaccard
+- [ ] "New Creators" 改为基于活跃度而非注册时间（last_active 字段）
+- [ ] 服务端计算匹配分数（避免客户端重复计算）
+- [ ] A/B 测试不同权重组合的留存差异

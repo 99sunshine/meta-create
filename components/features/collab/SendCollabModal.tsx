@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { useSendCollabRequest, useExistingRequest } from '@/hooks/useCollabRequests'
 import type { CollabType } from '@/supabase/repos/collab'
@@ -42,8 +43,13 @@ export function SendCollabModal({
   const [message, setMessage] = useState('')
   const [iceBreaker, setIceBreaker] = useState('')
   const [result, setResult] = useState<'ok' | 'already_sent' | 'error' | null>(null)
+  const [mounted, setMounted] = useState(false)
 
-  if (!open) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!open || !mounted) return null
 
   const generateSuggestion = () => {
     const suggestion = generateIceBreaker({
@@ -74,9 +80,19 @@ export function SendCollabModal({
 
   const alreadySent = existingStatus === 'pending' || result === 'already_sent'
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="w-full max-w-md rounded-2xl border border-white/10 p-6" style={{ backgroundColor: '#131d3f' }}>
+  const modal = (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-white/10 p-6"
+        style={{ backgroundColor: '#131d3f' }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -180,4 +196,6 @@ export function SendCollabModal({
       </div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }

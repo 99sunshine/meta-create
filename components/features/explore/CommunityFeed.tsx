@@ -9,6 +9,7 @@ import { useWorks } from '@/hooks/useWorks'
 import { useTeams } from '@/hooks/useTeams'
 import { useAuth } from '@/hooks/useAuth'
 import { scoreTeamMatch, scoreWorkMatch } from '@/lib/matching'
+import { NewCreatorsSection } from './NewCreatorsSection'
 import type { WorkWithCreator, TeamWithMembers } from '@/types'
 import type { Role } from '@/types/interfaces/Role'
 
@@ -43,6 +44,8 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
     searchQuery: searchParams.get('q') ?? '',
     roleFilter: searchParams.get('role') ?? '',
     categoryFilter: searchParams.get('category') ?? '',
+    availabilityFilter: searchParams.get('availability') ?? '',
+    trackFilter: searchParams.get('track') ?? '',
     contentType: (searchParams.get('type') as ExploreFilters['contentType']) ?? 'all',
   })
 
@@ -53,6 +56,8 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
       if (next.searchQuery) params.set('q', next.searchQuery)
       if (next.roleFilter) params.set('role', next.roleFilter)
       if (next.categoryFilter) params.set('category', next.categoryFilter)
+      if (next.availabilityFilter) params.set('availability', next.availabilityFilter)
+      if (next.trackFilter) params.set('track', next.trackFilter)
       if (next.contentType !== 'all') params.set('type', next.contentType)
       const qs = params.toString()
       router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
@@ -107,7 +112,7 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
 
   // ── Client-side filtering ──
   const applyFilters = (): FeedItem[] => {
-    const { searchQuery, roleFilter, categoryFilter, contentType } = filters
+    const { searchQuery, roleFilter, categoryFilter, availabilityFilter, trackFilter, contentType } = filters
 
     const workItems: FeedItem[] = works
       .filter((w) => {
@@ -116,6 +121,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
         if (roleFilter && creator.role !== roleFilter) return false
         if (categoryFilter && w.category !== categoryFilter) return false
         if (!matchesSearch(searchQuery, [w.title, w.description, creator.name, ...(w.tags ?? [])])) return false
+        // availability / track filter: apply on creator fields if available
+        const creatorAny = creator as unknown as Record<string, unknown>
+        if (availabilityFilter && creatorAny.availability && creatorAny.availability !== availabilityFilter) return false
+        if (trackFilter && creatorAny.hackathon_track && creatorAny.hackathon_track !== trackFilter) return false
         return true
       })
       .map((w) => {
@@ -127,6 +136,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
       .filter((t) => {
         if (contentType === 'works') return false
         if (categoryFilter && t.category !== categoryFilter) return false
+        if (trackFilter) {
+          const teamAny = t as unknown as Record<string, unknown>
+          if (teamAny.event_track && teamAny.event_track !== trackFilter) return false
+        }
         if (roleFilter) {
           const hasRole = t.members?.some((m) => m.role === roleFilter)
           if (!hasRole) return false
@@ -157,10 +170,18 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
   const fetchError = worksError || teamsError
   const items = applyFilters()
   const hasActiveFilter =
-    filters.searchQuery || filters.roleFilter || filters.categoryFilter || filters.contentType !== 'all'
+    filters.searchQuery ||
+    filters.roleFilter ||
+    filters.categoryFilter ||
+    filters.availabilityFilter ||
+    filters.trackFilter ||
+    filters.contentType !== 'all'
 
   return (
     <div className="space-y-5">
+      {/* New Creators This Week */}
+      <NewCreatorsSection />
+
       {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
