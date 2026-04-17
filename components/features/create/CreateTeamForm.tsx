@@ -66,7 +66,7 @@ export function CreateTeamForm({ onSuccess, onCancel }: CreateTeamFormProps) {
     }))
   }
 
-  const charCount = formData.description.length
+  const charCount = (formData.description ?? '').length
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -90,11 +90,9 @@ export function CreateTeamForm({ onSuccess, onCancel }: CreateTeamFormProps) {
         </Label>
         <textarea
           id="description"
-          value={formData.description}
+          value={formData.description ?? ''}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           placeholder="Describe your team and what you're working on..."
-          required
-          minLength={50}
           maxLength={500}
           rows={5}
           className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"

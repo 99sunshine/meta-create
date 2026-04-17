@@ -75,8 +75,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
   const { works, loading: worksLoading, error: worksError, refetch: refetchWorks } = useWorks({ limit: 50 })
   const { teams, loading: teamsLoading, error: teamsError, joinTeam, joiningTeamId, refetch: refetchTeams } = useTeams({ openOnly: true, limit: 50 })
 
-  const stableRefetchWorks = useCallback(refetchWorks, [])
-  const stableRefetchTeams = useCallback(refetchTeams, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableRefetchWorks = useCallback(() => refetchWorks(), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableRefetchTeams = useCallback(() => refetchTeams(), [])
 
   useEffect(() => {
     if (refreshKey > 0) {

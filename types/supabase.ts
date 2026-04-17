@@ -46,6 +46,135 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          user_id: string
+          joined_at: string
+          last_read_at: string | null
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+          joined_at?: string
+          last_read_at?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+          joined_at?: string
+          last_read_at?: string | null
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          id: string
+          created_from_request_id: string | null
+          created_at: string
+          last_message_at: string | null
+        }
+        Insert: {
+          id?: string
+          created_from_request_id?: string | null
+          created_at?: string
+          last_message_at?: string | null
+        }
+        Update: {
+          id?: string
+          created_from_request_id?: string | null
+          created_at?: string
+          last_message_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string | null
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id?: string | null
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          sender_id?: string | null
+          content?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      team_invitations: {
+        Row: {
+          id: string
+          team_id: string
+          inviter_id: string
+          invitee_id: string
+          status: string
+          created_at: string
+          responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          inviter_id: string
+          invitee_id: string
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          inviter_id?: string
+          invitee_id?: string
+          status?: string
+          created_at?: string
+          responded_at?: string | null
+        }
+        Relationships: []
+      }
+      team_works: {
+        Row: {
+          id: string
+          team_id: string
+          title: string
+          description: string | null
+          images: string[] | null
+          links: string[] | null
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          title: string
+          description?: string | null
+          images?: string[] | null
+          links?: string[] | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          title?: string
+          description?: string | null
+          images?: string[] | null
+          links?: string[] | null
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collab_requests: {
         Row: {
           ai_match_blurb: string | null

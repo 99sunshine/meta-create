@@ -1,18 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 
-const NAV_ITEMS = [
-  { label: 'Explore', href: '/explore' },
-  { label: 'Events', href: '/events/space-base' },
-  { label: 'Profile', href: '/profile' },
-]
-
 export default function TopNav() {
-  const pathname = usePathname()
   const router = useRouter()
   const { user, sessionUser, logout } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -51,39 +44,18 @@ export default function TopNav() {
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
 
         {/* Logo */}
-        <Link href="/main" className="flex items-center gap-2 shrink-0">
+        <Link href="/explore" className="flex items-center gap-2 shrink-0">
           <span className="text-xl">🔥</span>
           <span className="font-bold text-white tracking-wide text-sm sm:text-base">
             Meta<span style={{ color: '#E7770F' }}>Create</span>
           </span>
         </Link>
 
-        {/* Nav tabs */}
-        <div className="flex items-center gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== '/main' && pathname.startsWith(item.href))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/60 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
-
         {/* Right side: avatar dropdown */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-2">
           {sessionUser ? (
-            <div className="relative" ref={dropdownRef}>
+            <>
+              <div className="relative" ref={dropdownRef}>
               {/* Avatar button */}
               <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
@@ -138,6 +110,7 @@ export default function TopNav() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <Link
               href="/login"

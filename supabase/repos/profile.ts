@@ -121,4 +121,22 @@ export class ProfileRepository {
     if (error) throw new Error(`Recent profiles fetch failed: ${error.message}`)
     return (data ?? []) as UserProfile[]
   }
+
+  /**
+   * List creators for Explore.
+   * Returns onboarding-complete profiles (public browsing surface).
+   */
+  async listCreators(limit = 60): Promise<UserProfile[]> {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('onboarding_complete', true)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw new Error(`Creators fetch failed: ${error.message}`)
+    return (data ?? []) as UserProfile[]
+  }
 }

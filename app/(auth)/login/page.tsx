@@ -26,7 +26,7 @@ export default function LoginPage() {
   // Redirect as soon as we have a session — /main handles onboarding redirect.
   useEffect(() => {
     if (!loading && sessionUser) {
-      router.push('/main')
+      router.push('/explore')
     }
   }, [loading, sessionUser, router])
 

@@ -3,64 +3,99 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import TopNav from '@/components/features/layout/TopNav'
+import BottomTabs from '@/components/features/layout/BottomTabs'
 import { Button } from '@/components/ui/button'
+import { createClient } from '@/supabase/utils/client'
 import type { UserProfile } from '@/types'
-import { CollabInbox } from '@/components/features/collab/CollabInbox'
+import type { TeamWithMembers } from '@/types'
+import { TeamsRepository } from '@/supabase/repos/teams'
+import { WorksRepository } from '@/supabase/repos/works'
+import type { WorkWithCreator } from '@/types'
 
-// ──────────────────────────────────────
-// Small helper: coloured avatar initials
-// ──────────────────────────────────────
-function Avatar({ name }: { name: string }) {
-  const initials = name
+// ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
+const SKILL_COLORS = {
+  teal: 'bg-[rgba(15,134,136,0.2)] border-[rgba(15,134,136,0.5)] text-[#70b7b8]',
+  purple: 'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
+  orange: 'bg-[rgba(223,112,21,0.2)] border-[rgba(223,112,21,0.5)] text-[#efb88a]',
+  blue: 'bg-[rgba(21,55,223,0.2)] border-[rgba(21,55,223,0.5)] text-[#8a9bef]',
+}
+
+const SKILL_COLOR_MAP: Record<string, keyof typeof SKILL_COLORS> = {
+  // teal — engineering/tech
+  'Full-Stack Dev': 'teal', 'Full-Stack': 'teal', 'Backend': 'teal', 'Frontend': 'teal',
+  'Mobile Dev': 'teal', 'DevOps': 'teal', 'AI / ML': 'teal', 'Data Science': 'teal',
+  'Engineering': 'teal', 'Web Dev': 'teal', 'iOS': 'teal', 'Android': 'teal',
+  // purple — design/creative
+  'UI Design': 'purple', 'UX Design': 'purple', 'Figma': 'purple', 'Product Design': 'purple',
+  'Brand Identity': 'purple', 'Illustration': 'purple', 'Motion Design': 'purple', 'Creative': 'purple',
+  // orange — business/growth
+  'Go-to-Market': 'orange', 'Growth': 'orange', 'Marketing': 'orange', 'Business Dev': 'orange',
+  'Strategy': 'orange', 'Operations': 'orange', 'Finance': 'orange', 'Sales': 'orange',
+  // blue — research/strategy
+  'Research': 'blue', 'User Research': 'blue', 'Data Analysis': 'blue', 'Science': 'blue',
+  'Writing': 'blue', 'Content': 'blue', 'Policy': 'blue',
+}
+
+function skillColor(s: string): string {
+  return SKILL_COLORS[SKILL_COLOR_MAP[s] ?? 'teal']
+}
+
+// ── Avatar ───────────────────────────────────────────────────────────────────
+function Avatar({ name, src, size = 80 }: { name: string; src?: string | null; size?: number }) {
+  const initials = (name || '?')
     .split(' ')
     .map((w) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
 
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   return (
     <div
-      className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full text-2xl font-bold text-white shadow-lg ring-2 ring-white/20"
-      style={{ background: 'linear-gradient(135deg,#E7770F,#f5a623)' }}
+      className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+      style={{
+        width: size,
+        height: size,
+        background: 'linear-gradient(135deg,#E7770F,#f5a623)',
+        fontSize: size * 0.28,
+      }}
     >
-      {initials || '?'}
+      {initials}
     </div>
   )
 }
 
-// Chip row for skills / interests / tags
-function ChipRow({ items, color }: { items: string[]; color: string }) {
-  if (!items.length) return <p className="text-sm text-white/40 italic">—</p>
+// ── Section ──────────────────────────────────────────────────────────────────
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span
-          key={item}
-          className={`rounded-full px-3 py-1 text-xs font-medium ${color}`}
-        >
-          {item}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-// Section card wrapper
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">
-        {title}
-      </h3>
+    <div className="flex flex-col gap-[10px] pt-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] font-semibold text-white">{title}</p>
+        {action}
+      </div>
       {children}
     </div>
   )
 }
 
-// ──────────────────────────────────────
-// Inline edit modal for quick profile updates
-// ──────────────────────────────────────
+// ── Edit Profile Modal ────────────────────────────────────────────────────────
 function EditProfileModal({
   profile,
   onClose,
@@ -68,10 +103,9 @@ function EditProfileModal({
 }: {
   profile: UserProfile
   onClose: () => void
-  onSaved: (updated: Partial<UserProfile>) => void
+  onSaved: () => void
 }) {
   const { refreshProfile } = useAuth()
-  const { createClient } = require('@/supabase/utils/client')
   const supabase = createClient()
 
   const [name, setName] = useState(profile.name ?? '')
@@ -84,68 +118,57 @@ function EditProfileModal({
   const handleSave = async () => {
     setSaving(true)
     setError('')
-    const updates = { name, city, school, manifesto }
     const { error: err } = await supabase
       .from('profiles')
-      .update(updates)
+      .update({ name, city, school, manifesto, updated_at: new Date().toISOString() })
       .eq('id', profile.id)
-    if (err) {
-      setError(err.message)
-      setSaving(false)
-      return
-    }
+    if (err) { setError(err.message); setSaving(false); return }
     await refreshProfile()
-    onSaved(updates)
-    onClose()
+    onSaved()
     setSaving(false)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-md rounded-2xl border border-white/10 p-6"
-           style={{ backgroundColor: '#121B3E' }}>
-        <h2 className="mb-5 text-lg font-bold text-white">Edit Profile</h2>
-
-        <div className="space-y-4">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full max-w-md rounded-2xl border border-white/10 p-5 mb-2"
+        style={{ backgroundColor: '#101837' }}>
+        <h2 className="mb-4 text-base font-bold text-white">Edit Profile</h2>
+        <div className="space-y-3">
           {[
             { label: 'Name', value: name, setter: setName, placeholder: 'Your name' },
-            { label: 'City', value: city, setter: setCity, placeholder: 'e.g. San Francisco' },
-            { label: 'School / Organisation', value: school, setter: setSchool, placeholder: 'e.g. Stanford University' },
+            { label: 'City', value: city, setter: setCity, placeholder: 'e.g. Beijing' },
+            { label: 'School / Organisation', value: school, setter: setSchool, placeholder: 'e.g. Tsinghua' },
           ].map(({ label, value, setter, placeholder }) => (
             <div key={label}>
-              <label className="mb-1 block text-xs text-white/60">{label}</label>
+              <label className="mb-1 block text-xs text-white/50">{label}</label>
               <input
                 value={value}
                 onChange={(e) => setter(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-orange-400 focus:outline-none"
+                className="w-full rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-[#e46d2e] focus:outline-none"
               />
             </div>
           ))}
-
           <div>
-            <label className="mb-1 block text-xs text-white/60">Manifesto</label>
+            <label className="mb-1 block text-xs text-white/50">Manifesto / Building next</label>
             <textarea
               value={manifesto}
               onChange={(e) => setManifesto(e.target.value)}
               rows={3}
-              placeholder="Describe your creator journey…"
-              className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-orange-400 focus:outline-none resize-none"
+              placeholder="What are you building next?"
+              className="w-full rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-[#e46d2e] focus:outline-none resize-none"
             />
           </div>
-
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
-
-        <div className="mt-5 flex gap-3 justify-end">
-          <Button variant="ghost" size="sm" onClick={onClose}
-                  className="text-white/60 hover:text-white">
-            Cancel
-          </Button>
+        <div className="mt-4 flex gap-2 justify-end">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-white/60 hover:text-white">Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}
-                  className="text-white font-medium"
-                  style={{ backgroundColor: '#E7770F' }}>
+            className="text-white font-medium" style={{ backgroundColor: '#E7770F' }}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
@@ -154,180 +177,290 @@ function EditProfileModal({
   )
 }
 
-// ──────────────────────────────────────
-// Main ProfilePage
-// ──────────────────────────────────────
+// ── Main ProfilePage ──────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, sessionUser, loading, profileLoading } = useAuth()
+  const { user, sessionUser, loading, profileLoading, logout } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
+  const [myTeams, setMyTeams] = useState<TeamWithMembers[]>([])
+  const [myWorks, setMyWorks] = useState<WorkWithCreator[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
 
   useEffect(() => {
-    if (!loading && !sessionUser) {
-      router.push('/login')
-    }
+    if (!loading && !sessionUser) router.push('/login')
   }, [loading, sessionUser, router])
+
+  useEffect(() => {
+    if (!sessionUser) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDataLoading(true)
+    Promise.all([
+      new TeamsRepository().getTeamsByOwnerId(sessionUser.id, 10).catch(() => []),
+      new WorksRepository().getWorksByUserId(sessionUser.id, 10).catch(() => []),
+    ])
+      .then(([teams, works]) => {
+        setMyTeams(teams as TeamWithMembers[])
+        setMyWorks(works as WorkWithCreator[])
+      })
+      .finally(() => setDataLoading(false))
+  }, [sessionUser])
 
   if (loading || profileLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center"
-           style={{ backgroundColor: '#121B3E' }}>
-        <p className="text-white/60 text-sm">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
+        <p className="text-white/50 text-sm">Loading…</p>
       </div>
     )
   }
 
   if (!sessionUser) return null
 
-  // If user hasn't finished onboarding, redirect there
-  if (!profileLoading && user && !user.onboarding_complete) {
-    // Show profile with an "incomplete" notice instead of hard-redirecting
-  }
-
   const profile = user
-  const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || 'Anonymous'
-
-  const skills = profile?.skills ?? []
-  const interests = profile?.interests ?? []
-  const tags = profile?.tags ?? []
-
-  const roleColor: Record<string, string> = {
-    Builder: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-    Designer: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
-    Researcher: 'bg-green-500/20 text-green-300 border border-green-500/30',
-    Hustler: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
-    Creator: 'bg-pink-500/20 text-pink-300 border border-pink-500/30',
-  }
-  const roleBadge = roleColor[profile?.role ?? ''] ?? 'bg-white/10 text-white/70'
-
-  const availabilityLabel: Record<string, string> = {
-    weekends: 'Weekends only',
-    evenings: 'Evenings',
-    flexible: 'Flexible',
-    'full-time': 'Full-time',
-  }
+  const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || 'Creator'
+  const skills = (profile?.skills ?? []) as string[]
+  const tags = (profile?.tags ?? []) as string[]
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0c1428' }}>
-      {/* Subtle star bg */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="stars opacity-40" />
-        <div className="stars2 opacity-30" />
-      </div>
-
-      <div className="relative z-10">
-        <TopNav />
-
-        <div className="mx-auto max-w-2xl px-4 pt-20 pb-16 sm:px-6">
-
-          {/* ── Hero card ── */}
-          <div className="mb-6 rounded-2xl border border-white/10 p-6 sm:p-8"
-               style={{ background: 'linear-gradient(135deg, rgba(231,119,15,0.1) 0%, rgba(18,27,62,0.6) 60%)' }}>
-
-            <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6 gap-4">
-              <Avatar name={displayName} />
-
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold text-white truncate">{displayName}</h1>
-                  {profile?.role && (
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge}`}>
-                      {profile.role}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2 text-sm text-white/50 mb-3">
-                  {profile?.school && <span>🎓 {profile.school}</span>}
-                  {profile?.city && <span>📍 {profile.city}</span>}
-                  {profile?.availability && (
-                    <span className="text-green-400">
-                      ⚡ {availabilityLabel[profile.availability] ?? profile.availability}
-                    </span>
-                  )}
-                </div>
-
-                {profile?.manifesto ? (
-                  <p className="text-sm text-white/70 leading-relaxed">
-                    &ldquo;{profile.manifesto}&rdquo;
-                  </p>
-                ) : (
-                  <p className="text-sm text-white/30 italic">No manifesto yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                onClick={() => setEditOpen(true)}
-                className="text-white font-medium text-xs"
-                style={{ backgroundColor: '#E7770F' }}
-              >
-                Edit Profile
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => router.push('/onboarding')}
-                className="text-white/60 hover:text-white text-xs border border-white/10 hover:bg-white/10"
-              >
-                Full Re-onboard
-              </Button>
-            </div>
-
-            {!profile?.onboarding_complete && (
-              <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-300">
-                Your profile is incomplete. Complete onboarding to unlock co-creator matching.
-              </div>
-            )}
-          </div>
-
-          {/* ── Info sections ── */}
-          <div className="space-y-4">
-            <Section title="Skills">
-              <ChipRow
-                items={skills}
-                color="bg-blue-500/15 text-blue-300 border border-blue-500/20"
-              />
-            </Section>
-
-            <Section title="Interests">
-              <ChipRow
-                items={interests}
-                color="bg-purple-500/15 text-purple-300 border border-purple-500/20"
-              />
-            </Section>
-
-            <Section title="Creator Tags">
-              <ChipRow
-                items={tags}
-                color="bg-orange-500/15 text-orange-300 border border-orange-500/20"
-              />
-            </Section>
-
-            {profile?.collab_style && (
-              <Section title="Collab Style">
-                <p className="text-sm text-white/70">{profile.collab_style}</p>
-              </Section>
-            )}
-
-            <Section title="Account">
-              <div className="text-sm text-white/50 space-y-1">
-                <p>Email: <span className="text-white/80">{profile?.email ?? sessionUser.email}</span></p>
-                <p>Member since: <span className="text-white/80">
-                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'}
-                </span></p>
-              </div>
-            </Section>
-
-            {/* Collab inbox */}
-            <Section title="Collab Requests">
-              <CollabInbox userId={sessionUser.id} />
-            </Section>
-          </div>
+    <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
+      {/* Simple top bar */}
+      <div className="h-[60px] flex items-center justify-between px-5"
+        style={{ backgroundColor: '#101837' }}>
+        <button
+          type="button"
+          className="flex flex-col gap-[5px]"
+          onClick={() => setEditOpen(true)}
+          aria-label="Edit profile"
+        >
+          <span className="block h-0.5 w-5 rounded bg-white" />
+          <span className="block h-0.5 w-5 rounded bg-white" />
+          <span className="block h-0.5 w-3.5 rounded bg-white" />
+        </button>
+        <div className="flex items-center gap-2">
+          {!profile?.onboarding_complete && (
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding')}
+              className="text-xs text-amber-300 border border-amber-500/40 bg-amber-500/10 px-3 py-1 rounded-full"
+            >
+              完善资料
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Content */}
+      <div className="px-5 pb-28">
+
+        {/* ── Profile Header ── */}
+        <div className="flex gap-[14px] items-center">
+          <Avatar name={displayName} src={profile?.avatar_url} size={80} />
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-[20px] font-semibold text-white leading-tight truncate">{displayName}</p>
+            <div className="flex flex-wrap gap-2">
+              {profile?.school && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
+                  {profile.school}
+                </span>
+              )}
+              {profile?.city && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
+                  {profile.city}
+                </span>
+              )}
+            </div>
+            {profile?.manifesto && (
+              <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-2">
+                &ldquo;{profile.manifesto}&rdquo;
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Building next (manifesto vision) ── */}
+        {profile?.manifesto && (
+          <Section title="Building next">
+            <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px]">
+              <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{profile.manifesto}</p>
+            </div>
+          </Section>
+        )}
+
+        {/* ── Looking for (tags in pink) ── */}
+        {tags.length > 0 && (
+          <Section title="Looking for">
+            <div className="flex flex-wrap gap-[6px]">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-[12px] border border-[rgba(209,27,115,0.5)] bg-[rgba(209,27,115,0.2)] px-[10px] py-[5px] text-[12px] text-[#e88dba]"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* ── Skills (4-color system) ── */}
+        {skills.length > 0 && (
+          <Section title="Skills">
+            <div className="flex flex-wrap gap-[6px]">
+              {skills.map((s) => (
+                <span
+                  key={s}
+                  className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(s)}`}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* ── My Teams ── */}
+        <Section
+          title="My Teams"
+          action={
+            <button
+              type="button"
+              className="text-[12px] text-white/40"
+              onClick={() => router.push('/teams')}
+            >
+              View all ›
+            </button>
+          }
+        >
+          {dataLoading ? (
+            <div className="flex gap-3">
+              {[1, 2].map((i) => <div key={i} className="h-[72px] w-[150px] rounded-[12px] bg-white/5 animate-pulse shrink-0" />)}
+            </div>
+          ) : myTeams.length === 0 ? (
+            <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-4 py-3 flex items-center justify-between">
+              <p className="text-[13px] text-white/40">还没有队伍</p>
+              <button
+                type="button"
+                className="text-[12px] text-[#e46d2e]"
+                onClick={() => router.push('/teams/create')}
+              >
+                创建 +
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-[10px] overflow-x-auto pb-1">
+              {myTeams.map((team) => (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => router.push(`/teams/${team.id}`)}
+                  className="shrink-0 rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] flex gap-3 items-start text-left hover:bg-white/10 transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-[rgba(228,109,46,0.2)] flex items-center justify-center text-sm">
+                    🚀
+                  </div>
+                  <div className="flex flex-col gap-[3px]">
+                    <p className="text-[13px] font-semibold text-white whitespace-nowrap max-w-[100px] truncate">
+                      {team.name}
+                    </p>
+                    <p className="text-[11px] text-white/40">
+                      {(team.member_count ?? 1)} members
+                      {team.owner_id === sessionUser?.id ? ' · Lead' : ' · Member'}
+                    </p>
+                  </div>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => router.push('/teams/create')}
+                className="shrink-0 rounded-[12px] border-[0.5px] border-dashed border-white/20 px-[14px] py-[12px] text-[12px] text-white/40 hover:text-white/60 hover:border-white/30 transition-colors"
+              >
+                + 新建队伍
+              </button>
+            </div>
+          )}
+        </Section>
+
+        {/* ── My Works / Projects ── */}
+        <Section
+          title="My Works / Projects"
+          action={
+            <button type="button" className="text-[12px] text-white/40">
+              View all ›
+            </button>
+          }
+        >
+          {dataLoading ? (
+            <div className="flex gap-3">
+              {[1, 2].map((i) => <div key={i} className="h-[160px] w-[200px] rounded-[12px] bg-white/5 animate-pulse shrink-0" />)}
+            </div>
+          ) : myWorks.length === 0 ? (
+            <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-4 py-3">
+              <p className="text-[13px] text-white/40">还没有作品</p>
+            </div>
+          ) : (
+            <div className="flex gap-[10px] overflow-x-auto pb-1">
+              {myWorks.map((work) => {
+                const thumb = work.images?.[0]
+                const statusColor = 'bg-[rgba(228,109,46,0.15)] text-[#e46d2e]'
+                return (
+                  <div
+                    key={work.id}
+                    className="shrink-0 w-[200px] rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] flex flex-col gap-2"
+                  >
+                    {thumb ? (
+                      <img src={thumb} alt={work.title ?? ''} className="h-[80px] w-full rounded-lg object-cover" />
+                    ) : (
+                      <div className="h-[80px] rounded-lg bg-[rgba(228,109,46,0.15)]" />
+                    )}
+                    <p className="text-[13px] font-semibold text-white leading-tight line-clamp-1">
+                      {work.title}
+                    </p>
+                    <p className="text-[11px] text-white/50 line-clamp-2 leading-snug">
+                      {work.description}
+                    </p>
+                    <span className={`self-start rounded-[8px] px-2 py-[3px] text-[10px] font-medium ${statusColor}`}>
+                      {work.category}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Section>
+
+        {/* ── Account ── */}
+        <Section title="Account">
+          <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] space-y-1">
+            <p className="text-[13px] text-white/50">
+              Email: <span className="text-white/80">{profile?.email ?? sessionUser.email}</span>
+            </p>
+            <p className="text-[13px] text-white/50">
+              Member since:{' '}
+              <span className="text-white/80">
+                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('zh-CN') : '—'}
+              </span>
+            </p>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button
+              type="button"
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+              onClick={() => router.push('/onboarding')}
+            >
+              重新建档
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded-xl border border-red-500/20 bg-red-500/10 py-2.5 text-sm text-red-400 hover:bg-red-500/15 transition-colors"
+              onClick={logout}
+            >
+              退出登录
+            </button>
+          </div>
+        </Section>
+
+      </div>
+
+      <BottomTabs />
 
       {editOpen && profile && (
         <EditProfileModal
