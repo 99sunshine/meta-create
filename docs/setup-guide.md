@@ -55,9 +55,11 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 | 顺序 | 文件 | 说明 |
 |------|------|------|
-| 1 | `supabase/migrations/rls_policies_create.sql` | 创建 profiles / teams / works 表及 RLS 策略 |
+| 0 | `supabase/migrations/schema.sql` | 创建 profiles / teams / works 表|
+| 1 | `supabase/migrations/rls_policies_create.sql` | 创建 RLS 策略 |
 | 2 | `supabase/migrations/create_views.sql` | 创建 works_with_creator / teams_with_members 视图 |
 | 3 | `supabase/migrations/fix_works_category_constraint.sql` | 修复 works 类别约束（Engineering/Design/Art/Science/Business/Other） |
+| 4 | `supabase/migrations/collab_requests_rls.sql` |
 
 ### 3.2 Auth 配置
 
