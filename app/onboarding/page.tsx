@@ -66,10 +66,11 @@ export default function OnboardingPage() {
   }, [loading, sessionUser, router])
 
   useEffect(() => {
-    if (sessionUser?.email) {
-      setFormData((prev) => ({ ...prev, email: sessionUser.email || '' }))
+    const em = sessionUser?.email
+    if (em) {
+      setFormData((prev) => ({ ...prev, email: em }))
     }
-  }, [sessionUser])
+  }, [sessionUser?.email])
 
   if (loading) {
     return (

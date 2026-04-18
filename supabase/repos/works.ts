@@ -1,6 +1,21 @@
 import { createClient } from '../utils/client'
-import type { WorkWithCreator, WorkWithCreatorView, WorkCreator, WorkCreateInput } from '@/types'
+import type {
+  WorkWithCreator,
+  WorkWithCreatorView,
+  WorkCreator,
+  WorkCreateInput,
+  WorkTeamSummary,
+} from '@/types'
 import { workCreateSchema } from '@/schemas/work'
+
+function parseTeamJson(raw: unknown): WorkTeamSummary | null {
+  if (raw == null || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.id === 'string' && typeof o.name === 'string') {
+    return { id: o.id, name: o.name }
+  }
+  return null
+}
 
 function parseWorkView(view: WorkWithCreatorView): WorkWithCreator {
   return {
@@ -16,8 +31,9 @@ function parseWorkView(view: WorkWithCreatorView): WorkWithCreator {
     created_at: view.created_at!,
     updated_at: view.updated_at!,
     collaborator_ids: view.collaborator_ids,
-    event_id: view.event_id,
-    creator: view.creator as WorkCreator
+    team_id: view.team_id ?? null,
+    team: parseTeamJson(view.team),
+    creator: view.creator as WorkCreator,
   }
 }
 
@@ -105,6 +121,26 @@ export class WorksRepository {
   }
 
   /**
+   * Works attached to a team (from unified works.team_id)
+   */
+  async getWorksByTeamId(teamId: string, limit: number = 50): Promise<WorkWithCreator[]> {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from('works_with_creator')
+      .select('*')
+      .eq('team_id', teamId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw new Error(`Failed to fetch team works: ${error.message}`)
+    }
+
+    return (data || []).map(parseWorkView)
+  }
+
+  /**
    * Create a new work
    */
   async createWork(workData: WorkCreateInput, userId: string): Promise<WorkWithCreator> {
@@ -124,7 +160,7 @@ export class WorksRepository {
         images: validated.images || null,
         links: validated.links || null,
         collaborator_ids: validated.collaborator_ids || null,
-        event_id: validated.event_id || null,
+        team_id: validated.team_id ?? null,
         user_id: userId,
         save_count: 0
       })

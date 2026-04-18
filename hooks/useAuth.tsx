@@ -1,6 +1,15 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import type { UserProfile } from '@/types'
 import { createClient } from '@/supabase/utils/client'
 import { ProfileRepository } from '@/supabase/repos/profile'
@@ -44,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = supabaseRef.current
   const router = useRouter()
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true)
     try {
       const profileRepo = new ProfileRepository()
@@ -56,13 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setProfileLoading(false)
     }
-  }
+  }, [])
 
-  const refreshProfile = async () => {
-    if (sessionUser) {
-      await fetchProfile(sessionUser.id)
-    }
-  }
+  /** 用 getSession 读当前用户，避免依赖 sessionUser 引用导致 useCallback 频繁失效 */
+  const refreshProfile = useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    const uid = session?.user?.id
+    if (uid) await fetchProfile(uid)
+  }, [supabase, fetchProfile])
 
   useEffect(() => {
     // getSession() reads from cookies — instant, no network call.
@@ -87,9 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase, fetchProfile])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) {
@@ -103,11 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Failed to logout:', err)
     }
-  }
+  }, [supabase, router])
 
-  return (
-    <AuthContext.Provider value={{ user, sessionUser, loading, profileLoading, logout, refreshProfile }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      sessionUser,
+      loading,
+      profileLoading,
+      logout,
+      refreshProfile,
+    }),
+    [user, sessionUser, loading, profileLoading, logout, refreshProfile],
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -4,6 +4,7 @@
 
 -- View 1: works_with_creator
 -- Joins works table with creator profile information
+-- (After works_team_id_unify.sql, recreate view there for optional team JSON.)
 CREATE OR REPLACE VIEW works_with_creator AS
 SELECT 
   w.*,

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
+import { useCreateFlow } from '@/components/providers/CreateFlowProvider'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/supabase/utils/client'
 import type { UserProfile } from '@/types'
@@ -180,6 +181,7 @@ function EditProfileModal({
 // ── Main ProfilePage ──────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const router = useRouter()
+  const { subscribeEntityCreated } = useCreateFlow()
   const { user, sessionUser, loading, profileLoading, logout } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
   const [myTeams, setMyTeams] = useState<TeamWithMembers[]>([])
@@ -204,6 +206,16 @@ export default function ProfilePage() {
       })
       .finally(() => setDataLoading(false))
   }, [sessionUser])
+
+  useEffect(() => {
+    if (!sessionUser) return
+    return subscribeEntityCreated(() => {
+      void new WorksRepository()
+        .getWorksByUserId(sessionUser.id, 10)
+        .then((works) => setMyWorks(works))
+        .catch(() => {})
+    })
+  }, [sessionUser, subscribeEntityCreated])
 
   if (loading || profileLoading) {
     return (
@@ -413,6 +425,11 @@ export default function ProfilePage() {
                     <p className="text-[13px] font-semibold text-white leading-tight line-clamp-1">
                       {work.title}
                     </p>
+                    {work.team && (
+                      <p className="text-[10px] text-[#e46d2e]/90 truncate">
+                        队伍 · {work.team.name}
+                      </p>
+                    )}
                     <p className="text-[11px] text-white/50 line-clamp-2 leading-snug">
                       {work.description}
                     </p>

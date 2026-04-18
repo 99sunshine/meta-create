@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/supabase/utils/client'
@@ -26,16 +26,20 @@ export default function SignUpPage() {
   const [emailSent, setEmailSent] = useState(false)
   const [showExistingEmailModal, setShowExistingEmailModal] = useState(false)
   const [signingUp, setSigningUp] = useState(false)
+  const onboardingRedirectRef = useRef(false)
   const supabase = createClient()
 
   // After session is established, force-refresh the profile to ensure the row
   // inserted during signup is loaded into AuthContext (user.onboarding_complete
   // = false). Without this, onAuthStateChange can race with the INSERT and
   // fetchProfile returns null, causing the /main onboarding banner to not show.
+  // 只跳转一次：避免 refreshProfile / Context value 变化导致 effect 连发 router.push。
   useEffect(() => {
-    if (signingUp && !authLoading && sessionUser) {
-      refreshProfile().finally(() => router.push('/onboarding'))
-    }
+    if (!signingUp || authLoading || !sessionUser || onboardingRedirectRef.current) return
+    onboardingRedirectRef.current = true
+    void refreshProfile().finally(() => {
+      router.replace('/onboarding')
+    })
   }, [signingUp, authLoading, sessionUser, router, refreshProfile])
 
   const handlePasswordSignUp = async (e: React.FormEvent) => {

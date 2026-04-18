@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from 'rea
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
-import { CreateModal } from '@/components/features/create'
 import { Button } from '@/components/ui/button'
+import { useCreateFlow } from '@/components/providers/CreateFlowProvider'
 import { CreatorsFeed } from '@/components/features/explore/CreatorsFeed'
 import type { SwipeDirection } from '@/components/features/swipe/SwipeStack'
 import { SwipeDemoExperience } from '@/components/features/swipe/SwipeDemoExperience'
@@ -18,10 +18,8 @@ import type { UserProfile } from '@/types'
 export default function ExplorePage() {
   const { user, sessionUser, loading, profileLoading } = useAuth()
   const router = useRouter()
-  const [modalOpen, setModalOpen] = useState(false)
-  const [modalType, setModalType] = useState<'team' | 'work'>('team')
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
-  const [createPickerOpen, setCreatePickerOpen] = useState(false)
+  const { subscribeEntityCreated } = useCreateFlow()
   const [swipeMode, setSwipeMode] = useState(false)
   const [swipeProfiles, setSwipeProfiles] = useState<UserProfile[]>([])
   const [swipeLoading, setSwipeLoading] = useState(false)
@@ -86,6 +84,10 @@ export default function ExplorePage() {
       if (swipeNoticeTimerRef.current) clearTimeout(swipeNoticeTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    return subscribeEntityCreated(() => setFeedRefreshKey((k) => k + 1))
+  }, [subscribeEntityCreated])
 
   const handleSwipe = useCallback(
     async (profile: UserProfile, dir: SwipeDirection) => {
@@ -289,49 +291,7 @@ export default function ExplorePage() {
         </main>
       </div>
 
-      <BottomTabs
-        onCreate={() => {
-          setCreatePickerOpen(true)
-        }}
-      />
-
-      {createPickerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setCreatePickerOpen(false)
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] p-4">
-            <p className="text-sm font-medium text-white mb-3">创建</p>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1 text-white"
-                style={{ backgroundColor: '#3b82f6' }}
-                onClick={() => {
-                  setModalType('team')
-                  setCreatePickerOpen(false)
-                  setModalOpen(true)
-                }}
-              >
-                + Team
-              </Button>
-              <Button
-                className="flex-1 text-white"
-                style={{ backgroundColor: '#a855f7' }}
-                onClick={() => {
-                  setModalType('work')
-                  setCreatePickerOpen(false)
-                  setModalOpen(true)
-                }}
-              >
-                + Work
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BottomTabs />
 
       {picker && (
         <div
@@ -390,13 +350,6 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
-
-      <CreateModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onCreated={() => { setModalOpen(false); setFeedRefreshKey((k) => k + 1) }}
-        type={modalType}
-      />
 
       {/* ── Swipe Mode Full-Screen Overlay (Demo-aligned) ── */}
       {swipeMode && (

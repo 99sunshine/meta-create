@@ -64,6 +64,22 @@ export async function createWorkAction(workData: WorkCreateInput, userId: string
     
     // Validate input
     const validated = workCreateSchema.parse(workData)
+
+    if (validated.team_id) {
+      const { data: membership, error: memErr } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('team_id', validated.team_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (memErr || !membership) {
+        return {
+          success: false,
+          error: 'You must be a member of the selected team to attach this work.',
+        }
+      }
+    }
     
     // Insert work
     const { data: work, error: workError } = await supabase
@@ -76,7 +92,7 @@ export async function createWorkAction(workData: WorkCreateInput, userId: string
         images: validated.images || null,
         links: validated.links || null,
         collaborator_ids: validated.collaborator_ids || null,
-        event_id: validated.event_id || null,
+        team_id: validated.team_id ?? null,
         user_id: userId,
         save_count: 0
       })

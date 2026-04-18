@@ -10,9 +10,19 @@ interface CreateModalProps {
   onClose: () => void
   onCreated?: () => void
   type: 'team' | 'work'
+  /** When creating a work under a team (from FAB flow) */
+  defaultTeamId?: string | null
+  defaultTeamName?: string | null
 }
 
-export function CreateModal({ isOpen, onClose, onCreated, type }: CreateModalProps) {
+export function CreateModal({
+  isOpen,
+  onClose,
+  onCreated,
+  type,
+  defaultTeamId,
+  defaultTeamName,
+}: CreateModalProps) {
   const handleSuccess = () => {
     onCreated?.()
     onClose()
@@ -37,7 +47,7 @@ export function CreateModal({ isOpen, onClose, onCreated, type }: CreateModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
@@ -51,9 +61,11 @@ export function CreateModal({ isOpen, onClose, onCreated, type }: CreateModalPro
               {type === 'team' ? 'Create Team' : 'Create Work'}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              {type === 'team' 
+              {type === 'team'
                 ? 'Start a new team and recruit collaborators'
-                : 'Showcase your creative work to the community'}
+                : defaultTeamId
+                  ? `将作品关联到队伍：${defaultTeamName ?? '队伍'}`
+                  : '个人作品，或稍后在队伍中展示'}
             </p>
           </div>
           <button
@@ -69,7 +81,13 @@ export function CreateModal({ isOpen, onClose, onCreated, type }: CreateModalPro
           {type === 'team' ? (
             <CreateTeamForm onSuccess={handleSuccess} onCancel={onClose} />
           ) : (
-            <CreateWorkForm onSuccess={handleSuccess} onCancel={onClose} />
+            <CreateWorkForm
+              key={defaultTeamId ?? 'personal'}
+              onSuccess={handleSuccess}
+              onCancel={onClose}
+              defaultTeamId={defaultTeamId ?? undefined}
+              defaultTeamName={defaultTeamName ?? undefined}
+            />
           )}
         </div>
       </div>

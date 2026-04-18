@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { trackEvent } from '@/lib/analytics'
 import { ROLES } from '@/constants/roles'
+import { useCreateFlowOptional } from '@/components/providers/CreateFlowProvider'
 
 const TRACKS = [
   'AI & Machine Learning', 'Web3 & DeFi', 'Climate Tech', 'HealthTech',
@@ -17,6 +18,7 @@ const TRACKS = [
 
 export default function CreateTeamPage() {
   const router = useRouter()
+  const createFlow = useCreateFlowOptional()
   const { sessionUser, loading, user } = useAuth()
 
   const [name, setName] = useState('')
@@ -61,6 +63,7 @@ export default function CreateTeamPage() {
         sessionUser.id,
       )
       trackEvent('team_created', { team_id: team.id, track, role: user?.role ?? null })
+      createFlow?.notifyEntityCreated()
       router.push(`/teams/${team.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '创建失败，请重试')

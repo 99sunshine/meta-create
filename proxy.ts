@@ -21,6 +21,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // 排除 /api/analytics：埋点无需每次走 Supabase getUser()，减轻注册后连发请求时的 proxy 延迟
+    '/((?!_next/static|_next/image|favicon.ico|api/analytics|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

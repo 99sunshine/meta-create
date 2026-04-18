@@ -12,12 +12,20 @@ import { X } from 'lucide-react'
 interface CreateWorkFormProps {
   onSuccess?: () => void
   onCancel?: () => void
+  /** Optional team to attach (must be a team the user belongs to) */
+  defaultTeamId?: string
+  defaultTeamName?: string
 }
 
 // Must match the works_category_check DB constraint exactly.
 const CATEGORIES = ['Engineering', 'Design', 'Art', 'Science', 'Business', 'Other'] as const
 
-export function CreateWorkForm({ onSuccess, onCancel }: CreateWorkFormProps) {
+export function CreateWorkForm({
+  onSuccess,
+  onCancel,
+  defaultTeamId,
+  defaultTeamName,
+}: CreateWorkFormProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +36,8 @@ export function CreateWorkForm({ onSuccess, onCancel }: CreateWorkFormProps) {
     category: 'Engineering',
     tags: [],
     images: [],
-    links: []
+    links: [],
+    team_id: defaultTeamId ?? undefined,
   })
 
   const [tagInput, setTagInput] = useState('')
@@ -126,6 +135,11 @@ export function CreateWorkForm({ onSuccess, onCancel }: CreateWorkFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {defaultTeamId && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          队伍作品 · {defaultTeamName ?? '已选队伍'}
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="title">Title *</Label>
         <Input

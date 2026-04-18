@@ -9,8 +9,14 @@ export interface WorkCreator {
   avatar_url: string | null
 }
 
+export interface WorkTeamSummary {
+  id: string
+  name: string
+}
+
 export interface WorkWithCreator extends Omit<Work, 'creator'> {
   creator: WorkCreator
+  team?: WorkTeamSummary | null
 }
 
 // View type from database (with Json types)
@@ -27,6 +33,7 @@ export interface WorkWithCreatorView {
   created_at: string | null
   updated_at: string | null
   collaborator_ids: string[] | null
-  event_id: string | null
+  team_id: string | null
+  team: unknown
   creator: unknown // Json type from view
 }

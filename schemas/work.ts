@@ -32,8 +32,9 @@ export const workCreateSchema = z.object({
   ).optional(),
   
   collaborator_ids: z.array(z.string().uuid()).optional(),
-  
-  event_id: z.string().uuid().nullable().optional()
+
+  /** When set, work is listed under this team; omit or null for personal works */
+  team_id: z.string().uuid().nullable().optional(),
 })
 
 export type WorkCreateInput = z.infer<typeof workCreateSchema>

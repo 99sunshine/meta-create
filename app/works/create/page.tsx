@@ -1,37 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { WorkUploadForm } from '@/components/features/works'
-import { TeamsRepository } from '@/supabase/repos/teams'
 
-export default function CreateTeamWorkPage() {
-  const { id: teamId } = useParams<{ id: string }>()
+export default function CreatePersonalWorkPage() {
   const router = useRouter()
   const { sessionUser, loading } = useAuth()
-  const [teamName, setTeamName] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
   }, [loading, sessionUser, router])
 
-  useEffect(() => {
-    if (!teamId) return
-    let cancelled = false
-    new TeamsRepository()
-      .getTeamById(teamId)
-      .then((t) => {
-        if (!cancelled && t?.name) setTeamName(t.name)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [teamId])
-
   if (loading) return null
-  if (!sessionUser || !teamId) return null
+  if (!sessionUser) return null
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
@@ -46,14 +29,13 @@ export default function CreateTeamWorkPage() {
         >
           ←
         </button>
-        <p className="text-base font-semibold text-white">上传作品</p>
+        <p className="text-base font-semibold text-white">上传作品（个人）</p>
       </div>
 
       <WorkUploadForm
-        teamId={teamId}
-        teamName={teamName}
+        teamId={null}
         userId={sessionUser.id}
-        redirectAfterSave={`/teams/${teamId}`}
+        redirectAfterSave="/profile"
       />
     </div>
   )

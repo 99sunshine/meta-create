@@ -4,21 +4,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { TeamsRepository } from '@/supabase/repos/teams'
+import { WorksRepository } from '@/supabase/repos/works'
 import { createClient } from '@/supabase/utils/client'
-import type { TeamWithMembers } from '@/types'
+import type { TeamWithMembers, WorkWithCreator } from '@/types'
 import { Button } from '@/components/ui/button'
 import { ROLES } from '@/constants/roles'
 import type { Role } from '@/types/interfaces/Role'
 import { trackEvent } from '@/lib/analytics'
-
-interface TeamWork {
-  id: string
-  title: string
-  description: string | null
-  images: string[] | null
-  links: string[] | null
-  submitted_at: string
-}
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -41,7 +33,7 @@ export default function TeamDetailPage() {
   const { sessionUser, loading } = useAuth()
 
   const [team, setTeam] = useState<TeamWithMembers | null>(null)
-  const [works, setWorks] = useState<TeamWork[]>([])
+  const [works, setWorks] = useState<WorkWithCreator[]>([])
   const [pageLoading, setPageLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [joining, setJoining] = useState(false)
@@ -57,14 +49,9 @@ export default function TeamDetailPage() {
   useEffect(() => {
     if (!teamId) return
     setPageLoading(true)
-    const loadWorks = async (): Promise<TeamWork[]> => {
+    const loadWorks = async (): Promise<WorkWithCreator[]> => {
       try {
-        const { data } = await createClient()
-          .from('team_works')
-          .select('*')
-          .eq('team_id', teamId)
-          .order('submitted_at', { ascending: false })
-        return (data ?? []) as TeamWork[]
+        return await new WorksRepository().getWorksByTeamId(teamId)
       } catch {
         return []
       }
@@ -248,6 +235,9 @@ export default function TeamDetailPage() {
                       <img src={thumb} alt={work.title} className="w-full h-40 object-cover" />
                     )}
                     <div className="p-4">
+                      <p className="text-[11px] text-white/35 mb-1">
+                        {work.creator?.name ?? 'Member'}
+                      </p>
                       <p className="text-sm font-semibold text-white">{work.title}</p>
                       {work.description && (
                         <p className="text-xs text-white/50 mt-1 leading-snug line-clamp-2">

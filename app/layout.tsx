@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/hooks/useAuth'
+import { CreateFlowProvider } from '@/components/providers/CreateFlowProvider'
 import './globals.css'
 import '@/components/features/swipe/swipe-demo.css'
 
@@ -19,7 +20,7 @@ export default function RootLayout({
         className="antialiased"
       >
         <AuthProvider>
-          {children}
+          <CreateFlowProvider>{children}</CreateFlowProvider>
         </AuthProvider>
       </body>
     </html>

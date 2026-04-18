@@ -142,39 +142,6 @@ export type Database = {
         }
         Relationships: []
       }
-      team_works: {
-        Row: {
-          id: string
-          team_id: string
-          title: string
-          description: string | null
-          images: string[] | null
-          links: string[] | null
-          submitted_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          team_id: string
-          title: string
-          description?: string | null
-          images?: string[] | null
-          links?: string[] | null
-          submitted_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          team_id?: string
-          title?: string
-          description?: string | null
-          images?: string[] | null
-          links?: string[] | null
-          submitted_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       collab_requests: {
         Row: {
           ai_match_blurb: string | null
@@ -438,12 +405,12 @@ export type Database = {
           collaborator_ids: string[] | null
           created_at: string
           description: string
-          event_id: string | null
           id: string
           images: string[] | null
           links: string[] | null
           save_count: number
           tags: string[] | null
+          team_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -453,12 +420,12 @@ export type Database = {
           collaborator_ids?: string[] | null
           created_at?: string
           description: string
-          event_id?: string | null
           id?: string
           images?: string[] | null
           links?: string[] | null
           save_count?: number
           tags?: string[] | null
+          team_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -468,27 +435,27 @@ export type Database = {
           collaborator_ids?: string[] | null
           created_at?: string
           description?: string
-          event_id?: string | null
           id?: string
           images?: string[] | null
           links?: string[] | null
           save_count?: number
           tags?: string[] | null
+          team_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "works_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "works_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "works_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "works_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams_with_members"
             referencedColumns: ["id"]
@@ -539,27 +506,28 @@ export type Database = {
           created_at: string | null
           creator: Json | null
           description: string | null
-          event_id: string | null
           id: string | null
           images: string[] | null
           links: string[] | null
           save_count: number | null
           tags: string[] | null
+          team: Json | null
+          team_id: string | null
           title: string | null
           updated_at: string | null
           user_id: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "works_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "works_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "works_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "works_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams_with_members"
             referencedColumns: ["id"]

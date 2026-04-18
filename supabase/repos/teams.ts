@@ -110,6 +110,38 @@ export class TeamsRepository {
   /**
    * Get teams where user is owner
    */
+  /**
+   * Teams the user is a member of (including teams they own).
+   */
+  async getTeamsForUser(userId: string, limit: number = 50): Promise<TeamWithMembers[]> {
+    const supabase = createClient()
+
+    const { data: rows, error } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', userId)
+
+    if (error) {
+      throw new Error(`Failed to fetch user team ids: ${error.message}`)
+    }
+
+    const ids = [...new Set((rows ?? []).map((r) => r.team_id).filter(Boolean))] as string[]
+    if (ids.length === 0) return []
+
+    const { data: teams, error: teamsError } = await supabase
+      .from('teams_with_members')
+      .select('*')
+      .in('id', ids)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (teamsError) {
+      throw new Error(`Failed to fetch teams for user: ${teamsError.message}`)
+    }
+
+    return (teams ?? []).map(parseTeamView)
+  }
+
   async getTeamsByOwnerId(ownerId: string, limit: number = 20): Promise<TeamWithMembers[]> {
     const supabase = createClient()
     
