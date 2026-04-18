@@ -12,6 +12,7 @@ import type { TeamWithMembers } from '@/types'
 import { TeamsRepository } from '@/supabase/repos/teams'
 import { WorksRepository } from '@/supabase/repos/works'
 import type { WorkWithCreator } from '@/types'
+import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
 
 // ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
 const SKILL_COLORS = {
@@ -71,27 +72,6 @@ function Avatar({ name, src, size = 80 }: { name: string; src?: string | null; s
       }}
     >
       {initials}
-    </div>
-  )
-}
-
-// ── Section ──────────────────────────────────────────────────────────────────
-function Section({
-  title,
-  action,
-  children,
-}: {
-  title: string
-  action?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-[10px] pt-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-white">{title}</p>
-        {action}
-      </div>
-      {children}
     </div>
   )
 }
@@ -187,6 +167,7 @@ export default function ProfilePage() {
   const [myTeams, setMyTeams] = useState<TeamWithMembers[]>([])
   const [myWorks, setMyWorks] = useState<WorkWithCreator[]>([])
   const [dataLoading, setDataLoading] = useState(true)
+  const encodedProfileReturn = encodeURIComponent('/profile')
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
@@ -197,7 +178,7 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDataLoading(true)
     Promise.all([
-      new TeamsRepository().getTeamsByOwnerId(sessionUser.id, 10).catch(() => []),
+      new TeamsRepository().getTeamsForUser(sessionUser.id, 20).catch(() => []),
       new WorksRepository().getWorksByUserId(sessionUser.id, 10).catch(() => []),
     ])
       .then(([teams, works]) => {
@@ -289,16 +270,16 @@ export default function ProfilePage() {
 
         {/* ── Building next (manifesto vision) ── */}
         {profile?.manifesto && (
-          <Section title="Building next">
+          <MeProfileSection title="Building next">
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px]">
               <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{profile.manifesto}</p>
             </div>
-          </Section>
+          </MeProfileSection>
         )}
 
         {/* ── Looking for (tags in pink) ── */}
         {tags.length > 0 && (
-          <Section title="Looking for">
+          <MeProfileSection title="Looking for">
             <div className="flex flex-wrap gap-[6px]">
               {tags.map((t) => (
                 <span
@@ -309,12 +290,12 @@ export default function ProfilePage() {
                 </span>
               ))}
             </div>
-          </Section>
+          </MeProfileSection>
         )}
 
         {/* ── Skills (4-color system) ── */}
         {skills.length > 0 && (
-          <Section title="Skills">
+          <MeProfileSection title="Skills">
             <div className="flex flex-wrap gap-[6px]">
               {skills.map((s) => (
                 <span
@@ -325,11 +306,11 @@ export default function ProfilePage() {
                 </span>
               ))}
             </div>
-          </Section>
+          </MeProfileSection>
         )}
 
         {/* ── My Teams ── */}
-        <Section
+        <MeProfileSection
           title="My Teams"
           action={
             <button
@@ -359,25 +340,12 @@ export default function ProfilePage() {
           ) : (
             <div className="flex gap-[10px] overflow-x-auto pb-1">
               {myTeams.map((team) => (
-                <button
+                <MeTeamPill
                   key={team.id}
-                  type="button"
-                  onClick={() => router.push(`/teams/${team.id}`)}
-                  className="shrink-0 rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] flex gap-3 items-start text-left hover:bg-white/10 transition-colors"
-                >
-                  <div className="h-9 w-9 rounded-full bg-[rgba(228,109,46,0.2)] flex items-center justify-center text-sm">
-                    🚀
-                  </div>
-                  <div className="flex flex-col gap-[3px]">
-                    <p className="text-[13px] font-semibold text-white whitespace-nowrap max-w-[100px] truncate">
-                      {team.name}
-                    </p>
-                    <p className="text-[11px] text-white/40">
-                      {(team.member_count ?? 1)} members
-                      {team.owner_id === sessionUser?.id ? ' · Lead' : ' · Member'}
-                    </p>
-                  </div>
-                </button>
+                  team={team}
+                  contextUserId={sessionUser.id}
+                  onPress={() => router.push(`/teams/${team.id}?returnTo=${encodedProfileReturn}`)}
+                />
               ))}
               <button
                 type="button"
@@ -388,10 +356,10 @@ export default function ProfilePage() {
               </button>
             </div>
           )}
-        </Section>
+        </MeProfileSection>
 
         {/* ── My Works / Projects ── */}
-        <Section
+        <MeProfileSection
           title="My Works / Projects"
           action={
             <button type="button" className="text-[12px] text-white/40">
@@ -409,42 +377,19 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="flex gap-[10px] overflow-x-auto pb-1">
-              {myWorks.map((work) => {
-                const thumb = work.images?.[0]
-                const statusColor = 'bg-[rgba(228,109,46,0.15)] text-[#e46d2e]'
-                return (
-                  <div
-                    key={work.id}
-                    className="shrink-0 w-[200px] rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] flex flex-col gap-2"
-                  >
-                    {thumb ? (
-                      <img src={thumb} alt={work.title ?? ''} className="h-[80px] w-full rounded-lg object-cover" />
-                    ) : (
-                      <div className="h-[80px] rounded-lg bg-[rgba(228,109,46,0.15)]" />
-                    )}
-                    <p className="text-[13px] font-semibold text-white leading-tight line-clamp-1">
-                      {work.title}
-                    </p>
-                    {work.team && (
-                      <p className="text-[10px] text-[#e46d2e]/90 truncate">
-                        队伍 · {work.team.name}
-                      </p>
-                    )}
-                    <p className="text-[11px] text-white/50 line-clamp-2 leading-snug">
-                      {work.description}
-                    </p>
-                    <span className={`self-start rounded-[8px] px-2 py-[3px] text-[10px] font-medium ${statusColor}`}>
-                      {work.category}
-                    </span>
-                  </div>
-                )
-              })}
+              {myWorks.map((work) => (
+                <MeWorkPreviewCard
+                  key={work.id}
+                  work={work}
+                  onPress={() => router.push(`/works/${work.id}?returnTo=${encodedProfileReturn}`)}
+                />
+              ))}
             </div>
           )}
-        </Section>
+        </MeProfileSection>
 
         {/* ── Account ── */}
-        <Section title="Account">
+        <MeProfileSection title="Account">
           <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] space-y-1">
             <p className="text-[13px] text-white/50">
               Email: <span className="text-white/80">{profile?.email ?? sessionUser.email}</span>
@@ -472,7 +417,7 @@ export default function ProfilePage() {
               退出登录
             </button>
           </div>
-        </Section>
+        </MeProfileSection>
 
       </div>
 

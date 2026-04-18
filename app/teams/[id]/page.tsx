@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { TeamsRepository } from '@/supabase/repos/teams'
 import { WorksRepository } from '@/supabase/repos/works'
@@ -11,6 +12,11 @@ import { Button } from '@/components/ui/button'
 import { ROLES } from '@/constants/roles'
 import type { Role } from '@/types/interfaces/Role'
 import { trackEvent } from '@/lib/analytics'
+
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+}
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -27,10 +33,12 @@ function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; s
   )
 }
 
-export default function TeamDetailPage() {
+function TeamDetailInner() {
   const { id: teamId } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { sessionUser, loading } = useAuth()
+  const returnTo = safeReturnPath(searchParams.get('returnTo'))
 
   const [team, setTeam] = useState<TeamWithMembers | null>(null)
   const [works, setWorks] = useState<WorkWithCreator[]>([])
@@ -106,6 +114,11 @@ export default function TeamDetailPage() {
     finally { setLeaving(false) }
   }
 
+  const handleHeaderBack = () => {
+    if (returnTo) router.push(returnTo)
+    else router.push('/profile')
+  }
+
   if (loading || pageLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
@@ -128,7 +141,9 @@ export default function TeamDetailPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
       {/* Header */}
       <div className="h-14 flex items-center gap-3 px-4 border-b border-white/8 sticky top-0 z-10" style={{ backgroundColor: '#101837' }}>
-        <button type="button" className="text-white/60 hover:text-white p-1 text-xl" onClick={() => router.replace('/profile')}>←</button>
+        <button type="button" className="text-white/60 hover:text-white p-1 text-xl" onClick={handleHeaderBack} aria-label="返回">
+          ←
+        </button>
         <p className="text-base font-semibold text-white truncate flex-1">{team.name}</p>
         {isOwner && (
           <span className="text-xs text-[#e46d2e] bg-[rgba(228,109,46,0.1)] border border-[rgba(228,109,46,0.3)] rounded-full px-2 py-0.5">
@@ -226,10 +241,12 @@ export default function TeamDetailPage() {
             <div className="grid gap-3">
               {works.map((work) => {
                 const thumb = work.images?.[0]
+                const workReturn = encodeURIComponent(`/teams/${teamId}`)
                 return (
-                  <div
+                  <Link
                     key={work.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden"
+                    href={`/works/${work.id}?returnTo=${workReturn}`}
+                    className="block rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden hover:border-white/20 transition-colors"
                   >
                     {thumb && (
                       <img src={thumb} alt={work.title} className="w-full h-40 object-cover" />
@@ -244,23 +261,9 @@ export default function TeamDetailPage() {
                           {work.description}
                         </p>
                       )}
-                      {(work.links ?? []).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {(work.links ?? []).filter(Boolean).map((link, i) => (
-                            <a
-                              key={i}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[#e46d2e] underline"
-                            >
-                              链接 {i + 1}
-                            </a>
-                          ))}
-                        </div>
-                      )}
+                      <p className="text-[10px] text-white/25 mt-2">点击查看详情</p>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
@@ -340,5 +343,19 @@ export default function TeamDetailPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function TeamDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
+          <p className="text-white/50 text-sm">Loading…</p>
+        </div>
+      }
+    >
+      <TeamDetailInner />
+    </Suspense>
   )
 }

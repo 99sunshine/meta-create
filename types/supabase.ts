@@ -73,20 +73,34 @@ export type Database = {
           created_from_request_id: string | null
           created_at: string
           last_message_at: string | null
+          last_message_content: string | null
+          last_message_sender_id: string | null
         }
         Insert: {
           id?: string
           created_from_request_id?: string | null
           created_at?: string
           last_message_at?: string | null
+          last_message_content?: string | null
+          last_message_sender_id?: string | null
         }
         Update: {
           id?: string
           created_from_request_id?: string | null
           created_at?: string
           last_message_at?: string | null
+          last_message_content?: string | null
+          last_message_sender_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversations_last_message_sender_id_fkey"
+            columns: ["last_message_sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {

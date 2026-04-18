@@ -21,9 +21,11 @@ function initialsFromName(name: string | null | undefined) {
 
 type CreatorCardProps = {
   creator: UserProfile
+  /** Already connected (accepted collab in either direction) — hides Connect button */
+  connected?: boolean
 }
 
-export function CreatorCard({ creator }: CreatorCardProps) {
+export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const { user, sessionUser } = useAuth()
   const [open, setOpen] = useState(false)
 
@@ -111,18 +113,24 @@ export function CreatorCard({ creator }: CreatorCardProps) {
             {creator.tags?.[0] ? `→ ${String(creator.tags[0])}` : '→ Connect'}
           </p>
           {sessionUser && user?.id !== creator.id && (
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white hover:bg-white/15 transition-colors"
-              onClick={() => setOpen(true)}
-            >
-              Connect
-            </button>
+            connected ? (
+              <span className="shrink-0 rounded-[14px] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.3)] px-[12px] py-[6px] text-[12px] font-medium text-green-400">
+                已连接
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white hover:bg-white/15 transition-colors"
+                onClick={() => setOpen(true)}
+              >
+                Connect
+              </button>
+            )
           )}
         </div>
       </div>
 
-      {sessionUser && user?.id !== creator.id && (
+      {sessionUser && user?.id !== creator.id && !connected && (
         <SendCollabModal
           open={open}
           onClose={() => setOpen(false)}

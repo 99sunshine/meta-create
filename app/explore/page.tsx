@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
@@ -14,12 +15,19 @@ import { CollabRepository } from '@/supabase/repos/collab'
 import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay } from '@/lib/swipe-demo-xp'
 import { appendSwipeSkippedId, readSwipeSkippedIds } from '@/lib/swipe-skipped-ids'
 import type { UserProfile } from '@/types'
+import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
+import {
+  IconSatelliteDish,
+  IconListBullet,
+  IconSwipeStack,
+} from '@/components/features/explore/ExploreTopBarIcons'
 
 export default function ExplorePage() {
   const { user, sessionUser, loading, profileLoading } = useAuth()
   const router = useRouter()
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
   const { subscribeEntityCreated } = useCreateFlow()
+  const { inboxBadgeTotal, refreshUnread } = useMessagesInbox()
   const [swipeMode, setSwipeMode] = useState(false)
   const [swipeProfiles, setSwipeProfiles] = useState<UserProfile[]>([])
   const [swipeLoading, setSwipeLoading] = useState(false)
@@ -152,33 +160,55 @@ export default function ExplorePage() {
         {/* Top Bar (Figma: Search + View Toggle) */}
         <div className="sticky top-0 z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
           <div className="flex items-center gap-[10px]">
-            <div className="flex h-[32px] flex-1 items-center gap-2 rounded-[20px] bg-white/10 px-[14px]">
-              <span aria-hidden className="inline-block h-2 w-2 rounded-sm bg-[#6b7280]" />
+            {/* 左：Messages 入口，样式与右侧 View Toggle 单按钮一致 */}
+            <Link
+              href="/messages"
+              className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
+              aria-label="消息"
+            >
+              <IconSatelliteDish className="h-4.5 w-4.5 text-white/50" />
+              {inboxBadgeTotal > 0 ? (
+                <span className="absolute -right-[2px] -top-[2px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#e46d2e] px-[3px] text-[9px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(228,109,46,0.6)]">
+                  {inboxBadgeTotal > 99 ? '99+' : inboxBadgeTotal}
+                </span>
+              ) : null}
+            </Link>
+
+            {/* 中：搜索框 */}
+            <div className="flex h-[32px] min-w-0 flex-1 items-center gap-2 rounded-[20px] bg-white/[0.08] px-[14px] py-[8px]">
+              <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-[#6b7280]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search creators..."
-                className="w-full bg-transparent text-[13px] text-white placeholder:text-[#6b7280] focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent text-[13px] text-white placeholder:text-[#6b7280] focus:outline-none"
                 aria-label="Search creators"
               />
             </div>
 
-            <div className="flex items-center rounded-lg bg-white/10 p-1">
+            {/* 右：View Toggle（Figma node 135-157，250:155） */}
+            <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
               <button
                 type="button"
-                className={`rounded-lg px-2 py-1 text-sm transition-colors ${!swipeMode ? 'bg-white/20 text-white' : 'text-white/50'}`}
-                aria-label="List mode"
+                className={`flex items-center justify-center rounded-[8px] p-[4px] transition-colors ${
+                  !swipeMode ? 'bg-white/[0.15]' : ''
+                }`}
+                aria-label="列表视图"
+                aria-pressed={!swipeMode}
                 onClick={() => setSwipeMode(false)}
               >
-                ≡
+                <IconListBullet active={!swipeMode} className="h-5 w-5" />
               </button>
               <button
                 type="button"
-                className={`rounded-lg px-2 py-1 text-sm transition-colors ${swipeMode ? 'bg-white/20 text-white' : 'text-white/50'}`}
-                aria-label="Swipe mode"
+                className={`flex items-center justify-center rounded-[13px] p-[4px] transition-colors ${
+                  swipeMode ? 'bg-white/[0.15]' : ''
+                }`}
+                aria-label="滑动视图"
+                aria-pressed={swipeMode}
                 onClick={handleEnterSwipe}
               >
-                ⇄
+                <IconSwipeStack active={swipeMode} className="h-6 w-6" />
               </button>
             </div>
           </div>

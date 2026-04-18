@@ -1,11 +1,11 @@
-import { createClient } from '@/supabase/utils/client'
+import { createClient } from '../utils/client'
 
 export interface Conversation {
   id: string
   created_from_request_id: string | null
   created_at: string
   last_message_at: string | null
-  // Joined
+  // Joined / denormalized
   other_user?: {
     id: string
     name: string
@@ -27,19 +27,23 @@ export interface Message {
 export class MessageRepository {
   private supabase = createClient()
 
-  /** List all conversations for the current user, with partner info and last message */
+  /**
+   * List conversations for the user with partner + last preview (from conversations row).
+   * Batched queries (no per-row messages fetch).
+   */
   async listConversations(userId: string): Promise<Conversation[]> {
-    // Get conversation_ids where user participates
-    const { data: participations, error: pErr } = await this.supabase
+    const { data: myParts, error: pErr } = await this.supabase
       .from('conversation_participants')
-      .select('conversation_id')
+      .select('conversation_id, last_read_at')
       .eq('user_id', userId)
 
-    if (pErr || !participations?.length) return []
+    if (pErr || !myParts?.length) return []
 
-    const convIds = participations.map((p) => p.conversation_id as string)
+    const readMap = new Map(
+      myParts.map((p) => [p.conversation_id as string, p.last_read_at as string | null]),
+    )
+    const convIds = [...readMap.keys()]
 
-    // Get conversations
     const { data: convs, error: cErr } = await this.supabase
       .from('conversations')
       .select('*')
@@ -48,59 +52,73 @@ export class MessageRepository {
 
     if (cErr || !convs?.length) return []
 
-    // For each conversation, get the other participant's profile + last message
-    const results: Conversation[] = await Promise.all(
-      convs.map(async (conv) => {
-        // Other participant
-        const { data: otherPart } = await this.supabase
-          .from('conversation_participants')
-          .select('user_id')
-          .eq('conversation_id', conv.id)
-          .neq('user_id', userId)
-          .limit(1)
-          .single()
+    const { data: allParts, error: apErr } = await this.supabase
+      .from('conversation_participants')
+      .select('conversation_id, user_id')
+      .in('conversation_id', convIds)
 
-        let other_user: Conversation['other_user'] = undefined
-        if (otherPart?.user_id) {
-          const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('id, name, avatar_url, role')
-            .eq('id', otherPart.user_id)
-            .single()
-          if (profile) {
-            other_user = {
-              id: profile.id as string,
-              name: (profile.name as string) || 'Creator',
-              avatar_url: profile.avatar_url as string | null,
-              role: profile.role as string | null,
-            }
-          }
-        }
+    if (apErr) return []
 
-        // Last message
-        const { data: lastMsg } = await this.supabase
-          .from('messages')
-          .select('content')
-          .eq('conversation_id', conv.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
+    const otherByConv = new Map<string, string>()
+    for (const row of allParts ?? []) {
+      const cid = row.conversation_id as string
+      const uid = row.user_id as string
+      if (uid !== userId) otherByConv.set(cid, uid)
+    }
 
-        return {
-          id: conv.id as string,
-          created_from_request_id: conv.created_from_request_id as string | null,
-          created_at: conv.created_at as string,
-          last_message_at: conv.last_message_at as string | null,
-          other_user,
-          last_message: lastMsg?.content as string | undefined,
-        } satisfies Conversation
-      }),
-    )
+    const otherIds = [...new Set(otherByConv.values())]
+    const profileById = new Map<
+      string,
+      { id: string; name: string; avatar_url: string | null; role: string | null }
+    >()
 
-    return results
+    if (otherIds.length > 0) {
+      const { data: profiles } = await this.supabase
+        .from('profiles')
+        .select('id, name, avatar_url, role')
+        .in('id', otherIds)
+
+      for (const p of profiles ?? []) {
+        profileById.set(p.id as string, {
+          id: p.id as string,
+          name: (p.name as string) || 'Creator',
+          avatar_url: p.avatar_url as string | null,
+          role: p.role as string | null,
+        })
+      }
+    }
+
+    return convs.map((conv) => {
+      const id = conv.id as string
+      const otherId = otherByConv.get(id)
+      const prof = otherId ? profileById.get(otherId) : undefined
+      const lastRead = readMap.get(id) ?? null
+      const lastAt = conv.last_message_at as string | null
+      const senderId = (conv.last_message_sender_id as string | null) ?? null
+
+      let unread = 0
+      if (lastAt && senderId && senderId !== userId) {
+        if (!lastRead || new Date(lastAt) > new Date(lastRead)) unread = 1
+      }
+
+      return {
+        id,
+        created_from_request_id: conv.created_from_request_id as string | null,
+        created_at: conv.created_at as string,
+        last_message_at: lastAt,
+        last_message: (conv.last_message_content as string | null) ?? undefined,
+        other_user: prof,
+        unread_count: unread,
+      } satisfies Conversation
+    })
   }
 
-  /** Get messages for a conversation (paginated, latest first) */
+  /** Total conversations with unread messages for the current user */
+  async countUnreadConversations(userId: string): Promise<number> {
+    const list = await this.listConversations(userId)
+    return list.reduce((n, c) => n + (c.unread_count ?? 0), 0)
+  }
+
   async getMessages(conversationId: string, limit = 50): Promise<Message[]> {
     const { data, error } = await this.supabase
       .from('messages')
@@ -113,7 +131,6 @@ export class MessageRepository {
     return (data ?? []) as Message[]
   }
 
-  /** Send a message */
   async sendMessage(conversationId: string, senderId: string, content: string): Promise<Message> {
     const { data, error } = await this.supabase
       .from('messages')
@@ -122,17 +139,10 @@ export class MessageRepository {
       .single()
 
     if (error) throw new Error(error.message)
-
-    // Update last_message_at
-    await this.supabase
-      .from('conversations')
-      .update({ last_message_at: new Date().toISOString() })
-      .eq('id', conversationId)
-
+    // conversations row updated by trigger fn_messages_sync_conversation
     return data as Message
   }
 
-  /** Mark conversation as read for current user */
   async markRead(conversationId: string, userId: string) {
     await this.supabase
       .from('conversation_participants')

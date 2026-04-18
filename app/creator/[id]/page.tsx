@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import TopNav from '@/components/features/layout/TopNav'
+import BottomTabs from '@/components/features/layout/BottomTabs'
 import { Button } from '@/components/ui/button'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { WorksRepository } from '@/supabase/repos/works'
@@ -15,83 +15,64 @@ import { scoreTeamMatch, scoreWorkMatch } from '@/lib/matching'
 import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useExistingRequest } from '@/hooks/useCollabRequests'
 import { trackEvent } from '@/lib/analytics'
+import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
 
-// ── Chip ──────────────────────────────────────────────────────────────────────
-function Chip({ label, color }: { label: string; color: string }) {
-  return (
-    <span className={`rounded-full px-3 py-1 text-xs font-medium ${color}`}>
-      {label}
-    </span>
-  )
+const SKILL_COLORS = {
+  teal: 'bg-[rgba(15,134,136,0.2)] border-[rgba(15,134,136,0.5)] text-[#70b7b8]',
+  purple: 'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
+  orange: 'bg-[rgba(223,112,21,0.2)] border-[rgba(223,112,21,0.5)] text-[#efb88a]',
+  blue: 'bg-[rgba(21,55,223,0.2)] border-[rgba(21,55,223,0.5)] text-[#8a9bef]',
 }
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
-  const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
-  const sizeClass = size === 'lg' ? 'h-24 w-24 text-2xl' : size === 'sm' ? 'h-8 w-8 text-xs' : 'h-14 w-14 text-base'
+const SKILL_COLOR_MAP: Record<string, keyof typeof SKILL_COLORS> = {
+  'Full-Stack Dev': 'teal', 'Full-Stack': 'teal', 'Backend': 'teal', 'Frontend': 'teal',
+  'Mobile Dev': 'teal', 'DevOps': 'teal', 'AI / ML': 'teal', 'Data Science': 'teal',
+  'Engineering': 'teal', 'Web Dev': 'teal', 'iOS': 'teal', 'Android': 'teal',
+  'UI Design': 'purple', 'UX Design': 'purple', 'Figma': 'purple', 'Product Design': 'purple',
+  'Brand Identity': 'purple', 'Illustration': 'purple', 'Motion Design': 'purple', 'Creative': 'purple',
+  'Go-to-Market': 'orange', 'Growth': 'orange', 'Marketing': 'orange', 'Business Dev': 'orange',
+  'Strategy': 'orange', 'Operations': 'orange', 'Finance': 'orange', 'Sales': 'orange',
+  'Research': 'blue', 'User Research': 'blue', 'Data Analysis': 'blue', 'Science': 'blue',
+  'Writing': 'blue', 'Content': 'blue', 'Policy': 'blue',
+}
+
+function skillColor(s: string): string {
+  return SKILL_COLORS[SKILL_COLOR_MAP[s] ?? 'teal']
+}
+
+function Avatar({ name, src, size = 80 }: { name: string; src?: string | null; size?: number }) {
+  const initials = (name || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
   return (
     <div
-      className={`flex items-center justify-center rounded-full font-bold text-white ring-2 ring-white/20 ${sizeClass}`}
-      style={{ background: 'linear-gradient(135deg,#E7770F,#f5a623)' }}
+      className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+      style={{
+        width: size,
+        height: size,
+        background: 'linear-gradient(135deg,#E7770F,#f5a623)',
+        fontSize: size * 0.28,
+      }}
     >
-      {initials || '?'}
+      {initials}
     </div>
   )
 }
 
-// ── Mini WorkCard ─────────────────────────────────────────────────────────────
-function MiniWorkCard({ work }: { work: WorkWithCreator }) {
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/5 p-4 hover:bg-white/8 transition-colors">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h4 className="text-sm font-semibold text-white line-clamp-1">{work.title}</h4>
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-xs bg-purple-500/20 text-purple-300 border border-purple-500/20">
-          {work.category}
-        </span>
-      </div>
-      <p className="text-xs text-white/50 line-clamp-2 mb-2">
-        {work.description}
-      </p>
-      {work.tags && work.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {work.tags.slice(0, 3).map((t) => (
-            <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/40 border border-white/5">{t}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Mini TeamCard ─────────────────────────────────────────────────────────────
-function MiniTeamCard({ team }: { team: TeamWithMembers }) {
-  return (
-    <div className="rounded-xl border border-white/8 bg-white/5 p-4 hover:bg-white/8 transition-colors">
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <h4 className="text-sm font-semibold text-white line-clamp-1">{team.name}</h4>
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-xs bg-blue-500/20 text-blue-300 border border-blue-500/20">
-          {team.category}
-        </span>
-      </div>
-      <p className="text-xs text-white/50 line-clamp-2">
-        {team.description ?? 'No description'}
-      </p>
-      <p className="mt-1.5 text-xs text-white/30">{team.member_count}/{team.max_members} members</p>
-    </div>
-  )
-}
-
-// ── Section ───────────────────────────────────────────────────────────────────
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/30">{title}</h3>
-      {children}
-    </div>
-  )
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function CreatorProfilePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -103,8 +84,9 @@ export default function CreatorProfilePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  // Own profile redirect
   const isOwnProfile = sessionUser?.id === id
+  const creatorReturn = id ? `/creator/${id}` : '/explore'
+  const encodedCreatorReturn = encodeURIComponent(creatorReturn)
 
   useEffect(() => {
     if (!id) return
@@ -118,9 +100,12 @@ export default function CreatorProfilePage() {
         const [p, w, t] = await Promise.all([
           new ProfileRepository().getProfile(id),
           new WorksRepository().getWorksByUserId(id, 10),
-          new TeamsRepository().getTeamsByOwnerId(id, 10),
+          new TeamsRepository().getTeamsForUser(id, 20),
         ])
-        if (!p) { setNotFound(true); return }
+        if (!p) {
+          setNotFound(true)
+          return
+        }
         setProfile(p)
         setWorks(w)
         setTeams(t)
@@ -137,15 +122,14 @@ export default function CreatorProfilePage() {
   const [collabOpen, setCollabOpen] = useState(false)
   const existingStatus = useExistingRequest(sessionUser?.id, id)
 
-  const matchTeam = teams[0] ? scoreTeamMatch(currentUser, teams[0]) : null
-  const overallMatch = currentUser && profile
-    ? Math.round(
-        (
-          (works.reduce((acc, w) => acc + scoreWorkMatch(currentUser, w).score, 0) / Math.max(works.length, 1)) +
-          (teams.reduce((acc, t) => acc + scoreTeamMatch(currentUser, t).score, 0) / Math.max(teams.length, 1))
-        ) / 2
-      )
-    : null
+  const overallMatch =
+    currentUser && profile
+      ? Math.round(
+          (works.reduce((acc, w) => acc + scoreWorkMatch(currentUser, w).score, 0) / Math.max(works.length, 1) +
+            teams.reduce((acc, t) => acc + scoreTeamMatch(currentUser, t).score, 0) / Math.max(teams.length, 1)) /
+            2,
+        )
+      : null
 
   const roleColor: Record<string, string> = {
     Builder: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
@@ -163,161 +147,164 @@ export default function CreatorProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0c1428' }}>
-        <p className="text-white/50 text-sm">Loading profile…</p>
+      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
+        <p className="text-white/50 text-sm">Loading…</p>
       </div>
     )
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4" style={{ backgroundColor: '#0c1428' }}>
-        <p className="text-white/50 text-sm">Creator not found.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6" style={{ backgroundColor: '#101837' }}>
+        <p className="text-white/50 text-sm">未找到该创作者</p>
         <Button onClick={() => router.push('/explore')} variant="ghost" className="text-white/50 hover:text-white text-sm">
-          ← Back to Explore
+          ← 返回 Explore
         </Button>
       </div>
     )
   }
 
-  if (!profile) return null
-  const displayName = profile.name?.trim() || 'Anonymous'
+  if (!profile || !id) return null
+  const displayName = profile.name?.trim() || 'Creator'
+  const tags = (profile.tags ?? []) as string[]
+  const skills = (profile.skills ?? []) as string[]
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0c1428' }}>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="stars opacity-30" />
-        <div className="stars2 opacity-20" />
-      </div>
-
-      <div className="relative z-10">
-        <TopNav />
-        <div className="mx-auto max-w-2xl px-4 pt-20 pb-16 sm:px-6">
-
-          {/* Back link */}
+    <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
+      <div className="h-[60px] flex items-center justify-between px-5 border-b border-white/8">
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => router.back()}
-            className="mb-4 flex items-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors"
+            className="text-white/50 hover:text-white text-sm"
+            aria-label="返回"
           >
-            ← Back
+            ←
           </button>
-
-          {/* ── Hero card ── */}
-          <div
-            className="mb-6 rounded-2xl border border-white/10 p-6 sm:p-8"
-            style={{ background: 'linear-gradient(135deg, rgba(231,119,15,0.08) 0%, rgba(18,27,62,0.5) 60%)' }}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6 gap-4">
-              <Avatar name={displayName} size="lg" />
-
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold text-white">{displayName}</h1>
-                  {profile.role && (
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${roleColor[profile.role] ?? 'bg-white/10 text-white/70'}`}>
-                      {profile.role}
-                    </span>
-                  )}
-                  {overallMatch !== null && overallMatch > 0 && (
-                    <span
-                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                      style={{ backgroundColor: 'rgba(231,119,15,0.15)', color: '#f5a623', border: '1px solid rgba(231,119,15,0.3)' }}
-                    >
-                      🎯 {overallMatch}% match
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2 text-xs text-white/40 mb-3">
-                  {profile.school && <span>🎓 {profile.school}</span>}
-                  {profile.city && <span>📍 {profile.city}</span>}
-                  {profile.availability && (
-                    <span className="text-green-400">⚡ {availLabel[profile.availability] ?? profile.availability}</span>
-                  )}
-                </div>
-
-                {profile.manifesto ? (
-                  <p className="text-sm text-white/70 leading-relaxed italic">
-                    &ldquo;{profile.manifesto}&rdquo;
-                  </p>
-                ) : (
-                  <p className="text-sm text-white/30 italic">No manifesto yet.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Connect button */}
-            {sessionUser && !isOwnProfile && (
-              <div className="mt-5 flex gap-2">
-                <Button
-                  size="sm"
-                  className="text-white font-medium text-xs"
-                  style={{ backgroundColor: existingStatus ? '#444' : '#E7770F' }}
-                  disabled={!!existingStatus}
-                  onClick={() => setCollabOpen(true)}
-                >
-                  {existingStatus === 'pending'
-                    ? '✅ Request Sent'
-                    : existingStatus === 'accepted'
-                    ? '🤝 Connected'
-                    : 'Connect'}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* ── Info sections ── */}
-          <div className="space-y-6">
-            {(profile.skills ?? []).length > 0 && (
-              <Section title="Skills">
-                <div className="flex flex-wrap gap-2">
-                  {(profile.skills ?? []).map((s) => (
-                    <Chip key={s} label={s} color="bg-blue-500/15 text-blue-300 border border-blue-500/20" />
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {(profile.interests ?? []).length > 0 && (
-              <Section title="Interests">
-                <div className="flex flex-wrap gap-2">
-                  {(profile.interests ?? []).map((i) => (
-                    <Chip key={i} label={i} color="bg-purple-500/15 text-purple-300 border border-purple-500/20" />
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {(profile.tags ?? []).length > 0 && (
-              <Section title="Creator Tags">
-                <div className="flex flex-wrap gap-2">
-                  {(profile.tags ?? []).map((t) => (
-                    <Chip key={t} label={t} color="bg-orange-500/15 text-orange-300 border border-orange-500/20" />
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {works.length > 0 && (
-              <Section title={`Works (${works.length})`}>
-                <div className="grid gap-3">
-                  {works.map((w) => <MiniWorkCard key={w.id} work={w} />)}
-                </div>
-              </Section>
-            )}
-
-            {teams.length > 0 && (
-              <Section title={`Teams (${teams.length})`}>
-                <div className="grid gap-3">
-                  {teams.map((t) => <MiniTeamCard key={t.id} team={t} />)}
-                </div>
-              </Section>
-            )}
-          </div>
+          <p className="text-[15px] font-semibold text-white">创作者</p>
         </div>
       </div>
 
-      {/* Collab request modal */}
+      <div className="px-5 pb-28">
+        <div className="flex gap-[14px] items-center pt-4">
+          <Avatar name={displayName} src={profile.avatar_url} size={80} />
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[20px] font-semibold text-white leading-tight truncate">{displayName}</p>
+              {profile.role && (
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${roleColor[profile.role] ?? 'bg-white/10 text-white/70'}`}>
+                  {profile.role}
+                </span>
+              )}
+              {overallMatch !== null && overallMatch > 0 && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-semibold shrink-0"
+                  style={{
+                    backgroundColor: 'rgba(231,119,15,0.15)',
+                    color: '#f5a623',
+                    border: '1px solid rgba(231,119,15,0.3)',
+                  }}
+                >
+                  🎯 {overallMatch}%
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {profile.school && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">{profile.school}</span>
+              )}
+              {profile.city && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">{profile.city}</span>
+              )}
+              {profile.availability && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-green-400">
+                  ⚡ {availLabel[profile.availability] ?? profile.availability}
+                </span>
+              )}
+            </div>
+            {profile.manifesto && (
+              <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-3">&ldquo;{profile.manifesto}&rdquo;</p>
+            )}
+          </div>
+        </div>
+
+        {sessionUser && !isOwnProfile && (
+          <div className="mt-4">
+            <Button
+              size="sm"
+              className="text-white font-medium text-xs"
+              style={{ backgroundColor: existingStatus ? '#444' : '#E7770F' }}
+              disabled={!!existingStatus}
+              onClick={() => setCollabOpen(true)}
+            >
+              {existingStatus === 'pending'
+                ? '已发送请求'
+                : existingStatus === 'accepted'
+                  ? '已连接'
+                  : 'Connect'}
+            </Button>
+          </div>
+        )}
+
+        {tags.length > 0 && (
+          <MeProfileSection title="Looking for">
+            <div className="flex flex-wrap gap-[6px]">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-[12px] border border-[rgba(209,27,115,0.5)] bg-[rgba(209,27,115,0.2)] px-[10px] py-[5px] text-[12px] text-[#e88dba]"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </MeProfileSection>
+        )}
+
+        {skills.length > 0 && (
+          <MeProfileSection title="Skills">
+            <div className="flex flex-wrap gap-[6px]">
+              {skills.map((s) => (
+                <span key={s} className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(s)}`}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </MeProfileSection>
+        )}
+
+        {teams.length > 0 && (
+          <MeProfileSection title={`Teams (${teams.length})`}>
+            <div className="flex gap-[10px] overflow-x-auto pb-1">
+              {teams.map((t) => (
+                <MeTeamPill
+                  key={t.id}
+                  team={t}
+                  contextUserId={id}
+                  onPress={() => router.push(`/teams/${t.id}?returnTo=${encodedCreatorReturn}`)}
+                />
+              ))}
+            </div>
+          </MeProfileSection>
+        )}
+
+        {works.length > 0 && (
+          <MeProfileSection title={`Works (${works.length})`}>
+            <div className="flex gap-[10px] overflow-x-auto pb-1">
+              {works.map((w) => (
+                <MeWorkPreviewCard
+                  key={w.id}
+                  work={w}
+                  onPress={() => router.push(`/works/${w.id}?returnTo=${encodedCreatorReturn}`)}
+                />
+              ))}
+            </div>
+          </MeProfileSection>
+        )}
+      </div>
+
+      <BottomTabs />
+
       {sessionUser && !isOwnProfile && profile && (
         <SendCollabModal
           open={collabOpen}

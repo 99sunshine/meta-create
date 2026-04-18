@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
 import { MessageRepository, type Message, type Conversation } from '@/supabase/repos/messages'
 import { createClient } from '@/supabase/utils/client'
 
@@ -25,10 +26,26 @@ function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Merge Realtime INSERT with optimistic rows: drop matching temp-* so we never duplicate the same id. */
+function mergeIncomingMessage(prev: Message[], newMsg: Message): Message[] {
+  if (prev.some((m) => m.id === newMsg.id)) return prev
+  const withoutMatchingTemp = prev.filter(
+    (m) =>
+      !(
+        m.id.startsWith('temp-') &&
+        m.sender_id === newMsg.sender_id &&
+        m.content === newMsg.content &&
+        m.conversation_id === newMsg.conversation_id
+      ),
+  )
+  return [...withoutMatchingTemp, newMsg]
+}
+
 export default function ConversationPage() {
   const { id: conversationId } = useParams<{ id: string }>()
   const router = useRouter()
   const { sessionUser, loading } = useAuth()
+  const { refreshUnread } = useMessagesInbox()
   const repo = useRef(new MessageRepository())
   const supabase = useRef(createClient())
 
@@ -64,8 +81,13 @@ export default function ConversationPage() {
       .catch(() => {})
 
     loadMessages().finally(() => setMsgLoading(false))
-    repo.current.markRead(conversationId, sessionUser.id).catch(() => {})
-  }, [conversationId, sessionUser, loadMessages])
+    repo.current
+      .markRead(conversationId, sessionUser.id)
+      .then(() => {
+        void refreshUnread()
+      })
+      .catch(() => {})
+  }, [conversationId, sessionUser, loadMessages, refreshUnread])
 
   // Supabase Realtime subscription with 5s polling fallback
   useEffect(() => {
@@ -86,9 +108,7 @@ export default function ConversationPage() {
         (payload) => {
           realtimeWorking = true
           const newMsg = payload.new as Message
-          setMessages((prev) =>
-            prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg],
-          )
+          setMessages((prev) => mergeIncomingMessage(prev, newMsg))
         },
       )
       .subscribe((status) => {
@@ -129,7 +149,12 @@ export default function ConversationPage() {
 
     try {
       const saved = await repo.current.sendMessage(conversationId, sessionUser.id, content)
-      setMessages((prev) => prev.map((m) => (m.id === tempMsg.id ? saved : m)))
+      // Realtime may have already appended `saved`; remove temp and ensure a single row per id
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => m.id !== tempMsg.id)
+        if (withoutTemp.some((m) => m.id === saved.id)) return withoutTemp
+        return [...withoutTemp, saved]
+      })
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id))
       setInput(content)

@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { CollabRepository, type CollabRequestWithProfiles } from '@/supabase/repos/collab'
 import { trackEvent } from '@/lib/analytics'
+import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -30,8 +31,31 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`
 }
 
+/** Group a flat list by sender_id; return one rep per sender (latest pending first, else latest any). */
+function groupBySender(reqs: CollabRequestWithProfiles[]): {
+  rep: CollabRequestWithProfiles
+  all: CollabRequestWithProfiles[]
+}[] {
+  const map = new Map<string, CollabRequestWithProfiles[]>()
+  for (const r of reqs) {
+    const key = r.sender_id
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(r)
+  }
+  return [...map.values()].map((group) => {
+    // Sort: pending first, then by created_at desc
+    const sorted = [...group].sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1
+      if (a.status !== 'pending' && b.status === 'pending') return 1
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+    return { rep: sorted[0], all: sorted }
+  })
+}
+
 export default function CollabRequestsPage() {
   const router = useRouter()
+  const { refreshUnread } = useMessagesInbox()
   const { sessionUser, loading } = useAuth()
   const [requests, setRequests] = useState<CollabRequestWithProfiles[]>([])
   const [listLoading, setListLoading] = useState(true)
@@ -65,6 +89,7 @@ export default function CollabRequestsPage() {
         trackEvent('collab_request_accepted', { request_id: req.id, sender_id: req.sender_id })
       }
       setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r))
+      void refreshUnread()
     } catch (e) {
       console.error('respond failed', e)
     } finally {
@@ -72,8 +97,15 @@ export default function CollabRequestsPage() {
     }
   }
 
-  const pending = requests.filter((r) => r.status === 'pending')
-  const history = requests.filter((r) => r.status !== 'pending')
+  const pendingGroups = useMemo(
+    () => groupBySender(requests.filter((r) => r.status === 'pending')),
+    [requests],
+  )
+
+  const historyGroups = useMemo(
+    () => groupBySender(requests.filter((r) => r.status !== 'pending')),
+    [requests],
+  )
 
   if (loading || listLoading) {
     return (
@@ -93,54 +125,63 @@ export default function CollabRequestsPage() {
       </div>
 
       <div className="px-4 py-4 pb-24 space-y-6">
-        {/* Pending */}
+        {/* Pending — grouped by sender */}
         <div>
           <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-            待处理 ({pending.length})
+            待处理 ({pendingGroups.length})
           </p>
-          {pending.length === 0 ? (
+          {pendingGroups.length === 0 ? (
             <p className="text-sm text-white/30">没有待处理的请求</p>
           ) : (
             <div className="space-y-3">
-              {pending.map((req) => (
+              {pendingGroups.map(({ rep, all }) => (
                 <RequestCard
-                  key={req.id}
-                  req={req}
-                  isResponding={responding === req.id}
-                  onAccept={() => handleRespond(req, 'accepted')}
-                  onDecline={() => handleRespond(req, 'declined')}
+                  key={rep.sender_id}
+                  rep={rep}
+                  total={all.length}
+                  isResponding={responding === rep.id}
+                  onAccept={() => handleRespond(rep, 'accepted')}
+                  onDecline={() => handleRespond(rep, 'declined')}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* History */}
-        {history.length > 0 && (
+        {/* History — grouped by sender */}
+        {historyGroups.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">历史记录</p>
             <div className="space-y-2">
-              {history.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
-                >
-                  <Avatar name={req.sender?.name ?? '?'} src={req.sender?.avatar_url} size={36} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/70 truncate">{req.sender?.name ?? 'Creator'}</p>
-                    <p className="text-xs text-white/30">{timeAgo(req.created_at)}</p>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      req.status === 'accepted'
-                        ? 'bg-green-500/15 text-green-400'
-                        : 'bg-white/5 text-white/30'
-                    }`}
+              {historyGroups.map(({ rep, all }) => {
+                const hasAccepted = all.some((r) => r.status === 'accepted')
+                return (
+                  <div
+                    key={rep.sender_id}
+                    className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
                   >
-                    {req.status === 'accepted' ? '已接受' : '已拒绝'}
-                  </span>
-                </div>
-              ))}
+                    <Avatar name={rep.sender?.name ?? '?'} src={rep.sender?.avatar_url} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white/70 truncate">{rep.sender?.name ?? 'Creator'}</p>
+                      <p className="text-xs text-white/30">
+                        {timeAgo(rep.created_at)}
+                        {all.length > 1 && (
+                          <span className="ml-1 text-white/20">· {all.length} 条</span>
+                        )}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        hasAccepted
+                          ? 'bg-green-500/15 text-green-400'
+                          : 'bg-white/5 text-white/30'
+                      }`}
+                    >
+                      {hasAccepted ? '已接受' : '已拒绝'}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -150,12 +191,14 @@ export default function CollabRequestsPage() {
 }
 
 function RequestCard({
-  req,
+  rep,
+  total,
   isResponding,
   onAccept,
   onDecline,
 }: {
-  req: CollabRequestWithProfiles
+  rep: CollabRequestWithProfiles
+  total: number
   isResponding: boolean
   onAccept: () => void
   onDecline: () => void
@@ -166,37 +209,44 @@ function RequestCard({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push(`/creator/${req.sender_id}`)}
+          onClick={() => router.push(`/creator/${rep.sender_id}`)}
           className="shrink-0"
         >
-          <Avatar name={req.sender?.name ?? '?'} src={req.sender?.avatar_url} size={44} />
+          <Avatar name={rep.sender?.name ?? '?'} src={rep.sender?.avatar_url} size={44} />
         </button>
         <div className="flex-1 min-w-0">
-          <button
-            type="button"
-            className="text-sm font-semibold text-white text-left truncate w-full"
-            onClick={() => router.push(`/creator/${req.sender_id}`)}
-          >
-            {req.sender?.name ?? 'Creator'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-sm font-semibold text-white text-left truncate"
+              onClick={() => router.push(`/creator/${rep.sender_id}`)}
+            >
+              {rep.sender?.name ?? 'Creator'}
+            </button>
+            {total > 1 && (
+              <span className="shrink-0 rounded-full bg-white/10 px-[7px] py-[1px] text-[10px] text-white/50">
+                {total} 条
+              </span>
+            )}
+          </div>
           <p className="text-xs text-white/40">
-            {req.sender?.role ?? ''} · {timeAgo(req.created_at)}
+            {rep.sender?.role ?? ''} · {timeAgo(rep.created_at)}
           </p>
         </div>
-        {req.match_score && (
+        {rep.match_score && (
           <span
             className="shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold"
             style={{ backgroundColor: 'rgba(231,119,15,0.15)', color: '#f5a623', border: '1px solid rgba(231,119,15,0.3)' }}
           >
-            {req.match_score}%
+            {rep.match_score}%
           </span>
         )}
       </div>
 
-      {(req.ice_breaker ?? req.message) && (
+      {(rep.ice_breaker ?? rep.message) && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.04] px-3 py-2.5">
           <p className="text-[13px] text-white/70 leading-snug italic">
-            &ldquo;{req.ice_breaker ?? req.message}&rdquo;
+            &ldquo;{rep.ice_breaker ?? rep.message}&rdquo;
           </p>
         </div>
       )}

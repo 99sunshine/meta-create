@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ProfileRepository } from '@/supabase/repos/profile'
+import { CollabRepository } from '@/supabase/repos/collab'
 import type { UserProfile } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { CreatorCard } from './CreatorCard'
 import { scoreUserMatch } from '@/lib/matching'
 
 const repo = new ProfileRepository()
+const collabRepo = new CollabRepository()
 
 type CreatorsFeedProps = {
   limit?: number
@@ -35,12 +37,11 @@ export function CreatorsFeed({
   const [creators, setCreators] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let mounted = true
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError('')
     repo
       .listCreators(limit)
@@ -61,6 +62,16 @@ export function CreatorsFeed({
       mounted = false
     }
   }, [limit])
+
+  // Batch-load accepted connections so we can hide Connect on already-connected cards
+  useEffect(() => {
+    if (!user?.id) return
+    let mounted = true
+    collabRepo.getAcceptedPartnerIds(user.id).then((ids) => {
+      if (mounted) setConnectedIds(ids)
+    }).catch(() => {})
+    return () => { mounted = false }
+  }, [user?.id])
 
   const visible = useMemo(
     () => {
@@ -151,7 +162,11 @@ export function CreatorsFeed({
   return (
     <div className="flex flex-col gap-[14px]">
       {visible.map((creator) => (
-        <CreatorCard key={creator.id} creator={creator} />
+        <CreatorCard
+          key={creator.id}
+          creator={creator}
+          connected={connectedIds.has(creator.id)}
+        />
       ))}
     </div>
   )

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
 import { MessageRepository, type Conversation } from '@/supabase/repos/messages'
+import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -34,6 +35,7 @@ function timeAgo(dateStr: string): string {
 export default function MessagesPage() {
   const router = useRouter()
   const { sessionUser, loading, profileLoading } = useAuth()
+  const { refreshUnread, pendingCollabCount } = useMessagesInbox()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [listLoading, setListLoading] = useState(true)
 
@@ -44,12 +46,13 @@ export default function MessagesPage() {
       const repo = new MessageRepository()
       const convs = await repo.listConversations(sessionUser.id)
       setConversations(convs)
+      void refreshUnread()
     } catch (e) {
       console.error('Failed to load conversations:', e)
     } finally {
       setListLoading(false)
     }
-  }, [sessionUser])
+  }, [sessionUser, refreshUnread])
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
@@ -75,10 +78,15 @@ export default function MessagesPage() {
         <p className="text-base font-semibold text-white">Messages</p>
         <button
           type="button"
-          className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 transition-colors"
+          className="relative rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 transition-colors"
           onClick={() => router.push('/messages/requests')}
         >
           协作请求
+          {pendingCollabCount > 0 ? (
+            <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#e46d2e] px-[4px] text-[9px] font-bold leading-none text-white">
+              {pendingCollabCount > 99 ? '99+' : pendingCollabCount}
+            </span>
+          ) : null}
         </button>
       </div>
 
@@ -112,35 +120,45 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div>
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                type="button"
-                className="w-full flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] hover:bg-white/5 transition-colors text-left"
-                onClick={() => router.push(`/messages/${conv.id}`)}
-              >
-                <Avatar
-                  name={conv.other_user?.name ?? '?'}
-                  src={conv.other_user?.avatar_url}
-                  size={44}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-[14px] font-semibold text-white truncate">
-                      {conv.other_user?.name ?? 'Creator'}
-                    </p>
-                    {(conv.last_message_at ?? conv.created_at) && (
-                      <p className="text-[11px] text-white/30 shrink-0 ml-2">
-                        {timeAgo(conv.last_message_at ?? conv.created_at)}
-                      </p>
+            {conversations.map((conv) => {
+              const hasUnread = (conv.unread_count ?? 0) > 0
+              return (
+                <button
+                  key={conv.id}
+                  type="button"
+                  className="w-full flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] hover:bg-white/5 transition-colors text-left"
+                  onClick={() => router.push(`/messages/${conv.id}`)}
+                >
+                  {/* 未读蓝点 */}
+                  <div className="relative shrink-0">
+                    <Avatar
+                      name={conv.other_user?.name ?? '?'}
+                      src={conv.other_user?.avatar_url}
+                      size={44}
+                    />
+                    {hasUnread && (
+                      <span className="absolute -right-[1px] -top-[1px] h-[10px] w-[10px] rounded-full bg-[#e46d2e] ring-2 ring-[#101837]" />
                     )}
                   </div>
-                  <p className="text-[12px] text-white/40 truncate">
-                    {conv.last_message ?? '连接已建立 🎉'}
-                  </p>
-                </div>
-              </button>
-            ))}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className={`text-[14px] truncate ${hasUnread ? 'font-bold text-white' : 'font-semibold text-white'}`}>
+                        {conv.other_user?.name ?? 'Creator'}
+                      </p>
+                      {(conv.last_message_at ?? conv.created_at) && (
+                        <p className={`text-[11px] shrink-0 ml-2 ${hasUnread ? 'text-[#e46d2e] font-semibold' : 'text-white/30'}`}>
+                          {timeAgo(conv.last_message_at ?? conv.created_at)}
+                        </p>
+                      )}
+                    </div>
+                    <p className={`text-[12px] truncate ${hasUnread ? 'text-white/70 font-medium' : 'text-white/40'}`}>
+                      {conv.last_message ?? '连接已建立 🎉'}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         )}
       </main>

@@ -23,18 +23,19 @@ export class CollabRepository {
   }): Promise<CollabRequest> {
     const supabase = createClient()
 
-    // Prevent duplicate pending requests
-    const { data: existing } = await supabase
+    // Block if already connected (accepted in either direction) or pending in this direction
+    const { data: existingAny } = await supabase
       .from('collab_requests')
       .select('id, status')
-      .eq('sender_id', params.senderId)
-      .eq('receiver_id', params.receiverId)
-      .eq('status', 'pending')
+      .or(
+        `and(sender_id.eq.${params.senderId},receiver_id.eq.${params.receiverId}),and(sender_id.eq.${params.receiverId},receiver_id.eq.${params.senderId})`,
+      )
+      .in('status', ['pending', 'accepted'])
+      .limit(1)
       .maybeSingle()
 
-    if (existing) {
-      throw new Error('ALREADY_SENT')
-    }
+    if (existingAny?.status === 'accepted') throw new Error('ALREADY_CONNECTED')
+    if (existingAny?.status === 'pending') throw new Error('ALREADY_SENT')
 
     const { data, error } = await supabase
       .from('collab_requests')
@@ -53,6 +54,19 @@ export class CollabRepository {
 
     if (error) throw new Error(`Failed to send request: ${error.message}`)
     return data
+  }
+
+  /** Count pending requests where user is receiver (for inbox badges). */
+  async countPendingInbox(receiverId: string): Promise<number> {
+    const supabase = createClient()
+    const { count, error } = await supabase
+      .from('collab_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', receiverId)
+      .eq('status', 'pending')
+
+    if (error) throw new Error(`Failed to count pending requests: ${error.message}`)
+    return count ?? 0
   }
 
   /** Get inbox (requests received by userId). */
@@ -112,5 +126,25 @@ export class CollabRepository {
       .limit(1)
       .maybeSingle()
     return (data?.status as CollabStatus) ?? null
+  }
+
+  /**
+   * Batch: return the set of user IDs that have an accepted collab connection
+   * with `userId` in either direction. Used to hide Connect buttons in the feed.
+   */
+  async getAcceptedPartnerIds(userId: string): Promise<Set<string>> {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('collab_requests')
+      .select('sender_id, receiver_id')
+      .eq('status', 'accepted')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+
+    const ids = new Set<string>()
+    for (const row of data ?? []) {
+      if (row.sender_id !== userId) ids.add(row.sender_id as string)
+      if (row.receiver_id !== userId) ids.add(row.receiver_id as string)
+    }
+    return ids
   }
 }
