@@ -21,7 +21,9 @@ export const profileSchema = z.object({
   manifesto: z.string().max(500).nullable().optional(),
   collab_style: z.string().nullable().optional(), // No DB constraint - free text
   availability: z.enum(['weekends', 'evenings', 'flexible', 'full-time']).nullable().optional(),
-  hackathon_track: z.enum(['Engineering', 'Design', 'Business', 'Science', 'Social Impact']).nullable().optional(),
+  // Track is a free-form text in DB (see migrations/mvp_p0_schema.sql).
+  // UI provides a set of track chips, but we don't restrict to a fixed enum.
+  hackathon_track: z.string().max(100).nullable().optional(),
   languages: z.array(z.string()).nullable().optional(),
   major: z.string().max(100).nullable().optional(),
   education_level: z.enum(['Undergrad', 'Master', 'PhD', 'Professional']).nullable().optional(),

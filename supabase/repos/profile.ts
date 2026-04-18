@@ -123,8 +123,9 @@ export class ProfileRepository {
   }
 
   /**
-   * List creators for Explore.
-   * Returns onboarding-complete profiles (public browsing surface).
+   * List creators for Explore / swipe pool.
+   * TODO(prod): restore `.eq('onboarding_complete', true)` for public browsing only.
+   * Filter omitted temporarily so dev/staging can test against the full profile table.
    */
   async listCreators(limit = 60): Promise<UserProfile[]> {
     const supabase = createClient()
@@ -132,7 +133,6 @@ export class ProfileRepository {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('onboarding_complete', true)
       .order('created_at', { ascending: false })
       .limit(limit)
 

@@ -83,8 +83,10 @@ export default function TeamDetailPage() {
       .finally(() => setPageLoading(false))
   }, [teamId])
 
-  const isMember = team?.members?.some((m) => (m as { user_id?: string }).user_id === sessionUser?.id) ?? false
   const isOwner = team?.owner_id === sessionUser?.id
+  const isMember =
+    isOwner ||
+    (team?.members?.some((m) => (m as { id?: string }).id === sessionUser?.id) ?? false)
 
   const handleJoin = async (role: Role) => {
     if (!sessionUser || !teamId) return
@@ -133,13 +135,13 @@ export default function TeamDetailPage() {
     )
   }
 
-  const members = (team.members ?? []) as Array<{ user_id?: string; name?: string; role?: string; avatar_url?: string | null; is_admin?: boolean }>
+  const members = (team.members ?? []) as Array<{ id?: string; name?: string; role?: string; avatar_url?: string | null; is_admin?: boolean }>
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
       {/* Header */}
       <div className="h-14 flex items-center gap-3 px-4 border-b border-white/8 sticky top-0 z-10" style={{ backgroundColor: '#101837' }}>
-        <button type="button" className="text-white/60 hover:text-white p-1 text-xl" onClick={() => router.back()}>←</button>
+        <button type="button" className="text-white/60 hover:text-white p-1 text-xl" onClick={() => router.replace('/profile')}>←</button>
         <p className="text-base font-semibold text-white truncate flex-1">{team.name}</p>
         {isOwner && (
           <span className="text-xs text-[#e46d2e] bg-[rgba(228,109,46,0.1)] border border-[rgba(228,109,46,0.3)] rounded-full px-2 py-0.5">
@@ -196,7 +198,7 @@ export default function TeamDetailPage() {
           <div className="space-y-2">
             {members.map((m, i) => (
               <div
-                key={m.user_id ?? i}
+                key={m.id ?? i}
                 className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.04] px-4 py-3"
               >
                 <Avatar name={m.name ?? '?'} src={m.avatar_url} size={36} />

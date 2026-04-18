@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState, Suspense, useCallback } from 'react'
+import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
 import { CreateModal } from '@/components/features/create'
 import { Button } from '@/components/ui/button'
 import { CreatorsFeed } from '@/components/features/explore/CreatorsFeed'
-import { SwipeStack, type SwipeDirection } from '@/components/features/swipe/SwipeStack'
-import { SwipeConfirmModal } from '@/components/features/swipe/SwipeConfirmModal'
+import type { SwipeDirection } from '@/components/features/swipe/SwipeStack'
+import { SwipeDemoExperience } from '@/components/features/swipe/SwipeDemoExperience'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { CollabRepository } from '@/supabase/repos/collab'
+import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay } from '@/lib/swipe-demo-xp'
+import { appendSwipeSkippedId, readSwipeSkippedIds } from '@/lib/swipe-skipped-ids'
 import type { UserProfile } from '@/types'
 
 export default function ExplorePage() {
@@ -23,14 +25,15 @@ export default function ExplorePage() {
   const [swipeMode, setSwipeMode] = useState(false)
   const [swipeProfiles, setSwipeProfiles] = useState<UserProfile[]>([])
   const [swipeLoading, setSwipeLoading] = useState(false)
-  const [pendingSwipe, setPendingSwipe] = useState<{ profile: UserProfile; iceBreaker: string } | null>(null)
-  const [swipeSending, setSwipeSending] = useState(false)
+  const [swipeNotice, setSwipeNotice] = useState<string | null>(null)
+  const swipeNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'best' | 'new'>('best')
   const [skill, setSkill] = useState('')
   const [role, setRole] = useState('')
   const [location, setLocation] = useState('')
   const [picker, setPicker] = useState<null | 'skill' | 'role' | 'location'>(null)
+  const [demoXp, setDemoXp] = useState(SWIPE_DEMO_INITIAL_XP)
 
   const SKILL_OPTIONS = useMemo(
     () => ['UI Design', 'Figma', 'Full-Stack', 'AI / ML', 'Backend', 'Research', 'Go-to-Market', 'Brand Identity'],
@@ -39,25 +42,29 @@ export default function ExplorePage() {
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
 
+  const xpBar = useMemo(() => getSwipeXpBarDisplay(demoXp.xp), [demoXp.xp])
+
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
   }, [loading, sessionUser, router])
 
-  // Load swipe profiles (exclude already-swiped from localStorage)
+  // Load swipe profiles（排除当前用户已对其右滑发过请求的 id，存储键按用户隔离）
   const loadSwipeProfiles = useCallback(async () => {
     if (!sessionUser) return
     setSwipeLoading(true)
     try {
-      const skippedRaw = localStorage.getItem('mc_swiped') ?? '[]'
-      const skipped: string[] = JSON.parse(skippedRaw)
+      const skipped = readSwipeSkippedIds(sessionUser.id)
       const repo = new ProfileRepository()
       const all = await repo.listCreators(30)
       const filtered = all.filter(
         (p) => p.id !== sessionUser.id && !skipped.includes(p.id),
       )
       setSwipeProfiles(filtered.slice(0, 10))
-    } catch {}
-    finally { setSwipeLoading(false) }
+    } catch (e) {
+      console.error('loadSwipeProfiles failed', e)
+    } finally {
+      setSwipeLoading(false)
+    }
   }, [sessionUser])
 
   const handleEnterSwipe = useCallback(() => {
@@ -65,62 +72,57 @@ export default function ExplorePage() {
     setSwipeMode(true)
   }, [loadSwipeProfiles])
 
+  const showSwipeNotice = useCallback((text: string) => {
+    if (swipeNoticeTimerRef.current) clearTimeout(swipeNoticeTimerRef.current)
+    setSwipeNotice(text)
+    swipeNoticeTimerRef.current = setTimeout(() => {
+      setSwipeNotice(null)
+      swipeNoticeTimerRef.current = null
+    }, 4000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (swipeNoticeTimerRef.current) clearTimeout(swipeNoticeTimerRef.current)
+    }
+  }, [])
+
   const handleSwipe = useCallback(
     async (profile: UserProfile, dir: SwipeDirection) => {
-      // Record to localStorage
-      const skippedRaw = localStorage.getItem('mc_swiped') ?? '[]'
-      const skipped: string[] = JSON.parse(skippedRaw)
-      if (!skipped.includes(profile.id)) {
-        localStorage.setItem('mc_swiped', JSON.stringify([...skipped, profile.id]))
-      }
+      // 左滑只是 pass，不写已发列表，下次进入时仍可出现
+      if (dir !== 'right' || !sessionUser) return
 
-      if (dir === 'right') {
-        // Generate icebreaker
-        let iceBreaker = `Hi ${profile.name ?? 'there'}, your profile really caught my eye! I'd love to connect and explore if we could collaborate.`
-        try {
-          const res = await fetch('/api/ai/icebreaker', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              senderName: user?.name ?? sessionUser?.email,
-              senderRole: user?.role ?? undefined,
-              receiverName: profile.name,
-              receiverRole: profile.role ?? undefined,
-              type: 'just_connect',
-            }),
-          })
-          if (res.ok) {
-            const data = await res.json() as { text?: string }
-            if (data.text) iceBreaker = data.text
-          }
-        } catch {}
-        setPendingSwipe({ profile, iceBreaker })
-      }
-    },
-    [user, sessionUser],
-  )
+      const defaultMessage = `Hi ${profile.name ?? 'there'}, your profile really caught my eye! I'd love to connect and explore if we could collaborate.`
 
-  const handleConfirmSwipe = useCallback(
-    async (message: string) => {
-      if (!pendingSwipe || !sessionUser) return
-      setSwipeSending(true)
       try {
         await new CollabRepository().sendRequest({
           senderId: sessionUser.id,
-          receiverId: pendingSwipe.profile.id,
+          receiverId: profile.id,
           type: 'just_connect',
-          message,
-          iceBreakerText: message,
+          message: defaultMessage,
+          iceBreakerText: defaultMessage,
         })
+        appendSwipeSkippedId(sessionUser.id, profile.id)
+        showSwipeNotice('已发送连接请求')
       } catch (e) {
-        console.error('swipe send failed', e)
-      } finally {
-        setSwipeSending(false)
-        setPendingSwipe(null)
+        const err = e instanceof Error ? e.message : ''
+        if (err === 'ALREADY_SENT') {
+          showSwipeNotice('你已向对方发送过待处理请求')
+        } else {
+          showSwipeNotice('发送失败，请稍后再试')
+        }
       }
     },
-    [pendingSwipe, sessionUser],
+    [sessionUser, showSwipeNotice],
   )
+
+  const handleSwipeEmpty = useCallback(() => {
+    // 卡牌耗尽时什么都不做；handleRestart 里会调 loadSwipeProfiles 重拉
+  }, [])
+
+  const handleCloseSwipe = useCallback(() => {
+    setSwipeMode(false)
+  }, [])
 
   if (loading || profileLoading) {
     return (
@@ -180,23 +182,36 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* MetaFire Progress Bar (Figma visual placeholder) */}
-        <div className="h-10 bg-[#101837] px-4">
+        {/* XP Bar — 与全屏 Swipe 共用 demoXp 曲线 */}
+        <div className="bg-[#101837] px-4">
           <div className="h-px bg-white/10" />
-          <div className="flex h-full items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <span className="h-[5px] w-[5px] rounded-full bg-[#e46d2e]" />
-                <span className="h-[5px] w-[5px] rounded-full bg-[#e46d2e]/70" />
-                <span className="h-[5px] w-[5px] rounded-full bg-[#e46d2e]/50" />
-                <span className="h-[5px] w-[5px] rounded-full bg-[#e46d2e]/30" />
-              </div>
-              <span className="text-[11px] font-medium text-white">Lv2 Spark</span>
-              <div className="h-1 w-[193px] rounded-full bg-white/10">
-                <div className="h-1 w-[60%] rounded-full bg-[#e46d2e] shadow-[0px_0px_6px_rgba(228,109,46,0.5)]" />
-              </div>
+          <div className="flex items-center gap-[10px] py-2 border-b border-white/[0.06]">
+            <div className="flex items-center gap-[3px] shrink-0">
+              {([1, 2, 3, 4] as const).map((lvl) => (
+                <span
+                  key={lvl}
+                  className="h-[5px] w-[5px] rounded-full"
+                  style={{ background: xpBar.dotBg(lvl) }}
+                />
+              ))}
             </div>
-            <span className="text-[10px] text-white/45">180 / 300 XP</span>
+            <span
+              className="text-[11px] font-medium shrink-0 whitespace-nowrap"
+              style={{ color: xpBar.levelColor }}
+            >
+              {xpBar.label}
+            </span>
+            <div className="flex-1 min-w-0 h-1 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${xpBar.fillPct}%`,
+                  backgroundColor: xpBar.levelColor,
+                  boxShadow: `0px 0px 6px ${xpBar.levelColor}80`,
+                }}
+              />
+            </div>
+            <span className="text-[10px] text-white/45 shrink-0 whitespace-nowrap">{xpBar.countLabel}</span>
           </div>
         </div>
 
@@ -269,7 +284,7 @@ export default function ExplorePage() {
               </div>
             }
           >
-            <CreatorsFeed query={query} role={role} skill={skill} location={location} sort={sort} />
+            <CreatorsFeed key={feedRefreshKey} query={query} role={role} skill={skill} location={location} sort={sort} />
           </Suspense>
         </main>
       </div>
@@ -383,90 +398,29 @@ export default function ExplorePage() {
         type={modalType}
       />
 
-      {/* ── Swipe Mode Full-Screen Overlay ── */}
+      {/* ── Swipe Mode Full-Screen Overlay (Demo-aligned) ── */}
       {swipeMode && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col"
-          style={{ backgroundColor: '#101837' }}
-        >
-          {/* Swipe header */}
-          <div className="h-14 flex items-center justify-between px-5 shrink-0">
-            <button
-              type="button"
-              className="text-white/60 hover:text-white p-1 text-xl"
-              onClick={() => setSwipeMode(false)}
+        <div className="fixed inset-0 z-50 flex h-dvh w-full flex-col bg-[#101837]">
+          <SwipeDemoExperience
+            viewer={user as unknown as UserProfile | null}
+            profiles={swipeProfiles}
+            loading={swipeLoading}
+            onClose={handleCloseSwipe}
+            onSwipe={handleSwipe}
+            onEmpty={handleSwipeEmpty}
+            onReload={loadSwipeProfiles}
+            demoXp={demoXp}
+            onDemoXpChange={setDemoXp}
+          />
+          {swipeNotice ? (
+            <div
+              className="pointer-events-none fixed bottom-24 left-1/2 z-[60] max-w-[min(90vw,360px)] -translate-x-1/2 rounded-2xl border border-white/15 bg-[#121B3E]/95 px-4 py-3 text-center text-sm text-white shadow-lg backdrop-blur-sm"
+              role="status"
             >
-              ×
-            </button>
-            <p className="text-sm font-semibold text-white">匹配模式</p>
-            <div className="w-8" />
-          </div>
-
-          {/* Swipe hint */}
-          <div className="flex justify-center gap-8 py-2 text-xs text-white/30 shrink-0">
-            <span>← 跳过</span>
-            <span>右滑连接 →</span>
-          </div>
-
-          {/* Card stack */}
-          <div className="flex-1 px-6 pb-6 relative">
-            {swipeLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-white/50 text-sm">加载创造者…</p>
-              </div>
-            ) : swipeProfiles.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-8">
-                <p className="text-4xl">🪐</p>
-                <p className="text-white font-semibold">暂时没有更多了</p>
-                <p className="text-white/40 text-sm">先去看看 Explore 列表，或者等新创造者加入</p>
-                <button
-                  type="button"
-                  className="mt-2 text-sm text-[#e46d2e] border border-[#e46d2e]/30 rounded-full px-5 py-2"
-                  onClick={() => setSwipeMode(false)}
-                >
-                  返回列表
-                </button>
-              </div>
-            ) : (
-              <SwipeStack
-                profiles={swipeProfiles}
-                onSwipe={handleSwipe}
-                onEmpty={() => setSwipeProfiles([])}
-              />
-            )}
-          </div>
-
-          {/* Action buttons */}
-          {!swipeLoading && swipeProfiles.length > 0 && (
-            <div className="flex justify-center gap-8 pb-8 shrink-0">
-              <button
-                type="button"
-                className="h-16 w-16 rounded-full border-2 border-red-400/60 bg-red-400/10 flex items-center justify-center text-2xl hover:bg-red-400/20 transition-colors"
-                aria-label="Skip"
-              >
-                ✕
-              </button>
-              <button
-                type="button"
-                className="h-16 w-16 rounded-full border-2 border-green-400/60 bg-green-400/10 flex items-center justify-center text-2xl hover:bg-green-400/20 transition-colors"
-                aria-label="Connect"
-              >
-                ♥
-              </button>
+              {swipeNotice}
             </div>
-          )}
+          ) : null}
         </div>
-      )}
-
-      {/* Swipe Confirm Modal */}
-      {pendingSwipe && (
-        <SwipeConfirmModal
-          profile={pendingSwipe.profile}
-          iceBreakerText={pendingSwipe.iceBreaker}
-          onConfirm={handleConfirmSwipe}
-          onCancel={() => setPendingSwipe(null)}
-          sending={swipeSending}
-        />
       )}
     </div>
   )

@@ -222,19 +222,9 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
-      {/* Simple top bar */}
-      <div className="h-[60px] flex items-center justify-between px-5"
-        style={{ backgroundColor: '#101837' }}>
-        <button
-          type="button"
-          className="flex flex-col gap-[5px]"
-          onClick={() => setEditOpen(true)}
-          aria-label="Edit profile"
-        >
-          <span className="block h-0.5 w-5 rounded bg-white" />
-          <span className="block h-0.5 w-5 rounded bg-white" />
-          <span className="block h-0.5 w-3.5 rounded bg-white" />
-        </button>
+      {/* Top bar (no hamburger) */}
+      <div className="h-[60px] flex items-center justify-between px-5" style={{ backgroundColor: '#101837' }}>
+        <p className="text-[15px] font-semibold text-white">Me</p>
         <div className="flex items-center gap-2">
           {!profile?.onboarding_complete && (
             <button
@@ -245,6 +235,15 @@ export default function ProfilePage() {
               完善资料
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="h-9 w-9 rounded-full border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center"
+            aria-label="Edit profile"
+            title="Edit"
+          >
+            ✎
+          </button>
         </div>
       </div>
 
