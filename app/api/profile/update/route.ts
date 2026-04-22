@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/utils/server'
 import { profileUpdateSchema } from '@/schemas/profile'
 import { embedTextDashscope } from '@/lib/dashscope-embedding'
-import { assertSafeText } from '@/lib/content-safety'
+import { ContentSafetyError, assertSafeTextWithAi } from '@/lib/content-safety'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}))
     const updates = profileUpdateSchema.parse(body)
-    assertSafeText((updates as { manifesto?: string | null }).manifesto, 'Manifesto')
+    await assertSafeTextWithAi((updates as { manifesto?: string | null }).manifesto, 'Manifesto')
 
     // 1) Update profile first (never block on embedding)
     const { data: updated, error: upErr } = await supabase
@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ profile: updated })
   } catch (e) {
+    if (e instanceof ContentSafetyError) {
+      return NextResponse.json({ error: e.message, code: e.code }, { status: 400 })
+    }
     const msg = e instanceof Error ? e.message : 'Failed'
     return NextResponse.json({ error: msg }, { status: 500 })
   }

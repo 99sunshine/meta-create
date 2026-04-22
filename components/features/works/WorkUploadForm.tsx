@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { trackEvent } from '@/lib/analytics'
 import { useCreateFlowOptional } from '@/components/providers/CreateFlowProvider'
+import { assertSafeText } from '@/lib/content-safety'
 
 const MAX_IMAGES = 9
 const COMPRESSION_OPTIONS = {
@@ -128,6 +129,20 @@ export function WorkUploadForm({
     setError('')
 
     try {
+      // Layer 1 (deterministic)
+      assertSafeText(title, '作品标题')
+      assertSafeText(description, '作品描述')
+      // Layer 2 (optional) - server-side AI moderation
+      const safetyRes = await fetch('/api/content/safety-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: `${title}\n${description}`, fieldLabel: '作品内容' }),
+      })
+      if (!safetyRes.ok) {
+        const j = await safetyRes.json().catch(() => ({}))
+        throw new Error((j as any)?.error ?? '作品内容包含不允许的内容，请修改后再提交。')
+      }
+
       const imageUrls = images.length > 0 ? await uploadImages() : []
       const cleanLinks = links.filter((l) => l.trim())
 

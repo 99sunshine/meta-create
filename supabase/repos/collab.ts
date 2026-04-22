@@ -47,6 +47,26 @@ export class CollabRepository {
     if (existingAny?.status === 'pending') throw new Error('ALREADY_SENT')
 
     assertSafeText(params.message ?? params.iceBreakerText ?? null, '消息')
+    // Layer 2 (optional) - server-side AI moderation.
+    try {
+      const text = (params.message ?? params.iceBreakerText ?? '').trim()
+      if (text) {
+        const res = await fetch('/api/content/safety-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, fieldLabel: '消息' }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          if (res.status === 400 && (j as any)?.code === 'CONTENT_SAFETY') {
+            throw new Error((j as any)?.error ?? '消息包含不允许的内容，请修改后再提交。')
+          }
+          // moderation service unavailable / throttled → don't block user beyond blacklist
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('包含不允许的内容')) throw e
+    }
 
     const { data, error } = await supabase
       .from('collab_requests')

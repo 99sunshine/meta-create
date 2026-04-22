@@ -1,4 +1,5 @@
 import { createClient } from '../utils/client'
+import { assertSafeText } from '@/lib/content-safety'
 
 export interface Conversation {
   id: string
@@ -132,6 +133,28 @@ export class MessageRepository {
   }
 
   async sendMessage(conversationId: string, senderId: string, content: string): Promise<Message> {
+    // Layer 1 (deterministic) - fast client-side gate.
+    assertSafeText(content, '消息')
+    // Layer 2 (optional) - server-side AI moderation.
+    try {
+      const res = await fetch('/api/content/safety-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: content, fieldLabel: '消息' }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        if (res.status === 400 && (j as any)?.code === 'CONTENT_SAFETY') {
+          throw new Error((j as any)?.error ?? '消息包含不允许的内容，请修改后再提交。')
+        }
+        // moderation service unavailable / throttled → don't block user beyond blacklist
+      }
+    } catch (e) {
+      // Network/500/etc: fall back to blacklist only.
+      // Only block when we already converted a CONTENT_SAFETY 400 into an Error above.
+      if (e instanceof Error && e.message.includes('包含不允许的内容')) throw e
+    }
+
     const { data, error } = await this.supabase
       .from('messages')
       .insert({ conversation_id: conversationId, sender_id: senderId, content })
