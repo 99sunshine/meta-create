@@ -1,5 +1,6 @@
 import { createClient } from '../utils/client'
 import type { Tables } from '@/types'
+import { assertSafeText } from '@/lib/content-safety'
 
 export type CollabRequest = Tables<'collab_requests'>
 export type CollabStatus = 'pending' | 'accepted' | 'declined'
@@ -22,9 +23,16 @@ export class CollabRepository {
     matchScore?: number
   }): Promise<CollabRequest> {
     const supabase = createClient()
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser()
+
+    if (authErr || !user) throw new Error('UNAUTHENTICATED')
+    if (user.id !== params.senderId) throw new Error('SENDER_MISMATCH')
 
     // Block if already connected (accepted in either direction) or pending in this direction
-    const { data: existingAny } = await supabase
+    const { data: existingAny, error: existingErr } = await supabase
       .from('collab_requests')
       .select('id, status')
       .or(
@@ -34,8 +42,11 @@ export class CollabRepository {
       .limit(1)
       .maybeSingle()
 
+    if (existingErr) throw new Error(`CHECK_FAILED:${existingErr.message}`)
     if (existingAny?.status === 'accepted') throw new Error('ALREADY_CONNECTED')
     if (existingAny?.status === 'pending') throw new Error('ALREADY_SENT')
+
+    assertSafeText(params.message ?? params.iceBreakerText ?? null, '消息')
 
     const { data, error } = await supabase
       .from('collab_requests')
@@ -52,7 +63,13 @@ export class CollabRepository {
       .select()
       .single()
 
-    if (error) throw new Error(`Failed to send request: ${error.message}`)
+    if (error) {
+      const msg = error.message || ''
+      if (msg.toLowerCase().includes('row-level security')) throw new Error('RLS_DENIED')
+      if (msg.toLowerCase().includes('duplicate key')) throw new Error('DUPLICATE')
+      throw new Error(`Failed to send request: ${msg}`)
+    }
+    if (!data?.id) throw new Error('INSERT_NO_RETURN')
     return data
   }
 

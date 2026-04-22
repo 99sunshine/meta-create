@@ -35,9 +35,15 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
     return scoreUserMatch(user, creator)
   }, [user, creator])
 
-  const percent = match?.score ?? 0
+  // When loaded from /api/match (db_function), rows include a server-computed `score`.
+  // Prefer it so display matches server ordering.
+  const serverScore = (creator as unknown as { score?: unknown }).score
+  const percent = typeof serverScore === 'number' ? serverScore : (match?.score ?? 0)
+  const visionScore = (creator as unknown as { vision_score?: unknown }).vision_score
+  const visionPts = typeof visionScore === 'number' ? visionScore : null
   const subtitleParts = [
     creator.role ? String(creator.role) : null,
+    creator.hackathon_track ? `Track: ${String(creator.hackathon_track)}` : null,
     creator.school ? String(creator.school) : null,
     creator.city ? String(creator.city) : null,
   ].filter(Boolean)
@@ -110,7 +116,11 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
         {/* Bottom row */}
         <div className="flex items-center gap-2 w-full">
           <p className="flex-1 text-[11px] text-[#e88dba] truncate">
-            {creator.tags?.[0] ? `→ ${String(creator.tags[0])}` : '→ Connect'}
+            {visionPts !== null
+              ? `Vision ${Math.max(0, Math.min(35, Math.round(visionPts)))}/35`
+              : creator.tags?.[0]
+                ? `→ ${String(creator.tags[0])}`
+                : '→ Connect'}
           </p>
           {sessionUser && user?.id !== creator.id && (
             connected ? (

@@ -16,6 +16,8 @@ import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay } from '@/lib/swipe-demo-xp
 import { appendSwipeSkippedId, readSwipeSkippedIds } from '@/lib/swipe-skipped-ids'
 import type { UserProfile } from '@/types'
 import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
+import { SKILLS } from '@/constants/skills'
+import { generateIceBreakerAI } from '@/lib/icebreaker'
 import {
   IconSatelliteDish,
   IconListBullet,
@@ -38,13 +40,11 @@ export default function ExplorePage() {
   const [skill, setSkill] = useState('')
   const [role, setRole] = useState('')
   const [location, setLocation] = useState('')
+  const [sameTrackOnly, setSameTrackOnly] = useState(false)
   const [picker, setPicker] = useState<null | 'skill' | 'role' | 'location'>(null)
   const [demoXp, setDemoXp] = useState(SWIPE_DEMO_INITIAL_XP)
 
-  const SKILL_OPTIONS = useMemo(
-    () => ['UI Design', 'Figma', 'Full-Stack', 'AI / ML', 'Backend', 'Research', 'Go-to-Market', 'Brand Identity'],
-    [],
-  )
+  const SKILL_OPTIONS = useMemo(() => SKILLS, [])
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
 
@@ -102,28 +102,48 @@ export default function ExplorePage() {
       // 左滑只是 pass，不写已发列表，下次进入时仍可出现
       if (dir !== 'right' || !sessionUser) return
 
-      const defaultMessage = `Hi ${profile.name ?? 'there'}, your profile really caught my eye! I'd love to connect and explore if we could collaborate.`
+      showSwipeNotice('右滑已触发：正在生成消息…')
+
+      let ice = ''
+      try {
+        ice = await generateIceBreakerAI({
+          senderName: user?.name ?? sessionUser.email?.split('@')[0] ?? '我',
+          senderRole: user?.role ?? null,
+          senderTrack: user?.hackathon_track ?? null,
+          senderSkills: (user?.skills ?? []) as string[],
+          senderManifesto: user?.manifesto ?? null,
+          receiverName: profile.name ?? '你',
+          receiverRole: profile.role ?? null,
+          receiverTrack: (profile as any).hackathon_track ?? null,
+          receiverSkills: (profile.skills ?? []) as string[],
+          receiverManifesto: profile.manifesto ?? null,
+          type: 'just_connect',
+        })
+      } catch {
+        ice = `你好 ${profile.name ?? ''}，看到你的资料很有共鸣，想先连接一下，方便聊聊吗？`
+      }
 
       try {
         await new CollabRepository().sendRequest({
           senderId: sessionUser.id,
           receiverId: profile.id,
           type: 'just_connect',
-          message: defaultMessage,
-          iceBreakerText: defaultMessage,
+          message: ice,
+          iceBreakerText: ice,
         })
         appendSwipeSkippedId(sessionUser.id, profile.id)
         showSwipeNotice('已发送连接请求')
       } catch (e) {
         const err = e instanceof Error ? e.message : ''
-        if (err === 'ALREADY_SENT') {
-          showSwipeNotice('你已向对方发送过待处理请求')
-        } else {
-          showSwipeNotice('发送失败，请稍后再试')
-        }
+        if (err === 'UNAUTHENTICATED') showSwipeNotice('未登录，无法发送请求')
+        else if (err === 'RLS_DENIED') showSwipeNotice('权限不足（RLS），请刷新重试')
+        else if (err === 'SENDER_MISMATCH') showSwipeNotice('登录状态异常，请刷新重试')
+        else if (err === 'ALREADY_SENT') showSwipeNotice('你已向对方发送过待处理请求')
+        else if (err === 'ALREADY_CONNECTED') showSwipeNotice('你们已连接')
+        else showSwipeNotice('发送失败，请稍后再试')
       }
     },
-    [sessionUser, showSwipeNotice],
+    [sessionUser, showSwipeNotice, user],
   )
 
   const handleSwipeEmpty = useCallback(() => {
@@ -259,6 +279,19 @@ export default function ExplorePage() {
             </button>
             <button
               type="button"
+              className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                sameTrackOnly
+                  ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                  : 'bg-white/10 text-[#6b7280]'
+              }`}
+              onClick={() => setSameTrackOnly((v) => !v)}
+              disabled={!user?.hackathon_track}
+              title={user?.hackathon_track ? '仅显示同赛道创作者' : '你还没有设置赛道（在 Onboarding 里可选）'}
+            >
+              同赛道{sameTrackOnly ? ' ✓' : ''}
+            </button>
+            <button
+              type="button"
               className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
               onClick={() => setPicker('skill')}
             >
@@ -316,7 +349,15 @@ export default function ExplorePage() {
               </div>
             }
           >
-            <CreatorsFeed key={feedRefreshKey} query={query} role={role} skill={skill} location={location} sort={sort} />
+            <CreatorsFeed
+              key={feedRefreshKey}
+              query={query}
+              role={role}
+              skill={skill}
+              location={location}
+              sort={sort}
+              sameTrackOnly={sameTrackOnly}
+            />
           </Suspense>
         </main>
       </div>

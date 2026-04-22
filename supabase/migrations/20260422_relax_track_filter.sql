@@ -1,69 +1,19 @@
 -- ============================================================
--- MetaCreate — Matching Function (D2-1)
--- Extended for P0-3 Vision Alignment (pgvector manifesto embeddings)
+-- MetaCreate — Relax track restriction (optional same-track)
 --
--- Weights (must sum to 100):
---   Vision_Alignment   × 35  (cosine similarity on manifesto embeddings; neutral fallback 0.3)
---   Skill_Complement   × 25
---   Role_Complement    × 20
---   Interest_Overlap   × 12
---   Availability       × 8
+-- Previously: get_matched_creators(current_user_id) enforced same track
+-- if both users had hackathon_track set.
 --
--- Returns top 60 creators ordered by score (DESC), then created_at (DESC).
--- When user pool < 30, scores are returned but UI hides them (handled client-side).
+-- Now:
+--   - Introduce get_matched_creators(current_user_id, same_track_only boolean DEFAULT false)
+--   - Keep 1-arg wrapper for backwards compatibility.
 -- ============================================================
 
--- ── Role complementarity lookup ───────────────────────────────────────────────
--- HIGH=1.0, MEDIUM=0.5, LOW=0.2, NEUTRAL=0.3
-CREATE OR REPLACE FUNCTION role_compat_score(role_a text, role_b text)
-RETURNS numeric
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
-AS $$
-BEGIN
-  IF role_a IS NULL OR role_b IS NULL THEN RETURN 0; END IF;
-  IF role_a = role_b THEN RETURN 0.2; END IF;  -- same role = LOW
-
-  RETURN CASE
-    -- Visionary pairs
-    WHEN (role_a = 'Visionary' AND role_b = 'Builder')     OR
-         (role_a = 'Builder'   AND role_b = 'Visionary')   THEN 1.0   -- HIGH
-    WHEN (role_a = 'Visionary' AND role_b = 'Strategist')  OR
-         (role_a = 'Strategist' AND role_b = 'Visionary')  THEN 0.5   -- MEDIUM
-    WHEN (role_a = 'Visionary' AND role_b = 'Connector')   OR
-         (role_a = 'Connector' AND role_b = 'Visionary')   THEN 0.5   -- MEDIUM
-    -- Builder pairs
-    WHEN (role_a = 'Builder'   AND role_b = 'Strategist')  OR
-         (role_a = 'Strategist' AND role_b = 'Builder')    THEN 0.5   -- MEDIUM
-    WHEN (role_a = 'Builder'   AND role_b = 'Connector')   OR
-         (role_a = 'Connector' AND role_b = 'Builder')     THEN 0.5   -- MEDIUM
-    -- Strategist pairs
-    WHEN (role_a = 'Strategist' AND role_b = 'Connector')  OR
-         (role_a = 'Connector'  AND role_b = 'Strategist') THEN 1.0   -- HIGH
-    ELSE 0.3  -- NEUTRAL
-  END;
-END;
-$$;
-
--- ── Availability normalisation ────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION normalise_availability(raw text)
-RETURNS text
-LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
-AS $$
-BEGIN
-  IF raw IS NULL THEN RETURN 'Exploring'; END IF;
-  CASE lower(raw)
-    WHEN 'available', 'full-time', 'flexible' THEN RETURN 'Available';
-    WHEN 'unavailable' THEN RETURN 'Unavailable';
-    ELSE RETURN 'Exploring';
-  END CASE;
-END;
-$$;
-
--- ── Main matching function ────────────────────────────────────────────────────
--- Returns (id, name, role, city, school, skills, hackathon_track, avatar_url,
---          manifesto, tags, score, top_reason) for every candidate profile,
--- ordered by score DESC.
-CREATE OR REPLACE FUNCTION get_matched_creators(current_user_id uuid)
+-- 1) New signature with optional same-track restriction
+CREATE OR REPLACE FUNCTION get_matched_creators(
+  current_user_id uuid,
+  same_track_only boolean DEFAULT false
+)
 RETURNS TABLE (
   id               uuid,
   name             text,
@@ -115,7 +65,8 @@ BEGIN
     WHERE p.id <> current_user_id
       AND p.onboarding_complete = true
       AND (
-        cur_track IS NULL
+        same_track_only = false
+        OR cur_track IS NULL
         OR p.hackathon_track IS NULL
         OR lower(p.hackathon_track) = lower(cur_track)
       )
@@ -252,36 +203,26 @@ BEGIN
 END;
 $$;
 
--- ── Index for performance (≤ 500 users target < 100ms) ───────────────────────
-CREATE INDEX IF NOT EXISTS idx_profiles_onboarding ON profiles(onboarding_complete) WHERE onboarding_complete = true;
-CREATE INDEX IF NOT EXISTS idx_profiles_hackathon_track ON profiles(hackathon_track);
-CREATE INDEX IF NOT EXISTS idx_profiles_availability ON profiles(availability);
-
--- ── Full-text search (pg_trgm) — already created in mvp_p0_schema.sql ────────
--- These are idempotent so safe to repeat:
-CREATE INDEX IF NOT EXISTS idx_profiles_name_trgm     ON profiles USING gin(name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_profiles_manifesto_trgm ON profiles USING gin(manifesto gin_trgm_ops);
-
--- ── Helper: search profiles by text query ────────────────────────────────────
-CREATE OR REPLACE FUNCTION search_profiles(query text, lim integer DEFAULT 30)
-RETURNS SETOF profiles
-LANGUAGE plpgsql STABLE PARALLEL SAFE
+-- 2) Backwards-compatible wrapper (old signature)
+-- NOTE: must be created AFTER the 2-arg function exists.
+CREATE OR REPLACE FUNCTION get_matched_creators(current_user_id uuid)
+RETURNS TABLE (
+  id               uuid,
+  name             text,
+  role             text,
+  city             text,
+  school           text,
+  skills           text[],
+  hackathon_track  text,
+  avatar_url       text,
+  manifesto        text,
+  tags             text[],
+  score            integer,
+  top_reason       text
+)
+LANGUAGE sql STABLE PARALLEL SAFE
 AS $$
-BEGIN
-  RETURN QUERY
-    SELECT p.*
-    FROM profiles p
-    WHERE p.onboarding_complete = true
-      AND (
-        p.name        ILIKE '%' || query || '%'
-        OR p.role     ILIKE '%' || query || '%'
-        OR p.city     ILIKE '%' || query || '%'
-        OR p.school   ILIKE '%' || query || '%'
-        OR p.manifesto ILIKE '%' || query || '%'
-        OR query = ANY(p.skills)
-        OR query = ANY(p.tags)
-      )
-    ORDER BY similarity(p.name, query) DESC, p.created_at DESC
-    LIMIT lim;
-END;
+  SELECT *
+  FROM get_matched_creators(current_user_id, false::boolean);
 $$;
+

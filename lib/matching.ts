@@ -1,14 +1,15 @@
 /**
  * Weighted matching algorithm — MetaCreate co-creator discovery.
  *
- * STRICTLY follows PRD §6.1 formula:
- *   SCORE = (Skill_Complement × 40) + (Role_Complement × 25)
- *         + (Interest_Overlap × 20) + (Availability_Match × 15)
+ * Unified with DB function get_matched_creators() weights:
+ *   SCORE = (Vision_Alignment × 35) + (Skill_Complement × 25)
+ *         + (Role_Complement × 20) + (Interest_Overlap × 12)
+ *         + (Availability_Match × 8)
  *
  * Design principles:
  *  - Pure functions only — no side-effects, no DB calls.
  *  - Transparent: every MatchResult includes human-readable reasons.
- *  - No ML / no vector DB. Deterministic, auditable.
+ *  - Vision alignment uses cosine similarity when embeddings exist; otherwise neutral fallback.
  */
 
 import type { UserProfile } from '@/types'
@@ -16,14 +17,16 @@ import type { TeamWithMembers } from '@/types'
 import type { WorkWithCreator } from '@/types'
 import { ROLE_COMPLEMENTARITY } from '@/types/interfaces/Role'
 import type { Role } from '@/types/interfaces/Role'
+import { normalizeSkill } from '@/constants/skills'
 
 // ─── Weights (must sum to 100) ────────────────────────────────────────────────
 
 const W = {
-  skills: 40,
-  role:   25,
-  interests: 20,
-  availability: 15,
+  vision: 35,
+  skills: 25,
+  role:   20,
+  interests: 12,
+  availability: 8,
 } as const
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -38,7 +41,53 @@ export interface MatchResult {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toLower(arr: string[] | null | undefined): string[] {
-  return (arr ?? []).map((s) => s.toLowerCase())
+  return (arr ?? []).map((s) => normalizeSkill(s).toLowerCase()).filter(Boolean)
+}
+
+function parseVectorText(v: unknown): number[] | null {
+  if (Array.isArray(v) && v.every((x) => typeof x === 'number')) return v as number[]
+  if (typeof v !== 'string') return null
+  const s = v.trim()
+  if (!s) return null
+  // Accept "[1,2,3]" or "(1,2,3)"
+  const body = s.startsWith('[') && s.endsWith(']') ? s.slice(1, -1)
+    : s.startsWith('(') && s.endsWith(')') ? s.slice(1, -1)
+    : s
+  const parts = body.split(',').map((p) => p.trim()).filter(Boolean)
+  if (parts.length === 0) return null
+  const nums = parts.map((p) => Number(p))
+  if (nums.some((n) => !Number.isFinite(n))) return null
+  return nums
+}
+
+function cosineSimilarity(a: number[], b: number[]): number | null {
+  if (a.length === 0 || b.length === 0 || a.length !== b.length) return null
+  let dot = 0
+  let na = 0
+  let nb = 0
+  for (let i = 0; i < a.length; i++) {
+    const ai = a[i]!
+    const bi = b[i]!
+    dot += ai * bi
+    na += ai * ai
+    nb += bi * bi
+  }
+  if (na === 0 || nb === 0) return null
+  return dot / (Math.sqrt(na) * Math.sqrt(nb))
+}
+
+/**
+ * Dimension 0 — Vision Alignment.
+ * DB definition: 1 - cosine_distance(a.embedding, b.embedding) => cosine similarity.
+ * Fallback: neutral 0.3 when embedding missing.
+ */
+function visionScore(viewer: UserProfile | null, target: UserProfile): number {
+  if (!viewer) return 0
+  const va = parseVectorText((viewer as unknown as Record<string, unknown>).manifesto_embedding)
+  const vb = parseVectorText((target as unknown as Record<string, unknown>).manifesto_embedding)
+  const sim = va && vb ? cosineSimilarity(va, vb) : null
+  const raw = sim === null ? 0.3 : Math.max(0, Math.min(1, sim))
+  return raw * W.vision
 }
 
 /**
@@ -131,8 +180,6 @@ function normaliseAvailability(raw: string | null): 'Available' | 'Exploring' | 
 function availabilityScore(
   availA: string | null,
   availB: string | null,
-  trackA: string | null,
-  trackB: string | null,
 ): number {
   const a = normaliseAvailability(availA)
   const b = normaliseAvailability(availB)
@@ -146,10 +193,7 @@ function availabilityScore(
     base = 0.5 // Available + Exploring, or Exploring + Exploring
   }
 
-  // Hackathon track bonus
-  const bonus =
-    trackA && trackB && trackA.toLowerCase() === trackB.toLowerCase() ? 0.2 : 0
-  return Math.min(base + bonus, 1.0) * W.availability
+  return base * W.availability
 }
 
 // ─── User-vs-User (used in New Creators section) ──────────────────────────────
@@ -164,17 +208,16 @@ export function scoreUserMatch(
 ): MatchResult {
   if (!viewer || viewer.id === target.id) return { score: 0, topReasons: [] }
 
+  const v = visionScore(viewer, target)
   const s = skillComplementScore(viewer.skills, target.skills)
   const r = roleComplementScore(viewer.role, target.role)
   const i = interestJaccardScore(viewer.interests, target.interests)
   const a = availabilityScore(
     viewer.availability,
     target.availability,
-    viewer.hackathon_track,
-    target.hackathon_track,
   )
 
-  const total = Math.round(s + r + i + a)
+  const total = Math.round(v + s + r + i + a)
 
   // Build reasons with complement count
   const aSkills = toLower(viewer.skills)
@@ -186,6 +229,7 @@ export function scoreUserMatch(
   ).length
 
   const reasons: Array<{ pts: number; label: string }> = [
+    { pts: v, label: '愿景一致' },
     { pts: s, label: `${complementCount} complementary skill${complementCount !== 1 ? 's' : ''}` },
     { pts: r, label: 'complementary roles' },
     { pts: i, label: `${interestIntersect} shared interest${interestIntersect !== 1 ? 's' : ''}` },
@@ -251,7 +295,7 @@ export function scoreTeamMatch(
   }
 
   // Availability: only user side is available
-  const a = availabilityScore(currentUser.availability, null, currentUser.hackathon_track, team.event_track)
+  const a = availabilityScore(currentUser.availability, null)
 
   const total = Math.round(s + r + domainPts + a)
 

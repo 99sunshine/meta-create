@@ -18,6 +18,7 @@ type CreatorsFeedProps = {
   skill?: string
   location?: string
   sort?: 'best' | 'new'
+  sameTrackOnly?: boolean
 }
 
 function includesInsensitive(haystack: string | null | undefined, needle: string) {
@@ -32,6 +33,7 @@ export function CreatorsFeed({
   skill = '',
   location = '',
   sort = 'best',
+  sameTrackOnly = false,
 }: CreatorsFeedProps) {
   const { user } = useAuth()
   const [creators, setCreators] = useState<UserProfile[]>([])
@@ -43,25 +45,37 @@ export function CreatorsFeed({
     let mounted = true
     setLoading(true)
     setError('')
-    repo
-      .listCreators(limit)
-      .then((rows) => {
+    const load = async () => {
+      try {
+        // Source of truth: DB function via /api/match when user is logged in and sort=best.
+        if (sort === 'best' && user?.id) {
+          const res = await fetch(`/api/match?limit=${limit}${sameTrackOnly ? '&sameTrack=1' : ''}`)
+          const json = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(json?.error ?? 'Failed to load matches')
+          const rows = (json?.profiles ?? []) as UserProfile[]
+          if (!mounted) return
+          setCreators(rows)
+          return
+        }
+
+        const rows = await repo.listCreators(limit)
         if (!mounted) return
         setCreators(rows)
-      })
-      .catch((e) => {
+      } catch (e) {
         if (!mounted) return
         setError(e instanceof Error ? e.message : 'Failed to load creators')
         setCreators([])
-      })
-      .finally(() => {
+      } finally {
         if (!mounted) return
         setLoading(false)
-      })
+      }
+    }
+
+    void load()
     return () => {
       mounted = false
     }
-  }, [limit])
+  }, [limit, sort, user?.id, sameTrackOnly])
 
   // Batch-load accepted connections so we can hide Connect on already-connected cards
   useEffect(() => {
@@ -80,6 +94,11 @@ export function CreatorsFeed({
       const loc = location.trim().toLowerCase()
 
       let rows = creators.filter((c) => c.id !== user?.id)
+
+      if (sameTrackOnly && user?.hackathon_track) {
+        const me = String(user.hackathon_track).toLowerCase()
+        rows = rows.filter((c) => String(c.hackathon_track ?? '').toLowerCase() === me)
+      }
 
       if (role) rows = rows.filter((c) => String(c.role ?? '') === role)
       if (s) rows = rows.filter((c) => (c.skills ?? []).some((x) => String(x).toLowerCase() === s))
@@ -114,6 +133,12 @@ export function CreatorsFeed({
         return rows
       }
 
+      // When sort=best and data came from /api/match, keep server ordering (do not re-score).
+      // Still allow client-side filters/search to narrow the list.
+      if (sort === 'best' && user?.id && creators.length > 0) {
+        return rows
+      }
+
       if (!user) {
         rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         return rows
@@ -127,7 +152,7 @@ export function CreatorsFeed({
       )
       return scored.map((x) => x.c)
     },
-    [creators, user?.id, user, query, role, skill, location, sort],
+    [creators, user?.id, user, query, role, skill, location, sort, sameTrackOnly],
   )
 
   if (loading) {

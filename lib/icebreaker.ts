@@ -12,8 +12,14 @@
 export interface IceBreakerParams {
   senderName: string
   senderRole?: string | null
+  senderTrack?: string | null
+  senderSkills?: string[] | null
+  senderManifesto?: string | null
   receiverName: string
   receiverRole?: string | null
+  receiverTrack?: string | null
+  receiverSkills?: string[] | null
+  receiverManifesto?: string | null
   type?: string
 }
 

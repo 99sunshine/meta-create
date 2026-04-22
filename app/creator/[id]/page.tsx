@@ -16,6 +16,7 @@ import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useExistingRequest } from '@/hooks/useCollabRequests'
 import { trackEvent } from '@/lib/analytics'
 import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
+import { skillColorClass } from '@/constants/skills'
 
 const SKILL_COLORS = {
   teal: 'bg-[rgba(15,134,136,0.2)] border-[rgba(15,134,136,0.5)] text-[#70b7b8]',
@@ -24,20 +25,8 @@ const SKILL_COLORS = {
   blue: 'bg-[rgba(21,55,223,0.2)] border-[rgba(21,55,223,0.5)] text-[#8a9bef]',
 }
 
-const SKILL_COLOR_MAP: Record<string, keyof typeof SKILL_COLORS> = {
-  'Full-Stack Dev': 'teal', 'Full-Stack': 'teal', 'Backend': 'teal', 'Frontend': 'teal',
-  'Mobile Dev': 'teal', 'DevOps': 'teal', 'AI / ML': 'teal', 'Data Science': 'teal',
-  'Engineering': 'teal', 'Web Dev': 'teal', 'iOS': 'teal', 'Android': 'teal',
-  'UI Design': 'purple', 'UX Design': 'purple', 'Figma': 'purple', 'Product Design': 'purple',
-  'Brand Identity': 'purple', 'Illustration': 'purple', 'Motion Design': 'purple', 'Creative': 'purple',
-  'Go-to-Market': 'orange', 'Growth': 'orange', 'Marketing': 'orange', 'Business Dev': 'orange',
-  'Strategy': 'orange', 'Operations': 'orange', 'Finance': 'orange', 'Sales': 'orange',
-  'Research': 'blue', 'User Research': 'blue', 'Data Analysis': 'blue', 'Science': 'blue',
-  'Writing': 'blue', 'Content': 'blue', 'Policy': 'blue',
-}
-
 function skillColor(s: string): string {
-  return SKILL_COLORS[SKILL_COLOR_MAP[s] ?? 'teal']
+  return SKILL_COLORS[skillColorClass(s)]
 }
 
 function Avatar({ name, src, size = 80 }: { name: string; src?: string | null; size?: number }) {
@@ -215,6 +204,11 @@ export default function CreatorProfilePage() {
               )}
               {profile.city && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">{profile.city}</span>
+              )}
+              {profile.hackathon_track && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
+                  Track: {profile.hackathon_track}
+                </span>
               )}
               {profile.availability && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-green-400">

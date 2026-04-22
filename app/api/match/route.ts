@@ -10,6 +10,9 @@ import { createClient } from '@/supabase/utils/server'
  */
 export async function GET(req: NextRequest) {
   const limit = Number(req.nextUrl.searchParams.get('limit') ?? '60')
+  const sameTrackOnly =
+    (req.nextUrl.searchParams.get('sameTrack') ?? '').toLowerCase() === '1' ||
+    (req.nextUrl.searchParams.get('sameTrack') ?? '').toLowerCase() === 'true'
 
   try {
     const supabase = await createClient()
@@ -21,11 +24,22 @@ export async function GET(req: NextRequest) {
     // Try server-side plpgsql matching function first
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
-      .rpc('get_matched_creators', { current_user_id: user.id })
+      .rpc('get_matched_creators', { current_user_id: user.id, same_track_only: sameTrackOnly })
       .limit(limit)
 
     if (!error && data) {
-      return NextResponse.json({ profiles: data, source: 'db_function' })
+      const rows = Array.isArray(data) ? data : []
+      // Ensure deterministic ordering even if the SQL function does not ORDER BY.
+      rows.sort((a, b) => {
+        const sa = Number((a as any)?.score ?? 0)
+        const sb = Number((b as any)?.score ?? 0)
+        return sb - sa
+      })
+      return NextResponse.json({
+        profiles: rows.slice(0, limit),
+        source: 'db_function',
+        sameTrackOnly,
+      })
     }
 
     // Fallback: return profiles ordered by created_at (function not yet deployed)

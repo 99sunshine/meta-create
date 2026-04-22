@@ -1,4 +1,5 @@
 import { Availability } from '@/types/interfaces/Enums'
+import { SKILLS } from '@/constants/skills'
 
 /**
  * Enum value constants for forms and displays
@@ -26,14 +27,9 @@ export const AVAILABILITIES: Availability[] = [
   'flexible',
 ]
 
-// Skills pool — sourced from MetaCreate_Prototype.jsx
-export const SKILLS_POOL = [
-  'JavaScript', 'Python', 'React', 'UI/UX Design', 'Machine Learning', 'Data Science',
-  'Product Management', 'Graphic Design', '3D Modeling', 'Video Editing', 'Writing',
-  'Public Speaking', 'Business Strategy', 'Marketing', 'Robotics', 'Game Development',
-  'Mobile Dev', 'Cloud/DevOps', 'Blockchain', 'AR/VR', 'Hardware', 'Music Production',
-  'Photography', 'Animation', 'Research', 'Prototyping', 'CAD', 'Sustainability',
-] as const
+// Skills pool — deprecated. Use SKILLS from `constants/skills.ts`.
+// Kept as an alias so legacy imports keep working.
+export const SKILLS_POOL = SKILLS
 
 // Interests pool — sourced from MetaCreate_Prototype.jsx
 export const INTERESTS_POOL = [

@@ -57,7 +57,9 @@ export default function CollabRequestsPage() {
   const router = useRouter()
   const { refreshUnread } = useMessagesInbox()
   const { sessionUser, loading } = useAuth()
-  const [requests, setRequests] = useState<CollabRequestWithProfiles[]>([])
+  const [inbox, setInbox] = useState<CollabRequestWithProfiles[]>([])
+  const [outbox, setOutbox] = useState<CollabRequestWithProfiles[]>([])
+  const [view, setView] = useState<'inbox' | 'outbox'>('inbox')
   const [listLoading, setListLoading] = useState(true)
   const [responding, setResponding] = useState<string | null>(null)
 
@@ -66,8 +68,12 @@ export default function CollabRequestsPage() {
     setListLoading(true)
     try {
       const repo = new CollabRepository()
-      const inbox = await repo.getInbox(sessionUser.id)
-      setRequests(inbox)
+      const [inb, outb] = await Promise.all([
+        repo.getInbox(sessionUser.id),
+        repo.getOutbox(sessionUser.id),
+      ])
+      setInbox(inb)
+      setOutbox(outb)
     } catch {}
     finally { setListLoading(false) }
   }, [sessionUser])
@@ -88,7 +94,7 @@ export default function CollabRequestsPage() {
       if (status === 'accepted') {
         trackEvent('collab_request_accepted', { request_id: req.id, sender_id: req.sender_id })
       }
-      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r))
+      setInbox((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r))
       void refreshUnread()
     } catch (e) {
       console.error('respond failed', e)
@@ -97,14 +103,15 @@ export default function CollabRequestsPage() {
     }
   }
 
+  const activeList = view === 'inbox' ? inbox : outbox
   const pendingGroups = useMemo(
-    () => groupBySender(requests.filter((r) => r.status === 'pending')),
-    [requests],
+    () => groupBySender(activeList.filter((r) => r.status === 'pending')),
+    [activeList],
   )
 
   const historyGroups = useMemo(
-    () => groupBySender(requests.filter((r) => r.status !== 'pending')),
-    [requests],
+    () => groupBySender(activeList.filter((r) => r.status !== 'pending')),
+    [activeList],
   )
 
   if (loading || listLoading) {
@@ -125,6 +132,27 @@ export default function CollabRequestsPage() {
       </div>
 
       <div className="px-4 py-4 pb-24 space-y-6">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setView('inbox')}
+            className={`rounded-full px-3 py-1 text-xs border transition-colors ${
+              view === 'inbox' ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            我收到的
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('outbox')}
+            className={`rounded-full px-3 py-1 text-xs border transition-colors ${
+              view === 'outbox' ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            我发出的
+          </button>
+        </div>
+
         {/* Pending — grouped by sender */}
         <div>
           <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
@@ -140,8 +168,8 @@ export default function CollabRequestsPage() {
                   rep={rep}
                   total={all.length}
                   isResponding={responding === rep.id}
-                  onAccept={() => handleRespond(rep, 'accepted')}
-                  onDecline={() => handleRespond(rep, 'declined')}
+                  onAccept={view === 'inbox' ? () => handleRespond(rep, 'accepted') : undefined}
+                  onDecline={view === 'inbox' ? () => handleRespond(rep, 'declined') : undefined}
                 />
               ))}
             </div>
@@ -200,8 +228,8 @@ function RequestCard({
   rep: CollabRequestWithProfiles
   total: number
   isResponding: boolean
-  onAccept: () => void
-  onDecline: () => void
+  onAccept?: () => void
+  onDecline?: () => void
 }) {
   const router = useRouter()
   return (
@@ -254,7 +282,7 @@ function RequestCard({
       <div className="flex gap-2 pt-1">
         <button
           type="button"
-          disabled={isResponding}
+          disabled={isResponding || !onDecline}
           onClick={onDecline}
           className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm text-white/50 hover:bg-white/10 transition-colors disabled:opacity-40"
         >
@@ -262,7 +290,7 @@ function RequestCard({
         </button>
         <button
           type="button"
-          disabled={isResponding}
+          disabled={isResponding || !onAccept}
           onClick={onAccept}
           className="flex-1 rounded-xl py-2 text-sm font-semibold text-white transition-colors disabled:opacity-40"
           style={{ backgroundColor: '#E7770F' }}

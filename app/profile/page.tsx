@@ -13,6 +13,7 @@ import { TeamsRepository } from '@/supabase/repos/teams'
 import { WorksRepository } from '@/supabase/repos/works'
 import type { WorkWithCreator } from '@/types'
 import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
+import { skillColorClass } from '@/constants/skills'
 
 // ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
 const SKILL_COLORS = {
@@ -22,24 +23,8 @@ const SKILL_COLORS = {
   blue: 'bg-[rgba(21,55,223,0.2)] border-[rgba(21,55,223,0.5)] text-[#8a9bef]',
 }
 
-const SKILL_COLOR_MAP: Record<string, keyof typeof SKILL_COLORS> = {
-  // teal — engineering/tech
-  'Full-Stack Dev': 'teal', 'Full-Stack': 'teal', 'Backend': 'teal', 'Frontend': 'teal',
-  'Mobile Dev': 'teal', 'DevOps': 'teal', 'AI / ML': 'teal', 'Data Science': 'teal',
-  'Engineering': 'teal', 'Web Dev': 'teal', 'iOS': 'teal', 'Android': 'teal',
-  // purple — design/creative
-  'UI Design': 'purple', 'UX Design': 'purple', 'Figma': 'purple', 'Product Design': 'purple',
-  'Brand Identity': 'purple', 'Illustration': 'purple', 'Motion Design': 'purple', 'Creative': 'purple',
-  // orange — business/growth
-  'Go-to-Market': 'orange', 'Growth': 'orange', 'Marketing': 'orange', 'Business Dev': 'orange',
-  'Strategy': 'orange', 'Operations': 'orange', 'Finance': 'orange', 'Sales': 'orange',
-  // blue — research/strategy
-  'Research': 'blue', 'User Research': 'blue', 'Data Analysis': 'blue', 'Science': 'blue',
-  'Writing': 'blue', 'Content': 'blue', 'Policy': 'blue',
-}
-
 function skillColor(s: string): string {
-  return SKILL_COLORS[SKILL_COLOR_MAP[s] ?? 'teal']
+  return SKILL_COLORS[skillColorClass(s)]
 }
 
 // ── Avatar ───────────────────────────────────────────────────────────────────
@@ -99,14 +84,23 @@ function EditProfileModal({
   const handleSave = async () => {
     setSaving(true)
     setError('')
-    const { error: err } = await supabase
-      .from('profiles')
-      .update({ name, city, school, manifesto, updated_at: new Date().toISOString() })
-      .eq('id', profile.id)
-    if (err) { setError(err.message); setSaving(false); return }
-    await refreshProfile()
-    onSaved()
-    setSaving(false)
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, city, school, manifesto }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j?.error ?? '保存失败')
+      }
+      await refreshProfile()
+      onSaved()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存失败')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -257,6 +251,11 @@ export default function ProfilePage() {
               {profile?.city && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
                   {profile.city}
+                </span>
+              )}
+              {profile?.hackathon_track && (
+                <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
+                  Track: {profile.hackathon_track}
                 </span>
               )}
             </div>

@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { ROLES } from '@/constants/roles'
-import { AVAILABILITIES, SKILLS_POOL, INTERESTS_POOL } from '@/constants/enums'
+import { AVAILABILITIES, INTERESTS_POOL } from '@/constants/enums'
+import { SKILLS } from '@/constants/skills'
 import type { Role } from '@/types/interfaces/Role'
 import type { Availability } from '@/types/interfaces/Enums'
+import { createClient } from '@/supabase/utils/client'
 import {
   MetaFire,
   OnboardingProgress,
@@ -56,6 +58,8 @@ export default function OnboardingPage() {
   })
   const [aiLoading, setAiLoading] = useState(false)
   const [aiGenerated, setAiGenerated] = useState(false)
+  const [resumeLoading, setResumeLoading] = useState(false)
+  const [resumePrefillHint, setResumePrefillHint] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -121,12 +125,80 @@ export default function OnboardingPage() {
     }
   }
 
+  const handleResumeSelect = async (file: File | null) => {
+    setFormData((prev) => ({ ...prev, resume: file }))
+    setResumePrefillHint(null)
+    if (!file) return
+    setResumeLoading(true)
+    try {
+      const supabase = createClient()
+      const ext = file.name.toLowerCase().endsWith('.pdf') ? 'pdf'
+        : file.name.toLowerCase().endsWith('.docx') ? 'docx'
+          : ''
+      if (!ext) {
+        setResumePrefillHint('仅支持 PDF 或 DOCX（≤10MB）')
+        return
+      }
+
+      // Upload to private bucket first, so server can sign URL and invoke OCR-capable parsers.
+      const path = `${sessionUser.id}/${crypto.randomUUID()}-${file.name}`.slice(0, 180)
+      const { error: upErr } = await supabase.storage
+        .from('resumes')
+        .upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' })
+      if (upErr) {
+        setResumePrefillHint('上传失败，请稍后重试')
+        return
+      }
+
+      // Remote parse (DashScope document parse + DeepSeek structuring).
+      const res = await fetch('/api/ai/parse-resume-remote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket: 'resumes', filePath: path }),
+      })
+      const data = await res.json().catch(() => ({})) as {
+        source?: string
+        error?: string
+        result?: { name?: string | null; city?: string | null; skills?: string[]; interests?: string[]; school?: string | null; summary?: string | null }
+      }
+      if (!res.ok) {
+        setResumePrefillHint(data?.error ? `解析失败：${data.error}` : '解析失败，请稍后重试')
+        return
+      }
+      const r = data.result
+      if (!r) {
+        setResumePrefillHint('解析结果为空，请换一份简历或稍后重试')
+        return
+      }
+      const inferred: string[] = []
+      setFormData((prev) => ({
+        ...prev,
+        // only prefill if user hasn't typed yet
+        name: prev.name || (r.name ?? ''),
+        city: prev.city || (r.city ?? ''),
+        school: prev.school || (r.school ?? ''),
+        skills: prev.skills.length ? prev.skills : (r.skills ?? []),
+        interests: prev.interests.length ? prev.interests : (r.interests ?? []),
+        manifesto: prev.manifesto || (r.summary ?? ''),
+      }))
+      if (r.name) inferred.push('姓名')
+      if (r.city) inferred.push('城市')
+      if (inferred.length > 0) {
+        setResumePrefillHint(`已从简历推断${inferred.join('、')}，建议确认`)
+      }
+    } finally {
+      setResumeLoading(false)
+    }
+  }
+
   const handleComplete = async () => {
     setSaving(true)
     setSaveError(null)
     try {
-      const profileRepo = new ProfileRepository()
-      await profileRepo.updateProfile(sessionUser.id, {
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
         name: formData.name,
         city: formData.city,
         school: formData.school,
@@ -138,7 +210,12 @@ export default function OnboardingPage() {
         tags: formData.tags.length > 0 ? formData.tags : null,
         manifesto: formData.manifesto || null,
         onboarding_complete: true,
+        }),
       })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j?.error ?? 'Failed to save profile.')
+      }
       await refreshProfile()
       trackEvent('onboarding_completed', {
         role: formData.role,
@@ -173,9 +250,17 @@ export default function OnboardingPage() {
             <div className="w-full max-w-xs flex flex-col gap-8">
               {/* Resume upload (optional) */}
               <ResumeUpload
-                onFileSelect={(file) => setFormData({ ...formData, resume: file })}
+                onFileSelect={handleResumeSelect}
                 selectedFile={formData.resume}
               />
+              {resumeLoading && (
+                <p className="text-[12px] text-white/60 text-center -mt-4">正在解析简历…（失败不会阻塞，你可继续手填）</p>
+              )}
+              {resumePrefillHint && !resumeLoading && (
+                <div className="-mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
+                  <p className="text-[12px] text-amber-200">{resumePrefillHint}</p>
+                </div>
+              )}
 
               <div className="flex flex-col gap-5">
                 {/* Name */}
@@ -298,7 +383,7 @@ export default function OnboardingPage() {
                   Skills * <span className="text-slate-400 font-normal text-sm">(select at least 3)</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {SKILLS_POOL.map((skill) => (
+                  {SKILLS.map((skill) => (
                     <button
                       key={skill}
                       type="button"
