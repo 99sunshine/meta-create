@@ -28,18 +28,26 @@ export type SwipeXpBarDisplay = {
   dotBg: (lvl: number) => string
 }
 
-export function getSwipeXpBarDisplay(xp: number): SwipeXpBarDisplay {
+type SwipeXpBarI18n = {
+  levelName?: (level: number, fallbackName: string) => string
+  levelLabel?: (level: number, levelName: string) => string
+  countLabel?: (xp: number, xpMax: number) => string
+}
+
+export function getSwipeXpBarDisplay(xp: number, i18n?: SwipeXpBarI18n): SwipeXpBarDisplay {
   const level = swipeDemoLevelFromXp(xp)
   const cfg = SWIPE_DEMO_LEVEL_CONFIG[level]
   const xpInLevel = xp - cfg.xpRequired
   const xpRange = cfg.xpMax - cfg.xpRequired
   const fillPct = level === 4 ? 100 : Math.min(100, (xpInLevel / xpRange) * 100)
-  const countLabel = `${xp} / ${cfg.xpMax} XP`
+  const levelName = i18n?.levelName ? i18n.levelName(level, cfg.name) : cfg.name
+  const label = i18n?.levelLabel ? i18n.levelLabel(level, levelName) : `Lv${level} ${levelName}`
+  const countLabel = i18n?.countLabel ? i18n.countLabel(xp, cfg.xpMax) : `${xp} / ${cfg.xpMax} XP`
   const dotBg = (lvl: number) =>
     lvl <= level ? SWIPE_DEMO_LEVEL_CONFIG[lvl as 1 | 2 | 3 | 4].color : 'rgba(255,255,255,0.15)'
   return {
     level,
-    label: `Lv${level} ${cfg.name}`,
+    label,
     levelColor: cfg.color,
     fillPct,
     countLabel,

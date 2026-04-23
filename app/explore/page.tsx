@@ -51,7 +51,15 @@ export default function ExplorePage() {
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
 
-  const xpBar = useMemo(() => getSwipeXpBarDisplay(demoXp.xp), [demoXp.xp])
+  const xpBar = useMemo(
+    () =>
+      getSwipeXpBarDisplay(demoXp.xp, {
+        levelName: (level, fallbackName) => tr(`swipe.levelName${level}`) || fallbackName,
+        levelLabel: (level, name) => tr('swipe.levelLabel', { level, name }),
+        countLabel: (xp, max) => tr('swipe.xpCountLabel', { xp, max }),
+      }),
+    [demoXp.xp, tr],
+  )
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')

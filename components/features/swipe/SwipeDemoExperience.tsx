@@ -8,6 +8,8 @@ import {
   SWIPE_DEMO_LEVEL_CONFIG,
   swipeDemoLevelFromXp,
 } from '@/lib/swipe-demo-xp'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 // Ported visual + motion model from docs/mc-swipe-demo/*
 
@@ -131,6 +133,7 @@ export function SwipeDemoExperience({
   demoXp: { xp: number; level: number }
   onDemoXpChange: (next: { xp: number; level: number }) => void
 }) {
+  const { tr } = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const cardStackRef = useRef<HTMLDivElement>(null)
@@ -190,6 +193,8 @@ export function SwipeDemoExperience({
     return list.map((p, idx) => {
       const match = viewer ? scoreUserMatch(viewer, p).score : 0
       const role = p.role ?? ''
+      const roleKey = String(role).toLowerCase()
+      const roleText = role ? tr(`roles.${roleKey}`) : ''
       const { color, variant } = roleToVisor(role)
       const skills = ((p.skills ?? []) as string[]).slice(0, 3).map((s) => ({ text: s, cat: skillToCat(s) }))
       const lookingFor = ((p.tags ?? []) as string[]).slice(0, 2)
@@ -199,18 +204,19 @@ export function SwipeDemoExperience({
           : 'radial-gradient(ellipse at 65% 25%, rgba(228,109,46,0.2) 0%, transparent 55%), radial-gradient(ellipse at 25% 80%, rgba(223,112,21,0.12) 0%, transparent 45%), #1b2440'
       return {
         profile: p,
-        name: p.name ?? 'Creator',
-        school: p.school ? `${p.school}` : '—',
-        location: p.city ?? '—',
+        name: p.name ?? tr('common.creator'),
+        role: roleText,
+        school: p.school ? `${p.school}` : tr('swipe.noValue'),
+        location: p.city ?? tr('swipe.noValue'),
         match,
-        building: p.manifesto ?? '—',
+        building: p.manifesto ?? tr('swipe.noValue'),
         skills,
-        lookingFor: lookingFor.length ? lookingFor : ['Collaborator'],
+        lookingFor: lookingFor.length ? lookingFor : [tr('roles.collaborator')],
         avatar: astronautSVG(color, variant),
         bgStyle,
       }
     })
-  }, [profiles, viewer])
+  }, [profiles, viewer, tr])
 
   const renderXPBar = useCallback(
     (next: { xp: number; level: number }) => {
@@ -234,14 +240,15 @@ export function SwipeDemoExperience({
         )
         .join('')
 
-      xpLevelEl.textContent = `Lv${next.level} ${cfg.name}`
+      const levelName = tr(`swipe.levelName${next.level}`)
+      xpLevelEl.textContent = tr('swipe.levelLabel', { level: next.level, name: levelName })
       xpLevelEl.style.color = cfg.color
       xpFillEl.style.width = pct + '%'
       xpFillEl.style.background = cfg.color
       xpFillEl.style.boxShadow = `0 0 6px ${cfg.color}80`
-      xpCountEl.textContent = `${next.xp} / ${cfg.xpMax} XP`
+      xpCountEl.textContent = tr('swipe.xpCountLabel', { xp: next.xp, max: cfg.xpMax })
     },
-    [],
+    [tr],
   )
 
   const showLevelUp = useCallback((level: number) => {
@@ -252,7 +259,7 @@ export function SwipeDemoExperience({
     if (!overlay || !title || !ring || !burst) return
 
     const cfg = SWIPE_DEMO_LEVEL_CONFIG[level]
-    title.textContent = `Lv${level} ${cfg.name}`
+    title.textContent = tr('swipe.levelLabel', { level, name: tr(`swipe.levelName${level}`) })
     title.style.color = cfg.color
     ring.style.setProperty('--level-color', cfg.color)
 
@@ -278,7 +285,7 @@ export function SwipeDemoExperience({
       overlay.classList.remove('show')
       ring.classList.remove('animate')
     }, 2200)
-  }, [])
+  }, [tr])
 
   const addXP = useCallback(
     (amount: number) => {
@@ -794,12 +801,12 @@ export function SwipeDemoExperience({
 
       const matchInd = document.createElement('div')
       matchInd.className = 'swipe-indicator match-indicator'
-      matchInd.innerHTML = '<span class="indicator-label">MATCH</span>'
+      matchInd.innerHTML = `<span class="indicator-label">${tr('swipe.match')}</span>`
       card.appendChild(matchInd)
 
       const skipInd = document.createElement('div')
       skipInd.className = 'swipe-indicator skip-indicator'
-      skipInd.innerHTML = '<span class="indicator-label">SKIP</span>'
+      skipInd.innerHTML = `<span class="indicator-label">${tr('swipe.skip')}</span>`
       card.appendChild(skipInd)
 
       const inner = document.createElement('div')
@@ -823,7 +830,8 @@ export function SwipeDemoExperience({
 
       const meta = document.createElement('div')
       meta.className = 'card-meta'
-      meta.innerHTML = `<span class="card-meta-tag">${data.school}</span><span class="card-meta-tag">${data.location}</span>`
+      const metaParts = [data.role, data.school, data.location].filter(Boolean)
+      meta.innerHTML = metaParts.map((part) => `<span class="card-meta-tag">${part}</span>`).join('')
       headerInfo.appendChild(meta)
 
       header.appendChild(headerInfo)
@@ -837,7 +845,7 @@ export function SwipeDemoExperience({
 
       const buildLabel = document.createElement('div')
       buildLabel.className = 'card-section-label'
-      buildLabel.textContent = 'Building Next'
+      buildLabel.textContent = tr('swipe.buildingNext')
       inner.appendChild(buildLabel)
 
       const buildText = document.createElement('div')
@@ -847,7 +855,7 @@ export function SwipeDemoExperience({
 
       const skillLabel = document.createElement('div')
       skillLabel.className = 'card-section-label'
-      skillLabel.textContent = 'Skills'
+      skillLabel.textContent = tr('swipe.skills')
       inner.appendChild(skillLabel)
 
       const tags = document.createElement('div')
@@ -866,7 +874,7 @@ export function SwipeDemoExperience({
 
       const lookLabel = document.createElement('div')
       lookLabel.className = 'card-section-label'
-      lookLabel.textContent = 'Looking For'
+      lookLabel.textContent = tr('swipe.lookingFor')
       inner.appendChild(lookLabel)
 
       const lookChips = document.createElement('div')
@@ -883,7 +891,7 @@ export function SwipeDemoExperience({
       stack.appendChild(card)
     }
     updateCardDepths(false)
-  }, [cards, updateCardDepths])
+  }, [cards, updateCardDepths, tr])
 
   const getTopCard = useCallback(() => {
     const stack = cardStackRef.current
@@ -1100,14 +1108,16 @@ export function SwipeDemoExperience({
       <canvas ref={canvasRef} className="mc-swipe__starfield" />
       <div className="mc-swipe__content app-content">
         <div className="mc-swipe__topbar top-bar">
-          <button type="button" className="mc-swipe__iconbtn" onClick={onClose} aria-label="Close">
+          <button type="button" className="mc-swipe__iconbtn" onClick={onClose} aria-label={tr('swipe.close')}>
             <svg className="top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <span className="top-title">Discover</span>
-          <span className="mc-swipe__iconbtn" aria-hidden style={{ opacity: 0, pointerEvents: 'none' }} />
+          <span className="top-title">{tr('swipe.discover')}</span>
+          <div className="mc-swipe__iconbtn !w-auto !h-auto">
+            <LanguageSwitcher />
+          </div>
         </div>
 
         <div className="xp-bar" id="xp-bar">
@@ -1138,10 +1148,10 @@ export function SwipeDemoExperience({
                 <circle cx="62" cy="58" r="1.8" fill="#e46d2e" opacity="0.4" />
               </svg>
             </div>
-            <h2 className="end-title">You&apos;ve explored the cosmos!</h2>
-            <p className="end-subtitle">{cards.length} creators discovered across the universe</p>
+            <h2 className="end-title">{tr('swipe.deckTitle')}</h2>
+            <p className="end-subtitle">{tr('swipe.deckSubtitle', { count: cards.length })}</p>
             <button type="button" className="end-restart" onClick={handleRestart}>
-              Launch Again
+              {tr('swipe.launchAgain')}
             </button>
             {deckHint ? (
               <p className="end-deck-hint" role="status">
@@ -1151,9 +1161,9 @@ export function SwipeDemoExperience({
           </div>
 
           <div className="action-buttons" ref={actionButtonsRef}>
-            <span className="swipe-hint">Swipe right to match</span>
+            <span className="swipe-hint">{tr('swipe.swipeRightHint')}</span>
             <button className="skip-btn" type="button" onClick={handleSkip}>
-              Skip
+              {tr('swipe.skip')}
             </button>
           </div>
         </div>
@@ -1168,13 +1178,13 @@ export function SwipeDemoExperience({
           <div className="level-up-burst" ref={levelBurstRef} />
           <div className="level-up-ring" ref={levelRingRef} />
           <h2 className="level-up-title" ref={levelTitleRef} />
-          <p className="level-up-subtitle">Level Up!</p>
+          <p className="level-up-subtitle">{tr('swipe.levelUp')}</p>
         </div>
       </div>
 
       {loading && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#101837]/70">
-          <p className="text-white/60 text-sm">Loading…</p>
+          <p className="text-white/60 text-sm">{tr('common.loading')}</p>
         </div>
       )}
     </div>

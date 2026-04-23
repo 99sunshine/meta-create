@@ -30,6 +30,10 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const { user, sessionUser } = useAuth()
   const { tr } = useLocale()
   const [open, setOpen] = useState(false)
+  const localizedRole =
+    creator.role != null
+      ? tr(`roles.${String(creator.role).toLowerCase()}`)
+      : null
 
   const match = useMemo(() => {
     if (!user) return null
@@ -44,7 +48,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const visionScore = (creator as unknown as { vision_score?: unknown }).vision_score
   const visionPts = typeof visionScore === 'number' ? visionScore : null
   const subtitleParts = [
-    creator.role ? String(creator.role) : null,
+    localizedRole,
     creator.hackathon_track ? `${tr('creatorCard.track')}: ${String(creator.hackathon_track)}` : null,
     creator.school ? String(creator.school) : null,
     creator.city ? String(creator.city) : null,

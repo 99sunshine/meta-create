@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { UserProfile } from '@/types'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 interface Props {
   profile: UserProfile
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function SwipeConfirmModal({ profile, iceBreakerText, onConfirm, onCancel, sending }: Props) {
+  const { tr } = useLocale()
   const [message, setMessage] = useState(iceBreakerText)
   const [mounted, setMounted] = useState(false)
 
@@ -42,20 +44,20 @@ export function SwipeConfirmModal({ profile, iceBreakerText, onConfirm, onCancel
             {initials}
           </div>
           <div>
-            <p className="font-semibold text-white text-sm">{profile.name ?? 'Creator'}</p>
+            <p className="font-semibold text-white text-sm">{profile.name ?? tr('common.creator')}</p>
             {profile.role && <p className="text-xs text-white/40">{profile.role}</p>}
           </div>
         </div>
 
         <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
-          ✦ 破冰消息（可编辑）
+          {tr('collab.iceBreaker')}
         </p>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={4}
           className="w-full rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#e46d2e] focus:outline-none resize-none"
-          placeholder="Write a personalised message…"
+          placeholder={tr('collab.personalStarter')}
         />
 
         <div className="mt-4 flex gap-2">
@@ -64,7 +66,7 @@ export function SwipeConfirmModal({ profile, iceBreakerText, onConfirm, onCancel
             onClick={onCancel}
             className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm text-white/60 hover:bg-white/10 transition-colors"
           >
-            取消
+            {tr('common.cancel')}
           </button>
           <button
             type="button"
@@ -73,7 +75,7 @@ export function SwipeConfirmModal({ profile, iceBreakerText, onConfirm, onCancel
             className="flex-1 rounded-xl py-3 text-sm font-semibold text-white transition-colors disabled:opacity-40"
             style={{ backgroundColor: '#E7770F' }}
           >
-            {sending ? '发送中…' : '发送请求 🚀'}
+            {sending ? tr('collab.sending') : tr('collab.sendRequest')}
           </button>
         </div>
       </div>
