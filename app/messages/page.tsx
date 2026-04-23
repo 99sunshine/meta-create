@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
 import { MessageRepository, type Conversation } from '@/supabase/repos/messages'
 import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -22,18 +24,19 @@ function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; s
   )
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, tr: (key: string, vars?: Record<string, string | number>) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 1) return tr('messages.justNow')
+  if (mins < 60) return tr('messages.min', { count: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
+  if (hours < 24) return tr('messages.hour', { count: hours })
+  return tr('messages.day', { count: Math.floor(hours / 24) })
 }
 
 export default function MessagesPage() {
   const router = useRouter()
+  const { tr } = useLocale()
   const { sessionUser, loading, profileLoading } = useAuth()
   const { refreshUnread, pendingCollabCount } = useMessagesInbox()
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -65,7 +68,7 @@ export default function MessagesPage() {
   if (loading || profileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/60 text-sm">Loading…</p>
+        <p className="text-white/60 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -75,19 +78,22 @@ export default function MessagesPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
       {/* Top Bar */}
       <div className="h-14 flex items-center justify-between px-5 border-b border-white/8">
-        <p className="text-base font-semibold text-white">Messages</p>
-        <button
-          type="button"
-          className="relative rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 transition-colors"
-          onClick={() => router.push('/messages/requests')}
-        >
-          协作请求
-          {pendingCollabCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#e46d2e] px-[4px] text-[9px] font-bold leading-none text-white">
-              {pendingCollabCount > 99 ? '99+' : pendingCollabCount}
-            </span>
-          ) : null}
-        </button>
+        <p className="text-base font-semibold text-white">{tr('messages.title')}</p>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            type="button"
+            className="relative rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 hover:bg-white/10 transition-colors"
+            onClick={() => router.push('/messages/requests')}
+          >
+            {tr('messages.collabRequests')}
+            {pendingCollabCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[#e46d2e] px-[4px] text-[9px] font-bold leading-none text-white">
+                {pendingCollabCount > 99 ? '99+' : pendingCollabCount}
+              </span>
+            ) : null}
+          </button>
+        </div>
       </div>
 
       <main className="pb-24">
@@ -106,16 +112,16 @@ export default function MessagesPage() {
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
             <p className="text-4xl">📡</p>
-            <p className="text-white/60 text-sm">还没有会话</p>
+            <p className="text-white/60 text-sm">{tr('messages.noConversations')}</p>
             <p className="text-white/30 text-xs leading-relaxed">
-              发送协作请求并被对方接受后，会话会自动创建
+              {tr('messages.noConversationsHint')}
             </p>
             <button
               type="button"
               className="mt-2 text-xs text-[#e46d2e] border border-[#e46d2e]/30 rounded-full px-4 py-2"
               onClick={() => router.push('/explore')}
             >
-              去 Explore 认识创造者 →
+              {tr('messages.discoverCreators')}
             </button>
           </div>
         ) : (
@@ -144,16 +150,16 @@ export default function MessagesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className={`text-[14px] truncate ${hasUnread ? 'font-bold text-white' : 'font-semibold text-white'}`}>
-                        {conv.other_user?.name ?? 'Creator'}
+                        {conv.other_user?.name ?? tr('common.creator')}
                       </p>
                       {(conv.last_message_at ?? conv.created_at) && (
                         <p className={`text-[11px] shrink-0 ml-2 ${hasUnread ? 'text-[#e46d2e] font-semibold' : 'text-white/30'}`}>
-                          {timeAgo(conv.last_message_at ?? conv.created_at)}
+                          {timeAgo(conv.last_message_at ?? conv.created_at, tr)}
                         </p>
                       )}
                     </div>
                     <p className={`text-[12px] truncate ${hasUnread ? 'text-white/70 font-medium' : 'text-white/40'}`}>
-                      {conv.last_message ?? '连接已建立 🎉'}
+                      {conv.last_message ?? tr('messages.connectedDefault')}
                     </p>
                   </div>
                 </button>

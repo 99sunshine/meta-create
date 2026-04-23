@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
 import { MessageRepository, type Message, type Conversation } from '@/supabase/repos/messages'
 import { createClient } from '@/supabase/utils/client'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 function Avatar({ name, src, size = 32 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -22,8 +24,8 @@ function Avatar({ name, src, size = 32 }: { name: string; src?: string | null; s
   )
 }
 
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+function formatTime(dateStr: string, locale: 'en' | 'zh'): string {
+  return new Date(dateStr).toLocaleTimeString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
 /** Merge Realtime INSERT with optimistic rows: drop matching temp-* so we never duplicate the same id. */
@@ -44,6 +46,7 @@ function mergeIncomingMessage(prev: Message[], newMsg: Message): Message[] {
 export default function ConversationPage() {
   const { id: conversationId } = useParams<{ id: string }>()
   const router = useRouter()
+  const { locale, tr } = useLocale()
   const { sessionUser, loading } = useAuth()
   const { refreshUnread } = useMessagesInbox()
   const repo = useRef(new MessageRepository())
@@ -166,14 +169,14 @@ export default function ConversationPage() {
   if (loading || msgLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/50 text-sm">Loading…</p>
+        <p className="text-white/50 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
   if (!sessionUser) return null
 
   const otherUser = conv?.other_user
-  const otherName = otherUser?.name ?? 'Creator'
+  const otherName = otherUser?.name ?? tr('common.creator')
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#101837' }}>
@@ -193,13 +196,14 @@ export default function ConversationPage() {
             <p className="text-xs text-white/40">{otherUser.role}</p>
           )}
         </div>
+        <LanguageSwitcher />
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && !msgLoading && (
           <div className="text-center py-12">
-            <p className="text-white/30 text-sm">还没有消息，先打个招呼吧 👋</p>
+            <p className="text-white/30 text-sm">{tr('messages.noMessages')}</p>
           </div>
         )}
         {messages.map((msg) => {
@@ -233,7 +237,7 @@ export default function ConversationPage() {
                 >
                   {msg.content}
                 </div>
-                <span className="text-[10px] text-white/25">{formatTime(msg.created_at)}</span>
+                <span className="text-[10px] text-white/25">{formatTime(msg.created_at, locale)}</span>
               </div>
             </div>
           )
@@ -248,7 +252,7 @@ export default function ConversationPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-          placeholder="发消息…"
+          placeholder={tr('messages.sendPlaceholder')}
           className="flex-1 rounded-2xl border border-white/10 bg-white/8 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-[#e46d2e] focus:outline-none"
         />
         <button

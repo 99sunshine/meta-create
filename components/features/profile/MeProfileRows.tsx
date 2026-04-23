@@ -2,6 +2,7 @@
 
 import type { TeamWithMembers } from '@/types'
 import type { WorkWithCreator } from '@/types'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 /** Matches `Section` on `/profile` — title row + content gap */
 export function MeProfileSection({
@@ -35,6 +36,7 @@ export function MeTeamPill({
   onPress: () => void
   contextUserId: string
 }) {
+  const { tr } = useLocale()
   const isLead = team.owner_id === contextUserId
   return (
     <button
@@ -50,7 +52,7 @@ export function MeTeamPill({
           {team.name}
         </p>
         <p className="text-[11px] text-white/40">
-          {(team.member_count ?? 1)} members{isLead ? ' · Lead' : ' · Member'}
+          {tr('profile.members', { count: team.member_count ?? 1 })}{isLead ? ` · ${tr('profile.lead')}` : ` · ${tr('profile.member')}`}
         </p>
       </div>
     </button>
@@ -59,6 +61,7 @@ export function MeTeamPill({
 
 /** Horizontal work card — same chrome as Me page; clickable */
 export function MeWorkPreviewCard({ work, onPress }: { work: WorkWithCreator; onPress: () => void }) {
+  const { tr } = useLocale()
   const thumb = work.images?.[0]
   const statusColor = 'bg-[rgba(228,109,46,0.15)] text-[#e46d2e]'
   return (
@@ -74,7 +77,7 @@ export function MeWorkPreviewCard({ work, onPress }: { work: WorkWithCreator; on
       )}
       <p className="text-[13px] font-semibold text-white leading-tight line-clamp-1">{work.title}</p>
       {work.team && (
-        <p className="text-[10px] text-[#e46d2e]/90 truncate">队伍 · {work.team.name}</p>
+        <p className="text-[10px] text-[#e46d2e]/90 truncate">{tr('profile.teamLabel', { name: work.team.name })}</p>
       )}
       <p className="text-[11px] text-white/50 line-clamp-2 leading-snug">{work.description}</p>
       <span className={`self-start rounded-[8px] px-2 py-[3px] text-[10px] font-medium ${statusColor}`}>

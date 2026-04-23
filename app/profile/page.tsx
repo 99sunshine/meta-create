@@ -14,6 +14,8 @@ import { WorksRepository } from '@/supabase/repos/works'
 import type { WorkWithCreator } from '@/types'
 import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
 import { skillColorClass } from '@/constants/skills'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 // ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
 const SKILL_COLORS = {
@@ -71,6 +73,7 @@ function EditProfileModal({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { tr } = useLocale()
   const { refreshProfile } = useAuth()
   const supabase = createClient()
 
@@ -92,12 +95,12 @@ function EditProfileModal({
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
-        throw new Error(j?.error ?? '保存失败')
+        throw new Error(j?.error ?? tr('profile.saveFailed'))
       }
       await refreshProfile()
       onSaved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败')
+      setError(e instanceof Error ? e.message : tr('profile.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -111,12 +114,12 @@ function EditProfileModal({
     >
       <div className="w-full max-w-md rounded-2xl border border-white/10 p-5 mb-2"
         style={{ backgroundColor: '#101837' }}>
-        <h2 className="mb-4 text-base font-bold text-white">Edit Profile</h2>
+        <h2 className="mb-4 text-base font-bold text-white">{tr('profile.editProfile')}</h2>
         <div className="space-y-3">
           {[
-            { label: 'Name', value: name, setter: setName, placeholder: 'Your name' },
-            { label: 'City', value: city, setter: setCity, placeholder: 'e.g. Beijing' },
-            { label: 'School / Organisation', value: school, setter: setSchool, placeholder: 'e.g. Tsinghua' },
+            { label: tr('profile.name'), value: name, setter: setName, placeholder: tr('profile.yourName') },
+            { label: tr('profile.city'), value: city, setter: setCity, placeholder: tr('profile.cityExample') },
+            { label: tr('profile.school'), value: school, setter: setSchool, placeholder: tr('profile.schoolExample') },
           ].map(({ label, value, setter, placeholder }) => (
             <div key={label}>
               <label className="mb-1 block text-xs text-white/50">{label}</label>
@@ -129,22 +132,22 @@ function EditProfileModal({
             </div>
           ))}
           <div>
-            <label className="mb-1 block text-xs text-white/50">Manifesto / Building next</label>
+            <label className="mb-1 block text-xs text-white/50">{tr('profile.manifestoLabel')}</label>
             <textarea
               value={manifesto}
               onChange={(e) => setManifesto(e.target.value)}
               rows={3}
-              placeholder="What are you building next?"
+              placeholder={tr('profile.manifestoQuestion')}
               className="w-full rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/30 focus:border-[#e46d2e] focus:outline-none resize-none"
             />
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
         <div className="mt-4 flex gap-2 justify-end">
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-white/60 hover:text-white">Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-white/60 hover:text-white">{tr('common.cancel')}</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}
             className="text-white font-medium" style={{ backgroundColor: '#E7770F' }}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? tr('profile.saving') : tr('common.save')}
           </Button>
         </div>
       </div>
@@ -155,6 +158,7 @@ function EditProfileModal({
 // ── Main ProfilePage ──────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const router = useRouter()
+  const { locale, tr } = useLocale()
   const { subscribeEntityCreated } = useCreateFlow()
   const { user, sessionUser, loading, profileLoading, logout } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
@@ -195,7 +199,7 @@ export default function ProfilePage() {
   if (loading || profileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/50 text-sm">Loading…</p>
+        <p className="text-white/50 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -203,7 +207,7 @@ export default function ProfilePage() {
   if (!sessionUser) return null
 
   const profile = user
-  const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || 'Creator'
+  const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || tr('common.creator')
   const skills = (profile?.skills ?? []) as string[]
   const tags = (profile?.tags ?? []) as string[]
 
@@ -211,23 +215,24 @@ export default function ProfilePage() {
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
       {/* Top bar (no hamburger) */}
       <div className="h-[60px] flex items-center justify-between px-5" style={{ backgroundColor: '#101837' }}>
-        <p className="text-[15px] font-semibold text-white">Me</p>
+        <p className="text-[15px] font-semibold text-white">{tr('profile.me')}</p>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           {!profile?.onboarding_complete && (
             <button
               type="button"
               onClick={() => router.push('/onboarding')}
               className="text-xs text-amber-300 border border-amber-500/40 bg-amber-500/10 px-3 py-1 rounded-full"
             >
-              完善资料
+              {tr('profile.completeProfile')}
             </button>
           )}
           <button
             type="button"
             onClick={() => setEditOpen(true)}
             className="h-9 w-9 rounded-full border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center"
-            aria-label="Edit profile"
-            title="Edit"
+            aria-label={tr('profile.editProfile')}
+            title={tr('profile.edit')}
           >
             ✎
           </button>
@@ -255,7 +260,7 @@ export default function ProfilePage() {
               )}
               {profile?.hackathon_track && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
-                  Track: {profile.hackathon_track}
+                  {tr('profile.track')}: {profile.hackathon_track}
                 </span>
               )}
             </div>
@@ -269,7 +274,7 @@ export default function ProfilePage() {
 
         {/* ── Building next (manifesto vision) ── */}
         {profile?.manifesto && (
-          <MeProfileSection title="Building next">
+          <MeProfileSection title={tr('profile.buildingNext')}>
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px]">
               <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{profile.manifesto}</p>
             </div>
@@ -278,7 +283,7 @@ export default function ProfilePage() {
 
         {/* ── Looking for (tags in pink) ── */}
         {tags.length > 0 && (
-          <MeProfileSection title="Looking for">
+          <MeProfileSection title={tr('profile.lookingFor')}>
             <div className="flex flex-wrap gap-[6px]">
               {tags.map((t) => (
                 <span
@@ -294,7 +299,7 @@ export default function ProfilePage() {
 
         {/* ── Skills (4-color system) ── */}
         {skills.length > 0 && (
-          <MeProfileSection title="Skills">
+          <MeProfileSection title={tr('profile.skills')}>
             <div className="flex flex-wrap gap-[6px]">
               {skills.map((s) => (
                 <span
@@ -310,14 +315,14 @@ export default function ProfilePage() {
 
         {/* ── My Teams ── */}
         <MeProfileSection
-          title="My Teams"
+          title={tr('profile.myTeams')}
           action={
             <button
               type="button"
               className="text-[12px] text-white/40"
               onClick={() => router.push('/teams')}
             >
-              View all ›
+              {tr('profile.viewAll')}
             </button>
           }
         >
@@ -327,13 +332,13 @@ export default function ProfilePage() {
             </div>
           ) : myTeams.length === 0 ? (
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-4 py-3 flex items-center justify-between">
-              <p className="text-[13px] text-white/40">还没有队伍</p>
+              <p className="text-[13px] text-white/40">{tr('profile.noTeams')}</p>
               <button
                 type="button"
                 className="text-[12px] text-[#e46d2e]"
                 onClick={() => router.push('/teams/create')}
               >
-                创建 +
+                {tr('profile.createTeam')}
               </button>
             </div>
           ) : (
@@ -351,7 +356,7 @@ export default function ProfilePage() {
                 onClick={() => router.push('/teams/create')}
                 className="shrink-0 rounded-[12px] border-[0.5px] border-dashed border-white/20 px-[14px] py-[12px] text-[12px] text-white/40 hover:text-white/60 hover:border-white/30 transition-colors"
               >
-                + 新建队伍
+                {tr('profile.newTeam')}
               </button>
             </div>
           )}
@@ -359,10 +364,10 @@ export default function ProfilePage() {
 
         {/* ── My Works / Projects ── */}
         <MeProfileSection
-          title="My Works / Projects"
+          title={tr('profile.myWorks')}
           action={
             <button type="button" className="text-[12px] text-white/40">
-              View all ›
+              {tr('profile.viewAll')}
             </button>
           }
         >
@@ -372,7 +377,7 @@ export default function ProfilePage() {
             </div>
           ) : myWorks.length === 0 ? (
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-4 py-3">
-              <p className="text-[13px] text-white/40">还没有作品</p>
+              <p className="text-[13px] text-white/40">{tr('profile.noWorks')}</p>
             </div>
           ) : (
             <div className="flex gap-[10px] overflow-x-auto pb-1">
@@ -388,15 +393,15 @@ export default function ProfilePage() {
         </MeProfileSection>
 
         {/* ── Account ── */}
-        <MeProfileSection title="Account">
+        <MeProfileSection title={tr('profile.account')}>
           <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px] space-y-1">
             <p className="text-[13px] text-white/50">
-              Email: <span className="text-white/80">{profile?.email ?? sessionUser.email}</span>
+              {tr('profile.email')}: <span className="text-white/80">{profile?.email ?? sessionUser.email}</span>
             </p>
             <p className="text-[13px] text-white/50">
-              Member since:{' '}
+              {tr('profile.memberSince')}:{' '}
               <span className="text-white/80">
-                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('zh-CN') : '—'}
+                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US') : '—'}
               </span>
             </p>
           </div>
@@ -406,14 +411,14 @@ export default function ProfilePage() {
               className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
               onClick={() => router.push('/onboarding')}
             >
-              重新建档
+              {tr('profile.restartOnboarding')}
             </button>
             <button
               type="button"
               className="flex-1 rounded-xl border border-red-500/20 bg-red-500/10 py-2.5 text-sm text-red-400 hover:bg-red-500/15 transition-colors"
               onClick={logout}
             >
-              退出登录
+              {tr('profile.logout')}
             </button>
           </div>
         </MeProfileSection>

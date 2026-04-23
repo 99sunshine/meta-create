@@ -7,6 +7,7 @@ import { useSendCollabRequest, useExistingRequest } from '@/hooks/useCollabReque
 import type { CollabType } from '@/supabase/repos/collab'
 import { generateIceBreaker } from '@/lib/icebreaker'
 import { trackEvent } from '@/lib/analytics'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 interface SendCollabModalProps {
   open: boolean
@@ -20,12 +21,6 @@ interface SendCollabModalProps {
   matchScore?: number
 }
 
-const TYPE_OPTIONS: Array<{ value: CollabType; label: string; desc: string }> = [
-  { value: 'just_connect', label: '🤝 Just Connect', desc: 'Introduce yourself and start a conversation' },
-  { value: 'join_project', label: '🚀 Join Project', desc: 'Ask to collaborate on a specific project or work' },
-  { value: 'invite_to_team', label: '👥 Invite to Team', desc: 'Invite them to join your team' },
-]
-
 export function SendCollabModal({
   open,
   onClose,
@@ -37,6 +32,7 @@ export function SendCollabModal({
   senderName,
   matchScore,
 }: SendCollabModalProps) {
+  const { tr } = useLocale()
   const { send, sending } = useSendCollabRequest()
   const existingStatus = useExistingRequest(senderId, receiverId)
   const [type, setType] = useState<CollabType>('just_connect')
@@ -80,6 +76,11 @@ export function SendCollabModal({
   }
 
   const alreadySent = existingStatus === 'pending' || result === 'already_sent'
+  const TYPE_OPTIONS: Array<{ value: CollabType; label: string; desc: string }> = [
+    { value: 'just_connect', label: tr('collab.justConnect'), desc: tr('collab.justConnectDesc') },
+    { value: 'join_project', label: tr('collab.joinProject'), desc: tr('collab.joinProjectDesc') },
+    { value: 'invite_to_team', label: tr('collab.inviteTeam'), desc: tr('collab.inviteTeamDesc') },
+  ]
 
   const modal = (
     <div
@@ -98,11 +99,11 @@ export function SendCollabModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-base font-bold text-white">Connect with {receiverName}</h2>
+            <h2 className="text-base font-bold text-white">{tr('collab.connectWith', { name: receiverName })}</h2>
             {matchScore && matchScore > 0 ? (
-              <p className="text-xs mt-0.5" style={{ color: '#f5a623' }}>🎯 {matchScore}% match</p>
+              <p className="text-xs mt-0.5" style={{ color: '#f5a623' }}>{tr('collab.match', { score: matchScore })}</p>
             ) : (
-              <p className="text-xs text-white/40 mt-0.5">{receiverRole ?? 'Creator'}</p>
+              <p className="text-xs text-white/40 mt-0.5">{receiverRole ?? tr('common.creator')}</p>
             )}
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white text-xl leading-none">×</button>
@@ -111,21 +112,21 @@ export function SendCollabModal({
         {result === 'ok' ? (
           <div className="flex flex-col items-center gap-2 py-6">
             <span className="text-3xl">🚀</span>
-            <p className="text-white font-semibold">Request sent!</p>
-            <p className="text-white/50 text-sm">{receiverName} will be notified.</p>
+            <p className="text-white font-semibold">{tr('collab.requestSent')}</p>
+            <p className="text-white/50 text-sm">{tr('collab.willBeNotified', { name: receiverName })}</p>
           </div>
         ) : alreadySent ? (
           <div className="flex flex-col items-center gap-2 py-6">
             <span className="text-3xl">✅</span>
-            <p className="text-white font-semibold">Already requested</p>
-            <p className="text-white/50 text-sm">You have a pending request to {receiverName}.</p>
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-white/60 hover:text-white mt-2">Close</Button>
+            <p className="text-white font-semibold">{tr('collab.alreadyRequested')}</p>
+            <p className="text-white/50 text-sm">{tr('collab.pendingTo', { name: receiverName })}</p>
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-white/60 hover:text-white mt-2">{tr('common.close')}</Button>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Request type */}
             <div>
-              <label className="block text-xs text-white/50 mb-2">Request type</label>
+              <label className="block text-xs text-white/50 mb-2">{tr('collab.requestType')}</label>
               <div className="space-y-2">
                 {TYPE_OPTIONS.map((opt) => (
                   <button
@@ -147,32 +148,32 @@ export function SendCollabModal({
             {/* Ice-breaker suggestion */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-white/50">Ice-breaker (optional)</label>
+                <label className="text-xs text-white/50">{tr('collab.iceBreaker')}</label>
                 <button
                   onClick={generateSuggestion}
                   className="text-xs hover:text-white transition-colors underline"
                   style={{ color: '#f5a623' }}
                 >
-                  ✨ Generate suggestion
+                  {tr('collab.generateSuggestion')}
                 </button>
               </div>
               <textarea
                 value={iceBreaker}
                 onChange={(e) => setIceBreaker(e.target.value)}
                 rows={2}
-                placeholder="Start with something personal…"
+                placeholder={tr('collab.personalStarter')}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-orange-400/60 focus:outline-none resize-none"
               />
             </div>
 
             {/* Custom message */}
             <div>
-              <label className="block text-xs text-white/50 mb-1">Message (optional)</label>
+              <label className="block text-xs text-white/50 mb-1">{tr('collab.message')}</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={2}
-                placeholder="Tell them what you have in mind…"
+                placeholder={tr('collab.customMessagePlaceholder')}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-orange-400/60 focus:outline-none resize-none"
               />
             </div>
@@ -180,7 +181,7 @@ export function SendCollabModal({
             {/* Actions */}
             <div className="flex gap-2 justify-end pt-1">
               <Button variant="ghost" size="sm" onClick={onClose} className="text-white/50 hover:text-white">
-                Cancel
+                {tr('common.cancel')}
               </Button>
               <Button
                 size="sm"
@@ -189,7 +190,7 @@ export function SendCollabModal({
                 className="text-white font-medium"
                 style={{ backgroundColor: '#E7770F' }}
               >
-                {sending ? 'Sending…' : 'Send Request'}
+                {sending ? tr('collab.sending') : tr('collab.sendRequest')}
               </Button>
             </div>
           </div>

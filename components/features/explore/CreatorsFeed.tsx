@@ -7,6 +7,7 @@ import type { UserProfile } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { CreatorCard } from './CreatorCard'
 import { scoreUserMatch } from '@/lib/matching'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 const repo = new ProfileRepository()
 const collabRepo = new CollabRepository()
@@ -36,6 +37,7 @@ export function CreatorsFeed({
   sameTrackOnly = false,
 }: CreatorsFeedProps) {
   const { user } = useAuth()
+  const { tr } = useLocale()
   const [creators, setCreators] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,7 +53,7 @@ export function CreatorsFeed({
         if (sort === 'best' && user?.id) {
           const res = await fetch(`/api/match?limit=${limit}${sameTrackOnly ? '&sameTrack=1' : ''}`)
           const json = await res.json().catch(() => ({}))
-          if (!res.ok) throw new Error(json?.error ?? 'Failed to load matches')
+          if (!res.ok) throw new Error(json?.error ?? tr('explore.failedMatches'))
           const rows = (json?.profiles ?? []) as UserProfile[]
           if (!mounted) return
           setCreators(rows)
@@ -63,7 +65,7 @@ export function CreatorsFeed({
         setCreators(rows)
       } catch (e) {
         if (!mounted) return
-        setError(e instanceof Error ? e.message : 'Failed to load creators')
+        setError(e instanceof Error ? e.message : tr('explore.failedCreators'))
         setCreators([])
       } finally {
         if (!mounted) return
@@ -179,7 +181,7 @@ export function CreatorsFeed({
   if (visible.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
-        <p className="text-sm text-white/60">暂无可浏览的创造者</p>
+        <p className="text-sm text-white/60">{tr('explore.noCreators')}</p>
       </div>
     )
   }

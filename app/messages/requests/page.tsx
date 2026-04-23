@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { CollabRepository, type CollabRequestWithProfiles } from '@/supabase/repos/collab'
 import { trackEvent } from '@/lib/analytics'
 import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; size?: number }) {
   const initials = (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -22,13 +24,16 @@ function Avatar({ name, src, size = 40 }: { name: string; src?: string | null; s
   )
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(
+  dateStr: string,
+  tr: (key: string, vars?: Record<string, string | number>) => string,
+): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 60) return tr('messages.minAgo', { count: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+  if (hours < 24) return tr('messages.hourAgo', { count: hours })
+  return tr('messages.dayAgo', { count: Math.floor(hours / 24) })
 }
 
 /** Group a flat list by sender_id; return one rep per sender (latest pending first, else latest any). */
@@ -55,6 +60,7 @@ function groupBySender(reqs: CollabRequestWithProfiles[]): {
 
 export default function CollabRequestsPage() {
   const router = useRouter()
+  const { tr } = useLocale()
   const { refreshUnread } = useMessagesInbox()
   const { sessionUser, loading } = useAuth()
   const [inbox, setInbox] = useState<CollabRequestWithProfiles[]>([])
@@ -117,7 +123,7 @@ export default function CollabRequestsPage() {
   if (loading || listLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/50 text-sm">Loading…</p>
+        <p className="text-white/50 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -126,9 +132,12 @@ export default function CollabRequestsPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
       {/* Header */}
-      <div className="h-14 flex items-center gap-3 px-4 border-b border-white/8">
+      <div className="h-14 flex items-center justify-between gap-3 px-4 border-b border-white/8">
+        <div className="flex items-center gap-3">
         <button type="button" className="text-white/60 hover:text-white p-1" onClick={() => router.back()}>←</button>
-        <p className="text-base font-semibold text-white">协作请求</p>
+        <p className="text-base font-semibold text-white">{tr('messages.requestsTitle')}</p>
+        </div>
+        <LanguageSwitcher />
       </div>
 
       <div className="px-4 py-4 pb-24 space-y-6">
@@ -140,7 +149,7 @@ export default function CollabRequestsPage() {
               view === 'inbox' ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
             }`}
           >
-            我收到的
+            {tr('messages.inbox')}
           </button>
           <button
             type="button"
@@ -149,17 +158,17 @@ export default function CollabRequestsPage() {
               view === 'outbox' ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10'
             }`}
           >
-            我发出的
+            {tr('messages.outbox')}
           </button>
         </div>
 
         {/* Pending — grouped by sender */}
         <div>
           <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-            待处理 ({pendingGroups.length})
+            {tr('messages.pending', { count: pendingGroups.length })}
           </p>
           {pendingGroups.length === 0 ? (
-            <p className="text-sm text-white/30">没有待处理的请求</p>
+            <p className="text-sm text-white/30">{tr('messages.noPending')}</p>
           ) : (
             <div className="space-y-3">
               {pendingGroups.map(({ rep, all }) => (
@@ -170,6 +179,7 @@ export default function CollabRequestsPage() {
                   isResponding={responding === rep.id}
                   onAccept={view === 'inbox' ? () => handleRespond(rep, 'accepted') : undefined}
                   onDecline={view === 'inbox' ? () => handleRespond(rep, 'declined') : undefined}
+                  tr={tr}
                 />
               ))}
             </div>
@@ -179,7 +189,7 @@ export default function CollabRequestsPage() {
         {/* History — grouped by sender */}
         {historyGroups.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">历史记录</p>
+            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">{tr('messages.history')}</p>
             <div className="space-y-2">
               {historyGroups.map(({ rep, all }) => {
                 const hasAccepted = all.some((r) => r.status === 'accepted')
@@ -190,11 +200,11 @@ export default function CollabRequestsPage() {
                   >
                     <Avatar name={rep.sender?.name ?? '?'} src={rep.sender?.avatar_url} size={36} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white/70 truncate">{rep.sender?.name ?? 'Creator'}</p>
+                      <p className="text-sm text-white/70 truncate">{rep.sender?.name ?? tr('common.creator')}</p>
                       <p className="text-xs text-white/30">
-                        {timeAgo(rep.created_at)}
+                        {timeAgo(rep.created_at, tr)}
                         {all.length > 1 && (
-                          <span className="ml-1 text-white/20">· {all.length} 条</span>
+                          <span className="ml-1 text-white/20">· {tr('messages.items', { count: all.length })}</span>
                         )}
                       </p>
                     </div>
@@ -205,7 +215,7 @@ export default function CollabRequestsPage() {
                           : 'bg-white/5 text-white/30'
                       }`}
                     >
-                      {hasAccepted ? '已接受' : '已拒绝'}
+                      {hasAccepted ? tr('messages.accepted') : tr('messages.declined')}
                     </span>
                   </div>
                 )
@@ -224,12 +234,14 @@ function RequestCard({
   isResponding,
   onAccept,
   onDecline,
+  tr,
 }: {
   rep: CollabRequestWithProfiles
   total: number
   isResponding: boolean
   onAccept?: () => void
   onDecline?: () => void
+  tr: (key: string, vars?: Record<string, string | number>) => string
 }) {
   const router = useRouter()
   return (
@@ -249,16 +261,16 @@ function RequestCard({
               className="text-sm font-semibold text-white text-left truncate"
               onClick={() => router.push(`/creator/${rep.sender_id}`)}
             >
-              {rep.sender?.name ?? 'Creator'}
+              {rep.sender?.name ?? tr('common.creator')}
             </button>
             {total > 1 && (
               <span className="shrink-0 rounded-full bg-white/10 px-[7px] py-[1px] text-[10px] text-white/50">
-                {total} 条
+                {tr('messages.items', { count: total })}
               </span>
             )}
           </div>
           <p className="text-xs text-white/40">
-            {rep.sender?.role ?? ''} · {timeAgo(rep.created_at)}
+            {rep.sender?.role ?? ''} · {timeAgo(rep.created_at, tr)}
           </p>
         </div>
         {rep.match_score && (
@@ -286,7 +298,7 @@ function RequestCard({
           onClick={onDecline}
           className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm text-white/50 hover:bg-white/10 transition-colors disabled:opacity-40"
         >
-          跳过
+          {tr('messages.skip')}
         </button>
         <button
           type="button"
@@ -295,7 +307,7 @@ function RequestCard({
           className="flex-1 rounded-xl py-2 text-sm font-semibold text-white transition-colors disabled:opacity-40"
           style={{ backgroundColor: '#E7770F' }}
         >
-          {isResponding ? '处理中…' : '接受 🤝'}
+          {isResponding ? tr('messages.processing') : tr('messages.accept')}
         </button>
       </div>
     </div>

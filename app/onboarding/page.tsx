@@ -20,6 +20,8 @@ import {
   ResumeUpload,
   AuthBackground,
 } from '@/components/features/onboarding'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 const HACKATHON_TRACKS = [
   'AI & Machine Learning',
@@ -37,6 +39,7 @@ type Step = 1 | 2
 
 export default function OnboardingPage() {
   const { sessionUser, loading, refreshProfile } = useAuth()
+  const { tr } = useLocale()
   const router = useRouter()
 
   const [step, setStep] = useState<Step>(1)
@@ -79,7 +82,7 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#121B3E]">
-        <p className="text-white">Loading...</p>
+        <p className="text-white">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -136,7 +139,7 @@ export default function OnboardingPage() {
         : file.name.toLowerCase().endsWith('.docx') ? 'docx'
           : ''
       if (!ext) {
-        setResumePrefillHint('仅支持 PDF 或 DOCX（≤10MB）')
+        setResumePrefillHint(tr('onboarding.unsupportedResume'))
         return
       }
 
@@ -146,7 +149,7 @@ export default function OnboardingPage() {
         .from('resumes')
         .upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' })
       if (upErr) {
-        setResumePrefillHint('上传失败，请稍后重试')
+        setResumePrefillHint(tr('onboarding.uploadFailed'))
         return
       }
 
@@ -162,12 +165,12 @@ export default function OnboardingPage() {
         result?: { name?: string | null; city?: string | null; skills?: string[]; interests?: string[]; school?: string | null; summary?: string | null }
       }
       if (!res.ok) {
-        setResumePrefillHint(data?.error ? `解析失败：${data.error}` : '解析失败，请稍后重试')
+        setResumePrefillHint(data?.error ? `${tr('onboarding.parseFailed')}：${data.error}` : tr('onboarding.parseFailed'))
         return
       }
       const r = data.result
       if (!r) {
-        setResumePrefillHint('解析结果为空，请换一份简历或稍后重试')
+        setResumePrefillHint(tr('onboarding.parseEmpty'))
         return
       }
       const inferred: string[] = []
@@ -181,10 +184,10 @@ export default function OnboardingPage() {
         interests: prev.interests.length ? prev.interests : (r.interests ?? []),
         manifesto: prev.manifesto || (r.summary ?? ''),
       }))
-      if (r.name) inferred.push('姓名')
-      if (r.city) inferred.push('城市')
+      if (r.name) inferred.push(tr('onboarding.inferredName'))
+      if (r.city) inferred.push(tr('onboarding.inferredCity'))
       if (inferred.length > 0) {
-        setResumePrefillHint(`已从简历推断${inferred.join('、')}，建议确认`)
+        setResumePrefillHint(tr('onboarding.inferred', { fields: inferred.join('、') }))
       }
     } finally {
       setResumeLoading(false)
@@ -214,7 +217,7 @@ export default function OnboardingPage() {
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
-        throw new Error(j?.error ?? 'Failed to save profile.')
+        throw new Error(j?.error ?? tr('onboarding.saveFailed'))
       }
       await refreshProfile()
       trackEvent('onboarding_completed', {
@@ -224,7 +227,7 @@ export default function OnboardingPage() {
       })
       router.push('/explore')
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to save profile.')
+      setSaveError(error instanceof Error ? error.message : tr('onboarding.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -238,6 +241,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-figma-bg p-4 relative overflow-hidden">
       <AuthBackground />
+      <LanguageSwitcher className="absolute right-4 top-4 z-20" />
 
       <div className="w-full max-w-sm flex flex-col items-center gap-5 relative z-10">
 
@@ -245,7 +249,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <>
             <OnboardingProgress currentStep={1} totalSteps={2} />
-            <MetaFire message="Welcome to MetaCreate!<br/>Let's set up your creator profile." />
+            <MetaFire message={tr('onboarding.welcome')} />
 
             <div className="w-full max-w-xs flex flex-col gap-8">
               {/* Resume upload (optional) */}
@@ -254,7 +258,7 @@ export default function OnboardingPage() {
                 selectedFile={formData.resume}
               />
               {resumeLoading && (
-                <p className="text-[12px] text-white/60 text-center -mt-4">正在解析简历…（失败不会阻塞，你可继续手填）</p>
+                <p className="text-[12px] text-white/60 text-center -mt-4">{tr('onboarding.parsingResume')}</p>
               )}
               {resumePrefillHint && !resumeLoading && (
                 <div className="-mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
@@ -265,36 +269,36 @@ export default function OnboardingPage() {
               <div className="flex flex-col gap-5">
                 {/* Name */}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="name" className="text-white text-sm">Display Name *</Label>
+                  <Label htmlFor="name" className="text-white text-sm">{tr('onboarding.displayName')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="How should others see you?"
+                    placeholder={tr('onboarding.displayNamePlaceholder')}
                     className="w-full py-4 px-4 bg-white/10 border border-[rgba(103,121,157,0.5)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
                 {/* School */}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="school" className="text-white text-sm">School / Organisation *</Label>
+                  <Label htmlFor="school" className="text-white text-sm">{tr('onboarding.school')}</Label>
                   <Input
                     id="school"
                     value={formData.school}
                     onChange={(e) => setFormData({ ...formData, school: e.target.value })}
-                    placeholder="e.g. Tsinghua, MIT…"
+                    placeholder={tr('onboarding.schoolPlaceholder')}
                     className="w-full py-4 px-4 bg-white/10 border border-[rgba(103,121,157,0.5)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
 
                 {/* City */}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="city" className="text-white text-sm">City *</Label>
+                  <Label htmlFor="city" className="text-white text-sm">{tr('onboarding.city')}</Label>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Beijing, Shanghai, New York…"
+                    placeholder={tr('onboarding.cityPlaceholder')}
                     className="w-full py-4 px-4 bg-white/10 border border-[rgba(103,121,157,0.5)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm h-auto"
                   />
                 </div>
@@ -302,7 +306,7 @@ export default function OnboardingPage() {
                 {/* Hackathon Track */}
                 <div className="flex flex-col gap-2">
                   <Label className="text-white text-sm">
-                    Hackathon Track <span className="text-white/40 font-normal text-xs">(optional)</span>
+                    {tr('onboarding.track')} <span className="text-white/40 font-normal text-xs">{tr('onboarding.optional')}</span>
                   </Label>
                   <div className="flex flex-wrap gap-2">
                     {HACKATHON_TRACKS.map((track) => (
@@ -330,7 +334,7 @@ export default function OnboardingPage() {
                 disabled={!step1Valid}
                 className="w-56 mx-auto py-4 bg-[#E7770F] hover:bg-[#d66d0d] rounded-full text-white text-base font-medium h-auto disabled:opacity-50"
               >
-                Next →
+                {tr('onboarding.next')}
               </Button>
 
               <button
@@ -338,7 +342,7 @@ export default function OnboardingPage() {
                 className="text-xs text-white/30 hover:text-white/50 mx-auto"
                 onClick={() => router.push('/explore')}
               >
-                I&apos;ll set this up later
+                {tr('onboarding.setupLater')}
               </button>
             </div>
           </>
@@ -348,12 +352,12 @@ export default function OnboardingPage() {
         {step === 2 && (
           <>
             <OnboardingProgress currentStep={2} totalSteps={2} />
-            <MetaFire message="Now... what are your superpowers?<br/>Pick at least 3 skills so we can match you." />
+            <MetaFire message={tr('onboarding.superpowers')} />
 
             <div className="w-full max-w-xs flex flex-col gap-8">
               {/* Role */}
               <div>
-                <Label className="text-white text-base font-medium mb-4 block">Your Role *</Label>
+                <Label className="text-white text-base font-medium mb-4 block">{tr('onboarding.yourRole')}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {ROLES.map((role) => {
                     const Icon = role.icon
@@ -380,7 +384,7 @@ export default function OnboardingPage() {
               {/* Skills */}
               <div>
                 <Label className="text-white text-base font-medium mb-3 block">
-                  Skills * <span className="text-slate-400 font-normal text-sm">(select at least 3)</span>
+                  {tr('onboarding.skills')} <span className="text-slate-400 font-normal text-sm">{tr('onboarding.selectAtLeast3')}</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {SKILLS.map((skill) => (
@@ -399,14 +403,14 @@ export default function OnboardingPage() {
                   ))}
                 </div>
                 {formData.skills.length > 0 && (
-                  <p className="text-xs text-[#E7770F] mt-2">{formData.skills.length} selected</p>
+                  <p className="text-xs text-[#E7770F] mt-2">{tr('onboarding.selectedCount', { count: formData.skills.length })}</p>
                 )}
               </div>
 
               {/* Interests */}
               <div>
                 <Label className="text-white text-base font-medium mb-3 block">
-                  Interests <span className="text-slate-400 font-normal text-sm">(optional)</span>
+                  {tr('onboarding.interests')} <span className="text-slate-400 font-normal text-sm">{tr('onboarding.optional')}</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {INTERESTS_POOL.map((interest) => (
@@ -428,7 +432,7 @@ export default function OnboardingPage() {
 
               {/* Availability */}
               <div>
-                <Label className="text-white text-base font-medium mb-3 block">Availability</Label>
+                <Label className="text-white text-base font-medium mb-3 block">{tr('onboarding.availability')}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {AVAILABILITIES.map((avail) => (
                     <button
@@ -451,8 +455,8 @@ export default function OnboardingPage() {
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">✦ Creator Tags</p>
-                    <p className="text-xs text-white/40 mt-0.5">AI-generated personality tags</p>
+                    <p className="text-sm font-semibold text-white">{tr('onboarding.creatorTags')}</p>
+                    <p className="text-xs text-white/40 mt-0.5">{tr('onboarding.aiTagsHint')}</p>
                   </div>
                   <button
                     type="button"
@@ -460,7 +464,7 @@ export default function OnboardingPage() {
                     disabled={aiLoading || formData.skills.length < 1}
                     className="text-xs px-3 py-1.5 rounded-full bg-[#E7770F]/20 border border-[#E7770F]/40 text-[#E7770F] hover:bg-[#E7770F]/30 disabled:opacity-40 transition-all"
                   >
-                    {aiLoading ? 'Generating…' : aiGenerated ? '↺ Regenerate' : '✦ Generate'}
+                    {aiLoading ? tr('onboarding.generating') : aiGenerated ? tr('onboarding.regenerate') : tr('onboarding.generate')}
                   </button>
                 </div>
 
@@ -478,8 +482,8 @@ export default function OnboardingPage() {
                 ) : (
                   <p className="text-xs text-white/30">
                     {formData.skills.length < 1
-                      ? 'Select at least 1 skill above first'
-                      : 'Click "Generate" to get AI-suggested tags'}
+                      ? tr('onboarding.selectOneSkillFirst')
+                      : tr('onboarding.clickGenerate')}
                   </p>
                 )}
               </div>
@@ -487,14 +491,14 @@ export default function OnboardingPage() {
               {/* Manifesto */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="manifesto" className="text-white text-sm">
-                  Your Manifesto <span className="text-slate-500 font-normal">(optional)</span>
+                  {tr('onboarding.manifesto')} <span className="text-slate-500 font-normal">{tr('onboarding.optional')}</span>
                 </Label>
                 <textarea
                   id="manifesto"
                   value={formData.manifesto}
                   onChange={(e) => setFormData({ ...formData, manifesto: e.target.value })}
                   rows={2}
-                  placeholder={aiGenerated ? 'AI-suggested above — edit freely' : 'I build things that matter...'}
+                  placeholder={aiGenerated ? tr('onboarding.manifestoPlaceholderAi') : tr('onboarding.manifestoPlaceholder')}
                   className="w-full py-3 px-4 bg-white/10 border border-[rgba(103,121,157,0.5)] rounded-lg text-white placeholder:text-[#BFBFBF] text-sm resize-none focus:border-[#E7770F] focus:outline-none"
                 />
               </div>
@@ -512,14 +516,14 @@ export default function OnboardingPage() {
                   disabled={saving}
                   className="flex-1 bg-white/10 border-[rgba(103,121,157,0.5)] text-white hover:bg-white/15"
                 >
-                  ← Back
+                  {tr('onboarding.backArrow')}
                 </Button>
                 <Button
                   onClick={handleComplete}
                   disabled={!step2Valid || saving}
                   className="flex-1 bg-[#E7770F] hover:bg-[#d66d0d] text-white font-semibold disabled:opacity-50"
                 >
-                  {saving ? 'Launching…' : 'Launch Profile 🚀'}
+                  {saving ? tr('onboarding.launching') : tr('onboarding.launch')}
                 </Button>
               </div>
             </div>

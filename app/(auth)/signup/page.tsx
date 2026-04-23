@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AuthBackground } from '@/components/features/onboarding'
 import { trackEvent } from '@/lib/analytics'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 type AuthMethod = 'password' | 'magic'
 
 export default function SignUpPage() {
   const router = useRouter()
   const { sessionUser, loading: authLoading, refreshProfile } = useAuth()
+  const { tr } = useLocale()
   const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,7 +51,7 @@ export default function SignUpPage() {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(tr('auth.passwordsMismatch'))
       setLoading(false)
       return
     }
@@ -139,19 +142,21 @@ export default function SignUpPage() {
           <div className="w-20 h-20 bg-figma-accent/20 rounded-full flex items-center justify-center mb-4">
             <span className="text-4xl">📧</span>
           </div>
-          <h1 className="text-figma-text-primary text-2xl font-bold text-center">Check your email!</h1>
+          <h1 className="text-figma-text-primary text-2xl font-bold text-center">{tr('auth.checkEmail')}</h1>
           <p className="text-figma-text-secondary text-center text-base">
-            We sent a {method === 'password' ? 'confirmation' : 'magic'} link to{' '}
-            <span className="text-figma-text-primary font-medium">{email}</span>
+            {tr('auth.sentLink', {
+              kind: method === 'password' ? tr('auth.sentLinkKindPassword') : tr('auth.sentLinkKindMagic'),
+              email,
+            })}
           </p>
           <p className="text-sm text-figma-text-tertiary text-center">
-            Click the link in the email to {method === 'password' ? 'confirm your account and get started' : 'sign in and complete your profile'}.
+            {method === 'password' ? tr('auth.sentLinkHelpPassword') : tr('auth.sentLinkHelpMagic')}
           </p>
           <button
             onClick={() => setEmailSent(false)}
             className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)] transition-all"
           >
-            Back to sign up
+            {tr('auth.backToSignup')}
           </button>
         </div>
       </div>
@@ -161,6 +166,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-figma-bg p-4 relative overflow-hidden">
       <AuthBackground />
+      <LanguageSwitcher className="absolute right-4 top-4 z-20" />
 
       {/* Existing Email Modal */}
       {showExistingEmailModal && (
@@ -170,24 +176,24 @@ export default function SignUpPage() {
               <div className="w-16 h-16 bg-figma-accent/20 rounded-full flex items-center justify-center">
                 <span className="text-3xl">⚠️</span>
               </div>
-              <h2 className="text-figma-text-primary text-2xl font-bold text-center">Account Already Exists</h2>
+              <h2 className="text-figma-text-primary text-2xl font-bold text-center">{tr('auth.accountExists')}</h2>
               <p className="text-figma-text-secondary text-center">
-                An account with <span className="text-figma-text-primary font-medium">{email}</span> already exists
+                {tr('auth.accountExistsDesc', { email })}
               </p>
               <p className="text-figma-text-tertiary text-center">
-                You already have a MetaCreate account. Please sign in instead.
+                {tr('auth.accountExistsHelp')}
               </p>
               <div className="flex flex-col gap-3 w-full mt-2">
                 <Link href="/login" className="w-full">
                   <button className="w-full py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium">
-                    Go to Login
+                    {tr('auth.goToLogin')}
                   </button>
                 </Link>
                 <button 
                   onClick={() => setShowExistingEmailModal(false)}
                   className="w-full py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)]"
                 >
-                  Try Different Email
+                  {tr('auth.tryAnotherEmail')}
                 </button>
               </div>
             </div>
@@ -198,10 +204,10 @@ export default function SignUpPage() {
       <div className="w-full max-w-sm flex flex-col items-center gap-8 relative z-10">
         <div className="text-center">
           <h1 className="text-figma-text-primary text-3xl font-bold mb-2">
-            Join MetaCreate 🚀
+            {tr('auth.join')}
           </h1>
           <p className="text-figma-text-secondary text-lg">
-            Start finding your co-creators
+            {tr('auth.startFinding')}
           </p>
         </div>
 
@@ -216,7 +222,7 @@ export default function SignUpPage() {
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
               }`}
             >
-              Password
+              {tr('auth.password')}
             </button>
             <button
               onClick={() => setMethod('magic')}
@@ -226,7 +232,7 @@ export default function SignUpPage() {
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
               }`}
             >
-              Magic Link
+              {tr('auth.magicLink')}
             </button>
           </div>
 
@@ -234,7 +240,7 @@ export default function SignUpPage() {
           <form onSubmit={method === 'password' ? handlePasswordSignUp : handleMagicLink} className="space-y-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-figma-text-primary text-sm leading-[14px]">
-                Email
+                {tr('auth.email')}
               </Label>
               <Input
                 id="email"
@@ -251,7 +257,7 @@ export default function SignUpPage() {
               <>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="password" className="text-figma-text-primary text-sm leading-[14px]">
-                    Password
+                    {tr('auth.password')}
                   </Label>
                   <Input
                     id="password"
@@ -267,7 +273,7 @@ export default function SignUpPage() {
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="confirmPassword" className="text-figma-text-primary text-sm leading-[14px]">
-                    Confirm Password
+                    {tr('auth.confirmPassword')}
                   </Label>
                   <Input
                     id="confirmPassword"
@@ -279,7 +285,7 @@ export default function SignUpPage() {
                     minLength={6}
                     className="w-full py-4 px-4 bg-figma-input-bg border border-figma-input-border rounded-lg text-figma-text-primary placeholder:text-figma-text-tertiary text-sm h-auto"
                   />
-                  <p className="text-xs text-figma-text-tertiary">Must be at least 6 characters</p>
+                  <p className="text-xs text-figma-text-tertiary">{tr('auth.minPassword')}</p>
                 </div>
               </>
             )}
@@ -295,23 +301,23 @@ export default function SignUpPage() {
               disabled={loading}
               className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium h-auto"
             >
-              {loading ? 'Creating account...' : method === 'magic' ? 'Send Magic Link' : 'Create Account'}
+              {loading ? tr('auth.creatingAccount') : method === 'magic' ? tr('auth.sendMagicLink') : tr('auth.createAccount')}
             </Button>
 
             <p className="text-xs text-figma-text-tertiary text-center leading-relaxed">
-              By signing up, you agree to our Terms of Service and Privacy Policy
+              {tr('auth.terms')}
             </p>
           </form>
 
           {/* Login Link */}
           <div className="pt-6 border-t border-[rgba(103.45,121.38,157.25,0.30)]">
             <p className="text-center text-figma-text-tertiary text-sm">
-              Already have an account?{' '}
+              {tr('auth.alreadyHaveAccount')}{' '}
               <Link 
                 href="/login" 
                 className="text-figma-accent hover:text-figma-accent/90 font-medium transition-colors"
               >
-                Sign in instead
+                {tr('auth.signInInstead')}
               </Link>
             </p>
           </div>

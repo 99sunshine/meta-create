@@ -6,6 +6,7 @@ import type { UserProfile } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { scoreUserMatch } from '@/lib/matching'
 import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 function initialsFromName(name: string | null | undefined) {
   const safe = (name ?? '').trim()
@@ -27,6 +28,7 @@ type CreatorCardProps = {
 
 export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const { user, sessionUser } = useAuth()
+  const { tr } = useLocale()
   const [open, setOpen] = useState(false)
 
   const match = useMemo(() => {
@@ -43,7 +45,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const visionPts = typeof visionScore === 'number' ? visionScore : null
   const subtitleParts = [
     creator.role ? String(creator.role) : null,
-    creator.hackathon_track ? `Track: ${String(creator.hackathon_track)}` : null,
+    creator.hackathon_track ? `${tr('creatorCard.track')}: ${String(creator.hackathon_track)}` : null,
     creator.school ? String(creator.school) : null,
     creator.city ? String(creator.city) : null,
   ].filter(Boolean)
@@ -70,7 +72,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
             {creator.avatar_url ? (
               <img
                 src={creator.avatar_url}
-                alt={creator.name ?? 'avatar'}
+                alt={creator.name ?? tr('common.creator')}
                 className="h-[44px] w-[44px] rounded-[22px] object-cover bg-white/10"
               />
             ) : (
@@ -82,7 +84,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
 
           <Link href={`/creator/${creator.id}`} className="flex-1 min-w-0">
             <p className="text-[15px] font-semibold text-white truncate">
-              {creator.name ?? 'Creator'}
+              {creator.name ?? tr('common.creator')}
             </p>
             <p className="text-[12px] text-[#bfbfbf] truncate">
               {subtitleParts.length ? subtitleParts.join(' · ') : '—'}
@@ -117,15 +119,15 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
         <div className="flex items-center gap-2 w-full">
           <p className="flex-1 text-[11px] text-[#e88dba] truncate">
             {visionPts !== null
-              ? `Vision ${Math.max(0, Math.min(35, Math.round(visionPts)))}/35`
+              ? tr('creatorCard.vision', { score: Math.max(0, Math.min(35, Math.round(visionPts))) })
               : creator.tags?.[0]
-                ? `→ ${String(creator.tags[0])}`
-                : '→ Connect'}
+                ? tr('creatorCard.arrowTag', { tag: String(creator.tags[0]) })
+                : tr('creatorCard.goConnect')}
           </p>
           {sessionUser && user?.id !== creator.id && (
             connected ? (
               <span className="shrink-0 rounded-[14px] bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.3)] px-[12px] py-[6px] text-[12px] font-medium text-green-400">
-                已连接
+                {tr('creatorCard.connected')}
               </span>
             ) : (
               <button
@@ -133,7 +135,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
                 className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white hover:bg-white/15 transition-colors"
                 onClick={() => setOpen(true)}
               >
-                Connect
+                {tr('creatorCard.connect')}
               </button>
             )
           )}
@@ -145,10 +147,10 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
           open={open}
           onClose={() => setOpen(false)}
           senderId={sessionUser.id}
-          senderName={user?.name ?? sessionUser.email ?? 'You'}
+          senderName={user?.name ?? sessionUser.email ?? tr('creatorCard.you')}
           senderRole={user?.role ?? undefined}
           receiverId={creator.id}
-          receiverName={creator.name ?? 'Creator'}
+          receiverName={creator.name ?? tr('common.creator')}
           receiverRole={creator.role ?? undefined}
           matchScore={user ? percent : undefined}
         />

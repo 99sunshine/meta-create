@@ -23,9 +23,12 @@ import {
   IconListBullet,
   IconSwipeStack,
 } from '@/components/features/explore/ExploreTopBarIcons'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 export default function ExplorePage() {
   const { user, sessionUser, loading, profileLoading } = useAuth()
+  const { tr } = useLocale()
   const router = useRouter()
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
   const { subscribeEntityCreated } = useCreateFlow()
@@ -102,17 +105,17 @@ export default function ExplorePage() {
       // 左滑只是 pass，不写已发列表，下次进入时仍可出现
       if (dir !== 'right' || !sessionUser) return
 
-      showSwipeNotice('右滑已触发：正在生成消息…')
+      showSwipeNotice(tr('explore.swipeTriggered'))
 
       let ice = ''
       try {
         ice = await generateIceBreakerAI({
-          senderName: user?.name ?? sessionUser.email?.split('@')[0] ?? '我',
+          senderName: user?.name ?? sessionUser.email?.split('@')[0] ?? tr('creatorCard.you'),
           senderRole: user?.role ?? null,
           senderTrack: user?.hackathon_track ?? null,
           senderSkills: (user?.skills ?? []) as string[],
           senderManifesto: user?.manifesto ?? null,
-          receiverName: profile.name ?? '你',
+          receiverName: profile.name ?? tr('creatorCard.you'),
           receiverRole: profile.role ?? null,
           receiverTrack: (profile as any).hackathon_track ?? null,
           receiverSkills: (profile.skills ?? []) as string[],
@@ -132,15 +135,15 @@ export default function ExplorePage() {
           iceBreakerText: ice,
         })
         appendSwipeSkippedId(sessionUser.id, profile.id)
-        showSwipeNotice('已发送连接请求')
+        showSwipeNotice(tr('explore.requestSent'))
       } catch (e) {
         const err = e instanceof Error ? e.message : ''
-        if (err === 'UNAUTHENTICATED') showSwipeNotice('未登录，无法发送请求')
-        else if (err === 'RLS_DENIED') showSwipeNotice('权限不足（RLS），请刷新重试')
-        else if (err === 'SENDER_MISMATCH') showSwipeNotice('登录状态异常，请刷新重试')
-        else if (err === 'ALREADY_SENT') showSwipeNotice('你已向对方发送过待处理请求')
-        else if (err === 'ALREADY_CONNECTED') showSwipeNotice('你们已连接')
-        else showSwipeNotice('发送失败，请稍后再试')
+        if (err === 'UNAUTHENTICATED') showSwipeNotice(tr('explore.notLoggedIn'))
+        else if (err === 'RLS_DENIED') showSwipeNotice(tr('explore.permissionDenied'))
+        else if (err === 'SENDER_MISMATCH') showSwipeNotice(tr('explore.authMismatch'))
+        else if (err === 'ALREADY_SENT') showSwipeNotice(tr('explore.alreadySent'))
+        else if (err === 'ALREADY_CONNECTED') showSwipeNotice(tr('explore.alreadyConnected'))
+        else showSwipeNotice(tr('explore.sendFailed'))
       }
     },
     [sessionUser, showSwipeNotice, user],
@@ -164,7 +167,7 @@ export default function ExplorePage() {
           <div className="stars opacity-40" />
           <div className="stars2 opacity-30" />
         </div>
-        <p className="text-white/60 relative z-10 text-sm">Loading…</p>
+        <p className="text-white/60 relative z-10 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -184,7 +187,7 @@ export default function ExplorePage() {
             <Link
               href="/messages"
               className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
-              aria-label="消息"
+              aria-label={tr('nav.messages')}
             >
               <IconSatelliteDish className="h-4.5 w-4.5 text-white/50" />
               {inboxBadgeTotal > 0 ? (
@@ -195,15 +198,20 @@ export default function ExplorePage() {
             </Link>
 
             {/* 中：搜索框 */}
-            <div className="flex h-[32px] min-w-0 flex-1 items-center gap-2 rounded-[20px] bg-white/[0.08] px-[14px] py-[8px]">
+            <div className="flex h-[32px] min-w-0 flex-[1_1_auto] max-w-[calc(100%-176px)] items-center gap-2 rounded-[20px] bg-white/[0.08] px-[14px] py-[8px]">
               <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-[#6b7280]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search creators..."
+                placeholder={tr('explore.searchPlaceholder')}
                 className="min-w-0 flex-1 bg-transparent text-[13px] text-white placeholder:text-[#6b7280] focus:outline-none"
-                aria-label="Search creators"
+                aria-label={tr('explore.searchAria')}
               />
+            </div>
+
+            {/* 右中：语言切换 */}
+            <div className="shrink-0">
+              <LanguageSwitcher />
             </div>
 
             {/* 右：View Toggle（Figma node 135-157，250:155） */}
@@ -213,7 +221,7 @@ export default function ExplorePage() {
                 className={`flex items-center justify-center rounded-[8px] p-[4px] transition-colors ${
                   !swipeMode ? 'bg-white/[0.15]' : ''
                 }`}
-                aria-label="列表视图"
+                aria-label={tr('nav.listView')}
                 aria-pressed={!swipeMode}
                 onClick={() => setSwipeMode(false)}
               >
@@ -224,7 +232,7 @@ export default function ExplorePage() {
                 className={`flex items-center justify-center rounded-[13px] p-[4px] transition-colors ${
                   swipeMode ? 'bg-white/[0.15]' : ''
                 }`}
-                aria-label="滑动视图"
+                aria-label={tr('nav.swipeView')}
                 aria-pressed={swipeMode}
                 onClick={handleEnterSwipe}
               >
@@ -275,7 +283,7 @@ export default function ExplorePage() {
               className="shrink-0 rounded-[14px] border border-[#e46d2e]/40 bg-[#e46d2e]/15 px-3 py-[5px] text-[12px] font-medium text-[#e46d2e]"
               onClick={() => setSort('best')}
             >
-              Best Match
+              {tr('explore.bestMatch')}
             </button>
             <button
               type="button"
@@ -286,37 +294,37 @@ export default function ExplorePage() {
               }`}
               onClick={() => setSameTrackOnly((v) => !v)}
               disabled={!user?.hackathon_track}
-              title={user?.hackathon_track ? '仅显示同赛道创作者' : '你还没有设置赛道（在 Onboarding 里可选）'}
+              title={user?.hackathon_track ? tr('explore.sameTrackOnlyTitleOn') : tr('explore.sameTrackOnlyTitleOff')}
             >
-              同赛道{sameTrackOnly ? ' ✓' : ''}
+              {tr('onboarding.sameTrack')}{sameTrackOnly ? ' ✓' : ''}
             </button>
             <button
               type="button"
               className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
               onClick={() => setPicker('skill')}
             >
-              {skill ? `${skill} ▾` : 'Skill ▾'}
+              {skill ? `${skill} ▾` : `${tr('explore.skill')} ▾`}
             </button>
             <button
               type="button"
               className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
               onClick={() => setPicker('role')}
             >
-              {role ? `${role} ▾` : 'Role ▾'}
+              {role ? `${role} ▾` : `${tr('explore.role')} ▾`}
             </button>
             <button
               type="button"
               className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
               onClick={() => setPicker('location')}
             >
-              {location ? `${location} ▾` : 'Location ▾'}
+              {location ? `${location} ▾` : `${tr('explore.location')} ▾`}
             </button>
             <button
               type="button"
               className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
               onClick={() => setSort('new')}
             >
-              Latest
+              {tr('explore.latest')}
             </button>
           </div>
         </div>
@@ -325,12 +333,12 @@ export default function ExplorePage() {
         {user && !user.onboarding_complete && (
           <div className="mt-3 bg-amber-500/10 border-y border-amber-500/30 px-4 py-2 text-center">
             <span className="text-amber-300 text-sm">
-              你的资料还未完善。{' '}
+              {tr('onboarding.completeProfileBanner')}{' '}
               <button
                 onClick={() => router.push('/onboarding')}
                 className="underline text-amber-200 hover:text-white font-medium"
               >
-                去完善
+                {tr('onboarding.completeNow')}
               </button>
             </span>
           </div>
@@ -375,7 +383,7 @@ export default function ExplorePage() {
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium text-white">
-                {picker === 'skill' ? 'Skill' : picker === 'role' ? 'Role' : 'Location'}
+                {picker === 'skill' ? tr('explore.skill') : picker === 'role' ? tr('explore.role') : tr('explore.location')}
               </p>
               <button
                 type="button"
@@ -387,7 +395,7 @@ export default function ExplorePage() {
                   setPicker(null)
                 }}
               >
-                Clear
+                {tr('common.clear')}
               </button>
             </div>
 
@@ -415,7 +423,7 @@ export default function ExplorePage() {
                 className="text-white/70 hover:text-white"
                 onClick={() => setPicker(null)}
               >
-                Done
+                {tr('common.done')}
               </Button>
             </div>
           </div>

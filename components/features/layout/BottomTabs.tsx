@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCreateFlowOptional } from '@/components/providers/CreateFlowProvider'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 type BottomTabsProps = {
   onCreate?: () => void
@@ -47,12 +48,13 @@ function FabStarIcon() {
   )
 }
 
-const LEFT = { key: 'explore', label: 'Explore', href: '/explore' } as const
-const RIGHT = { key: 'me', label: 'Me', href: '/profile' } as const
+const LEFT = { key: 'explore', href: '/explore' } as const
+const RIGHT = { key: 'me', href: '/profile' } as const
 
 export default function BottomTabs({ onCreate }: BottomTabsProps) {
   const pathname = usePathname()
   const createFlow = useCreateFlowOptional()
+  const { tr } = useLocale()
 
   const handleFab = () => {
     if (createFlow) createFlow.openPrimaryPicker()
@@ -70,7 +72,7 @@ export default function BottomTabs({ onCreate }: BottomTabsProps) {
         backgroundImage:
           'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 100%), linear-gradient(90deg, rgb(16,24,55) 0%, rgb(16,24,55) 100%)',
       }}
-      aria-label="Bottom navigation"
+      aria-label={tr('nav.bottomNav')}
     >
       <div
         className="mx-auto flex max-w-6xl items-stretch pt-[8px] pb-[max(20px,env(safe-area-inset-bottom))]"
@@ -88,7 +90,7 @@ export default function BottomTabs({ onCreate }: BottomTabsProps) {
             className="text-[10px] leading-none font-normal"
             style={{ color: exploreActive ? '#ffffff' : '#6b7280' }}
           >
-            {LEFT.label}
+            {tr('nav.explore')}
           </span>
         </Link>
 
@@ -97,7 +99,7 @@ export default function BottomTabs({ onCreate }: BottomTabsProps) {
           <button
             type="button"
             onClick={handleFab}
-            aria-label="创建"
+            aria-label={tr('nav.create')}
             className="flex size-[52px] shrink-0 items-center justify-center rounded-[26px] transition-transform active:scale-95"
             style={{
               background: 'linear-gradient(to bottom, #194cb2 0%, #f48c24 100%)',
@@ -121,7 +123,7 @@ export default function BottomTabs({ onCreate }: BottomTabsProps) {
             className="text-[10px] leading-none font-normal"
             style={{ color: meActive ? '#ffffff' : '#6b7280' }}
           >
-            {RIGHT.label}
+            {tr('nav.me')}
           </span>
         </Link>
       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 interface ResumeUploadProps {
   onFileSelect: (file: File | null) => void
@@ -10,6 +11,7 @@ interface ResumeUploadProps {
 export function ResumeUpload({ onFileSelect, selectedFile }: ResumeUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { tr } = useLocale()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -63,10 +65,10 @@ export function ResumeUpload({ onFileSelect, selectedFile }: ResumeUploadProps) 
         <div className="text-white text-[32px]">📄</div>
         <div className="flex flex-col items-center gap-0.5">
           <p className="text-white text-xl font-medium">
-            {selectedFile ? selectedFile.name : 'Tap to upload'}
+            {selectedFile ? selectedFile.name : tr('resume.tapToUpload')}
           </p>
           <p className="text-[#E6E6E6] text-[11px] underline leading-[14px]">
-            PDF or DOCX (Max 10MB)
+            {tr('resume.fileHint')}
           </p>
         </div>
       </div>
