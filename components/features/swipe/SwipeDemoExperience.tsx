@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import type { UserProfile } from '@/types'
 import { scoreUserMatch } from '@/lib/matching'
 import {
@@ -10,7 +11,11 @@ import {
 } from '@/lib/swipe-demo-xp'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
-import { IconListBullet, IconSwipeStack } from '@/components/features/explore/ExploreTopBarIcons'
+import {
+  IconListBullet,
+  IconSatelliteDish,
+  IconSwipeStack,
+} from '@/components/features/explore/ExploreTopBarIcons'
 
 // Ported visual + motion model from docs/mc-swipe-demo/*
 
@@ -124,6 +129,7 @@ export function SwipeDemoExperience({
   onReload,
   demoXp,
   onDemoXpChange,
+  inboxBadgeTotal = 0,
 }: {
   viewer: UserProfile | null
   profiles: UserProfile[]
@@ -135,6 +141,7 @@ export function SwipeDemoExperience({
   onReload: () => void
   demoXp: { xp: number; level: number }
   onDemoXpChange: (next: { xp: number; level: number }) => void
+  inboxBadgeTotal?: number
 }) {
   const { tr } = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1103,8 +1110,20 @@ export function SwipeDemoExperience({
     <div ref={containerRef} className="mc-swipe phone-frame min-h-0 flex-1">
       <canvas ref={canvasRef} className="mc-swipe__starfield" />
       <div className="mc-swipe__content app-content">
-        <div className="mc-swipe__topbar top-bar justify-end">
-          <div className="ml-auto flex items-center gap-[8px]">
+        <div className="mc-swipe__topbar top-bar justify-between">
+          <Link
+            href="/messages"
+            className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
+            aria-label={tr('nav.messages')}
+          >
+            <IconSatelliteDish className="h-5 w-5 text-white/50" />
+            {inboxBadgeTotal > 0 ? (
+              <span className="absolute -right-[2px] -top-[2px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#e46d2e] px-[3px] text-[9px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(228,109,46,0.6)]">
+                {inboxBadgeTotal > 99 ? '99+' : inboxBadgeTotal}
+              </span>
+            ) : null}
+          </Link>
+          <div className="flex items-center gap-[8px]">
             <LanguageSwitcher />
             <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
               <button

@@ -267,7 +267,7 @@ export default function ExplorePage() {
                   className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
                   aria-label={tr('nav.messages')}
                 >
-                  <IconSatelliteDish className="h-4.5 w-4.5 text-white/50" />
+                  <IconSatelliteDish className="h-5 w-5 text-white/50" />
                   {inboxBadgeTotal > 0 ? (
                     <span className="absolute -right-[2px] -top-[2px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#e46d2e] px-[3px] text-[9px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(228,109,46,0.6)]">
                       {inboxBadgeTotal > 99 ? '99+' : inboxBadgeTotal}
@@ -635,6 +635,7 @@ export default function ExplorePage() {
             viewer={user as unknown as UserProfile | null}
             profiles={swipeProfiles}
             loading={swipeLoading}
+            inboxBadgeTotal={inboxBadgeTotal}
             onSwitchToList={() => setSwipeMode(false)}
             onSwitchToSwipe={() => setSwipeMode(true)}
             onSwipe={handleSwipe}
