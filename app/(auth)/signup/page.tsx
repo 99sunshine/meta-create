@@ -154,7 +154,7 @@ export default function SignUpPage() {
           </p>
           <button
             onClick={() => setEmailSent(false)}
-            className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)] transition-all"
+            className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-xl text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)] transition-all"
           >
             {tr('auth.backToSignup')}
           </button>
@@ -185,13 +185,13 @@ export default function SignUpPage() {
               </p>
               <div className="flex flex-col gap-3 w-full mt-2">
                 <Link href="/login" className="w-full">
-                  <button className="w-full py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium">
+                  <button className="w-full py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-xl text-figma-text-primary text-base font-medium">
                     {tr('auth.goToLogin')}
                   </button>
                 </Link>
-                <button 
+                <button
                   onClick={() => setShowExistingEmailModal(false)}
-                  className="w-full py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)]"
+                  className="w-full py-4 bg-figma-input-bg border border-figma-input-border rounded-xl text-figma-text-primary hover:bg-[rgba(255,255,255,0.15)]"
                 >
                   {tr('auth.tryAnotherEmail')}
                 </button>
@@ -216,7 +216,7 @@ export default function SignUpPage() {
           <div className="flex gap-2 p-1 bg-figma-input-bg rounded-lg">
             <button
               onClick={() => setMethod('password')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
                 method === 'password'
                   ? 'bg-figma-accent text-figma-text-primary'
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
@@ -226,7 +226,7 @@ export default function SignUpPage() {
             </button>
             <button
               onClick={() => setMethod('magic')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
                 method === 'magic'
                   ? 'bg-figma-accent text-figma-text-primary'
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
@@ -299,7 +299,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium h-auto"
+              className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-xl text-figma-text-primary text-base font-medium h-auto"
             >
               {loading ? tr('auth.creatingAccount') : method === 'magic' ? tr('auth.sendMagicLink') : tr('auth.createAccount')}
             </Button>

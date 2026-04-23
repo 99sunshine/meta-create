@@ -70,7 +70,7 @@ export function CreateModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl hover:bg-slate-800 transition-colors"
           >
             <X className="h-5 w-5 text-slate-400" />
           </button>

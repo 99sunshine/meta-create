@@ -19,7 +19,7 @@ export function FeedToggle({ activeFilter, onFilterChange }: FeedToggleProps) {
           key={value}
           onClick={() => onFilterChange(value)}
           className={`
-            px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+            px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap
             ${activeFilter === value
               ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
               : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:border-purple-500/50 hover:text-purple-300'

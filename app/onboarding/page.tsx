@@ -316,7 +316,7 @@ export default function OnboardingPage() {
                         onClick={() =>
                           setFormData({ ...formData, hackathon_track: formData.hackathon_track === track ? '' : track })
                         }
-                        className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
                           formData.hackathon_track === track
                             ? 'bg-[#E7770F] text-white'
                             : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-[#E7770F]/50'
@@ -332,7 +332,7 @@ export default function OnboardingPage() {
               <Button
                 onClick={() => setStep(2)}
                 disabled={!step1Valid}
-                className="w-56 mx-auto py-4 bg-[#E7770F] hover:bg-[#d66d0d] rounded-full text-white text-base font-medium h-auto disabled:opacity-50"
+                className="w-56 mx-auto py-4 bg-[#E7770F] hover:bg-[#d66d0d] rounded-xl text-white text-base font-medium h-auto disabled:opacity-50"
               >
                 {tr('onboarding.next')}
               </Button>
@@ -366,7 +366,7 @@ export default function OnboardingPage() {
                         key={role.name}
                         type="button"
                         onClick={() => setFormData({ ...formData, role: role.name })}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        className={`p-4 rounded-xl border-2 transition-all text-left ${
                           formData.role === role.name
                             ? 'border-[#E7770F] bg-[#E7770F]/20'
                             : 'border-[rgba(103,121,157,0.5)] bg-white/10 hover:border-[#E7770F]/50'
@@ -392,7 +392,7 @@ export default function OnboardingPage() {
                       key={skill}
                       type="button"
                       onClick={() => toggleChip('skills', skill)}
-                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
                         formData.skills.includes(skill)
                           ? 'bg-[#E7770F] text-white'
                           : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-[#E7770F]/50'
@@ -418,7 +418,7 @@ export default function OnboardingPage() {
                       key={interest}
                       type="button"
                       onClick={() => toggleChip('interests', interest)}
-                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
                         formData.interests.includes(interest)
                           ? 'bg-indigo-600 text-white'
                           : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-indigo-400/50'
@@ -439,7 +439,7 @@ export default function OnboardingPage() {
                       key={avail}
                       type="button"
                       onClick={() => setFormData({ ...formData, availability: avail })}
-                      className={`py-2.5 px-2 text-xs rounded-lg transition-all ${
+                      className={`py-2.5 px-2 text-xs rounded-xl transition-all ${
                         formData.availability === avail
                           ? 'bg-[#E7770F] text-white'
                           : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-white hover:border-[#E7770F]/50'
@@ -462,7 +462,7 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={handleGenerateTags}
                     disabled={aiLoading || formData.skills.length < 1}
-                    className="text-xs px-3 py-1.5 rounded-full bg-[#E7770F]/20 border border-[#E7770F]/40 text-[#E7770F] hover:bg-[#E7770F]/30 disabled:opacity-40 transition-all"
+                    className="text-xs px-3 py-1.5 rounded-xl bg-[#E7770F]/20 border border-[#E7770F]/40 text-[#E7770F] hover:bg-[#E7770F]/30 disabled:opacity-40 transition-all"
                   >
                     {aiLoading ? tr('onboarding.generating') : aiGenerated ? tr('onboarding.regenerate') : tr('onboarding.generate')}
                   </button>

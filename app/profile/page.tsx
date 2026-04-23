@@ -222,7 +222,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => router.push('/onboarding')}
-              className="text-xs text-amber-300 border border-amber-500/40 bg-amber-500/10 px-3 py-1 rounded-full"
+              className="text-xs text-amber-300 border border-amber-500/40 bg-amber-500/10 px-3 py-1 rounded-xl"
             >
               {tr('profile.completeProfile')}
             </button>
@@ -230,7 +230,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => setEditOpen(true)}
-            className="h-9 w-9 rounded-full border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center"
+            className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center"
             aria-label={tr('profile.editProfile')}
             title={tr('profile.edit')}
           >

@@ -72,7 +72,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="text-sm font-semibold text-white rounded-full px-4 py-1.5 transition-colors"
+              className="text-sm font-semibold text-white rounded-xl px-4 py-1.5 transition-colors"
               style={{ backgroundColor: '#E7770F' }}
             >
               立即加入

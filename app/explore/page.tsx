@@ -293,7 +293,7 @@ export default function ExplorePage() {
                 <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
                   <button
                     type="button"
-                    className={`flex items-center justify-center rounded-[8px] p-[4px] transition-colors ${
+                    className={`flex items-center justify-center rounded-xl p-[4px] transition-colors ${
                       !swipeMode ? 'bg-white/[0.15]' : ''
                     }`}
                     aria-label={tr('nav.listView')}
@@ -304,7 +304,7 @@ export default function ExplorePage() {
                   </button>
                   <button
                     type="button"
-                    className={`flex items-center justify-center rounded-[13px] p-[4px] transition-colors ${
+                    className={`flex items-center justify-center rounded-xl p-[4px] transition-colors ${
                       swipeMode ? 'bg-white/[0.15]' : ''
                     }`}
                     aria-label={tr('nav.swipeView')}
@@ -366,7 +366,7 @@ export default function ExplorePage() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                      className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
                         sort === 'best'
                           ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
                           : 'bg-white/10 text-[#6b7280]'
@@ -377,7 +377,7 @@ export default function ExplorePage() {
                     </button>
                     <button
                       type="button"
-                      className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                      className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
                         sort === 'new'
                           ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
                           : 'bg-white/10 text-[#6b7280]'
@@ -388,7 +388,7 @@ export default function ExplorePage() {
                     </button>
                     <button
                       type="button"
-                      className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                      className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
                         activeFilterCount > 0
                           ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                           : 'bg-white/10 text-[#6b7280]'
@@ -479,7 +479,7 @@ export default function ExplorePage() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        className={`rounded-[14px] px-3 py-2 text-xs ${
+                        className={`rounded-xl px-3 py-2 text-xs ${
                           sort === 'best'
                             ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                             : 'bg-white/10 text-white/80 hover:bg-white/15'
@@ -490,7 +490,7 @@ export default function ExplorePage() {
                       </button>
                       <button
                         type="button"
-                        className={`rounded-[14px] px-3 py-2 text-xs ${
+                        className={`rounded-xl px-3 py-2 text-xs ${
                           sort === 'new'
                             ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                             : 'bg-white/10 text-white/80 hover:bg-white/15'
@@ -506,7 +506,7 @@ export default function ExplorePage() {
                     <p className="text-xs text-white/50">{tr('onboarding.sameTrack')}</p>
                     <button
                       type="button"
-                      className={`rounded-[14px] px-3 py-2 text-xs ${
+                      className={`rounded-xl px-3 py-2 text-xs ${
                         sameTrackOnly
                           ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                           : 'bg-white/10 text-white/80 hover:bg-white/15'
@@ -540,7 +540,7 @@ export default function ExplorePage() {
                         <button
                           key={opt}
                           type="button"
-                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                          className={`rounded-xl px-3 py-2 text-xs ${
                             skill === opt
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'
@@ -571,7 +571,7 @@ export default function ExplorePage() {
                         <button
                           key={opt}
                           type="button"
-                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                          className={`rounded-xl px-3 py-2 text-xs ${
                             role === opt
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'
@@ -602,7 +602,7 @@ export default function ExplorePage() {
                         <button
                           key={opt}
                           type="button"
-                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                          className={`rounded-xl px-3 py-2 text-xs ${
                             location === opt
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'

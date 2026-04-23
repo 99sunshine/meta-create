@@ -16,14 +16,14 @@ export function TrackSelection({ onSelectTrack }: TrackSelectionProps) {
         <div className="flex flex-col gap-[15px] w-full">
           <Button
             onClick={() => onSelectTrack('fast')}
-            className="w-full py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-[25px] text-white text-base font-medium h-auto"
+            className="w-full py-[15px] bg-[#E7770F] hover:bg-[#d66d0d] rounded-xl text-white text-base font-medium h-auto"
           >
             Fast Track
           </Button>
           
           <button
             onClick={() => onSelectTrack('manual')}
-            className="w-full py-[15px] rounded-[25px] text-white text-base font-medium border border-[rgba(244,140,36,0.50)] h-auto"
+            className="w-full py-[15px] rounded-xl text-white text-base font-medium border border-[rgba(244,140,36,0.50)] h-auto"
             style={{
               background: 'linear-gradient(0deg, rgba(243.75, 139.84, 35.92, 0.50) 0%, rgba(243.75, 139.84, 35.92, 0.50) 100%), rgba(0, 0, 0, 0.30)'
             }}

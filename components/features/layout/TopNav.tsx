@@ -114,7 +114,7 @@ export default function TopNav() {
           ) : (
             <Link
               href="/login"
-              className="rounded-md px-3 py-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="rounded-xl px-3 py-1.5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               Login
             </Link>

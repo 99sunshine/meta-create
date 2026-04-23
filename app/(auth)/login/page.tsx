@@ -97,7 +97,7 @@ export default function LoginPage() {
           </p>
           <button
             onClick={() => setMagicLinkSent(false)}
-            className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-full text-figma-text-primary hover:bg-figma-input-bg/80 transition-all"
+            className="w-56 py-4 bg-figma-input-bg border border-figma-input-border rounded-xl text-figma-text-primary hover:bg-figma-input-bg/80 transition-all"
           >
             {tr('auth.backToLogin')}
           </button>
@@ -126,7 +126,7 @@ export default function LoginPage() {
           <div className="flex gap-2 p-1 bg-figma-input-bg rounded-lg">
             <button
               onClick={() => setMethod('password')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
                 method === 'password'
                   ? 'bg-figma-accent text-figma-text-primary'
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
@@ -136,7 +136,7 @@ export default function LoginPage() {
             </button>
             <button
               onClick={() => setMethod('magic')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
                 method === 'magic'
                   ? 'bg-figma-accent text-figma-text-primary'
                   : 'text-figma-text-tertiary hover:text-figma-text-primary'
@@ -190,7 +190,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-full text-figma-text-primary text-base font-medium h-auto"
+              className="w-full sm:w-56 mx-auto py-4 bg-figma-accent hover:bg-figma-accent/90 rounded-xl text-figma-text-primary text-base font-medium h-auto"
             >
               {isLoggingIn ? tr('common.loading') : method === 'magic' ? tr('auth.sendMagicLink') : tr('auth.signIn')}
             </Button>
