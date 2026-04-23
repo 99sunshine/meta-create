@@ -1068,13 +1068,6 @@ export function SwipeDemoExperience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleSkip = useCallback(() => {
-    const card = getTopCard()
-    if (!card || card.classList.contains('exiting')) return
-    dragRef.current.currentY = 0
-    swipeCard(card, 'left')
-  }, [getTopCard, swipeCard])
-
   const handleRestart = useCallback(() => {
     if (deckHintTimerRef.current) {
       clearTimeout(deckHintTimerRef.current)
@@ -1110,9 +1103,8 @@ export function SwipeDemoExperience({
     <div ref={containerRef} className="mc-swipe phone-frame min-h-0 flex-1">
       <canvas ref={canvasRef} className="mc-swipe__starfield" />
       <div className="mc-swipe__content app-content">
-        <div className="mc-swipe__topbar top-bar">
-          <span className="top-title">{tr('swipe.discover')}</span>
-          <div className="flex items-center gap-[8px]">
+        <div className="mc-swipe__topbar top-bar justify-end">
+          <div className="ml-auto flex items-center gap-[8px]">
             <LanguageSwitcher />
             <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
               <button
@@ -1177,10 +1169,10 @@ export function SwipeDemoExperience({
           </div>
 
           <div className="action-buttons" ref={actionButtonsRef}>
-            <span className="swipe-hint">{tr('swipe.swipeRightHint')}</span>
-            <button className="skip-btn" type="button" onClick={handleSkip}>
-              {tr('swipe.skip')}
-            </button>
+            <div className="swipe-guides">
+              <span className="swipe-guide swipe-guide-left">{tr('swipe.leftHint')}</span>
+              <span className="swipe-guide swipe-guide-right">{tr('swipe.rightHint')}</span>
+            </div>
           </div>
         </div>
       </div>

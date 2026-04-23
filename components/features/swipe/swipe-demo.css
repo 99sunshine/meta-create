@@ -359,35 +359,31 @@
 
 /* ---- Action Area ---- */
 .action-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
   padding: 4px 0 0;
   flex-shrink: 0;
 }
-.swipe-hint {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.3px;
+.swipe-guides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  width: 100%;
+  padding: 0 28px;
 }
-.skip-btn {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.45);
+.swipe-guide {
   font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 6px 16px;
-  border-radius: 8px;
-  transition: color 0.2s, background 0.2s;
+  font-weight: 620;
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
 }
-.skip-btn:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.06);
+.swipe-guide-left {
+  justify-self: start;
+  color: rgba(255, 167, 76, 0.95);
 }
-.skip-btn:active {
-  transform: scale(0.96);
+.swipe-guide-right {
+  justify-self: end;
+  color: rgba(124, 230, 200, 0.96);
 }
 
 /* ---- XP Gain Float ---- */

@@ -145,6 +145,8 @@ const translations: Record<AppLocale, Dictionary> = {
       collaborator: 'Collaborator',
     },
     swipe: {
+      leftHint: 'Swipe left: Not now',
+      rightHint: 'Swipe right: Send invite',
       discover: 'Discover',
       close: 'Close',
       levelName1: 'Ember',
@@ -399,6 +401,8 @@ const translations: Record<AppLocale, Dictionary> = {
       collaborator: '协作者',
     },
     swipe: {
+      leftHint: '左滑：暂不考虑',
+      rightHint: '右滑：发送邀请',
       discover: '探索',
       close: '关闭',
       levelName1: '余烬',
