@@ -520,10 +520,12 @@ export default function OnboardingPage() {
                 </Button>
                 <Button
                   onClick={handleComplete}
-                  disabled={!step2Valid || saving}
+                  disabled={!step2Valid}
+                  loading={saving}
+                  loadingText="提交中..."
                   className="flex-1 bg-[#E7770F] hover:bg-[#d66d0d] text-white font-semibold disabled:opacity-50"
                 >
-                  {saving ? tr('onboarding.launching') : tr('onboarding.launch')}
+                  完成 onboarding
                 </Button>
               </div>
             </div>

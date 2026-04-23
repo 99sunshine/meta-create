@@ -186,11 +186,12 @@ export function SendCollabModal({
               <Button
                 size="sm"
                 onClick={handleSend}
-                disabled={sending}
+                loading={sending}
+                loadingText={tr('collab.sending')}
                 className="text-white font-medium"
                 style={{ backgroundColor: '#E7770F' }}
               >
-                {sending ? tr('collab.sending') : tr('collab.sendRequest')}
+                {tr('collab.sendRequest')}
               </Button>
             </div>
           </div>

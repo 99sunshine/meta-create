@@ -261,8 +261,16 @@ export default function ConversationPage() {
           onClick={handleSend}
           className="rounded-full h-10 w-10 flex items-center justify-center text-white transition-all disabled:opacity-40"
           style={{ backgroundColor: '#E7770F' }}
+          aria-label={sending ? '发送中...' : '发送消息'}
         >
-          ↑
+          {sending ? (
+            <span
+              aria-hidden="true"
+              className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"
+            />
+          ) : (
+            '↑'
+          )}
         </button>
       </div>
     </div>

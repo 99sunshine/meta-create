@@ -106,10 +106,12 @@ export function JoinTeamDialog({
           {!isAlreadyMember && (
             <Button
               onClick={handleJoin}
-              disabled={!selectedRole || loading}
+              disabled={!selectedRole}
+              loading={loading}
+              loadingText="加入中..."
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {loading ? 'Joining...' : 'Join Team'}
+              加入队伍
             </Button>
           )}
         </DialogFooter>

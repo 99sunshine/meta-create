@@ -318,10 +318,12 @@ export function CreateWorkForm({
       <div className="flex gap-3 pt-4">
         <Button
           type="submit"
-          disabled={loading || !formData.tags || formData.tags.length === 0}
+          disabled={!formData.tags || formData.tags.length === 0}
+          loading={loading}
+          loadingText="上传中..."
           className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
         >
-          {loading ? 'Creating...' : 'Create Work'}
+          发布作品
         </Button>
         {onCancel && (
           <Button
