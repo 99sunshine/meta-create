@@ -10,6 +10,7 @@ import {
 } from '@/lib/swipe-demo-xp'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { IconListBullet, IconSwipeStack } from '@/components/features/explore/ExploreTopBarIcons'
 
 // Ported visual + motion model from docs/mc-swipe-demo/*
 
@@ -116,7 +117,8 @@ export function SwipeDemoExperience({
   viewer,
   profiles,
   loading,
-  onClose,
+  onSwitchToList,
+  onSwitchToSwipe,
   onSwipe,
   onEmpty,
   onReload,
@@ -126,7 +128,8 @@ export function SwipeDemoExperience({
   viewer: UserProfile | null
   profiles: UserProfile[]
   loading: boolean
-  onClose: () => void
+  onSwitchToList: () => void
+  onSwitchToSwipe: () => void
   onSwipe: (profile: UserProfile, dir: SwipeDir) => void
   onEmpty: () => void
   onReload: () => void
@@ -1108,15 +1111,28 @@ export function SwipeDemoExperience({
       <canvas ref={canvasRef} className="mc-swipe__starfield" />
       <div className="mc-swipe__content app-content">
         <div className="mc-swipe__topbar top-bar">
-          <button type="button" className="mc-swipe__iconbtn" onClick={onClose} aria-label={tr('swipe.close')}>
-            <svg className="top-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
           <span className="top-title">{tr('swipe.discover')}</span>
-          <div className="mc-swipe__iconbtn !w-auto !h-auto">
+          <div className="flex items-center gap-[8px]">
             <LanguageSwitcher />
+            <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
+              <button
+                type="button"
+                className="flex items-center justify-center rounded-[8px] p-[4px] transition-colors"
+                aria-label={tr('nav.listView')}
+                onClick={onSwitchToList}
+              >
+                <IconListBullet active={false} className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center rounded-[13px] bg-white/[0.15] p-[4px] transition-colors"
+                aria-label={tr('nav.swipeView')}
+                aria-pressed
+                onClick={onSwitchToSwipe}
+              >
+                <IconSwipeStack active className="h-6 w-6" />
+              </button>
+            </div>
           </div>
         </div>
 

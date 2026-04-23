@@ -161,10 +161,6 @@ export default function ExplorePage() {
     // 卡牌耗尽时什么都不做；handleRestart 里会调 loadSwipeProfiles 重拉
   }, [])
 
-  const handleCloseSwipe = useCallback(() => {
-    setSwipeMode(false)
-  }, [])
-
   if (loading || profileLoading) {
     return (
       <div
@@ -187,265 +183,256 @@ export default function ExplorePage() {
       className="min-h-screen relative overflow-hidden"
       style={{ backgroundColor: '#101837' }}
     >
-      <div className="relative z-10">
-        {/* Top Bar (Figma: Search + View Toggle) */}
-        <div className="sticky top-0 z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
-          <div className="flex items-center gap-[10px]">
-            {/* 左：Messages 入口，样式与右侧 View Toggle 单按钮一致 */}
-            <Link
-              href="/messages"
-              className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
-              aria-label={tr('nav.messages')}
-            >
-              <IconSatelliteDish className="h-4.5 w-4.5 text-white/50" />
-              {inboxBadgeTotal > 0 ? (
-                <span className="absolute -right-[2px] -top-[2px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#e46d2e] px-[3px] text-[9px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(228,109,46,0.6)]">
-                  {inboxBadgeTotal > 99 ? '99+' : inboxBadgeTotal}
-                </span>
-              ) : null}
-            </Link>
-
-            {/* 中：搜索框 */}
-            <div className="flex h-[32px] min-w-0 flex-[1_1_auto] max-w-[calc(100%-176px)] items-center gap-2 rounded-[20px] bg-white/[0.08] px-[14px] py-[8px]">
-              <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-[#6b7280]" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={tr('explore.searchPlaceholder')}
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-white placeholder:text-[#6b7280] focus:outline-none"
-                aria-label={tr('explore.searchAria')}
-              />
-            </div>
-
-            {/* 右中：语言切换 */}
-            <div className="shrink-0">
-              <LanguageSwitcher />
-            </div>
-
-            {/* 右：View Toggle（Figma node 135-157，250:155） */}
-            <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
-              <button
-                type="button"
-                className={`flex items-center justify-center rounded-[8px] p-[4px] transition-colors ${
-                  !swipeMode ? 'bg-white/[0.15]' : ''
-                }`}
-                aria-label={tr('nav.listView')}
-                aria-pressed={!swipeMode}
-                onClick={() => setSwipeMode(false)}
+      {!swipeMode ? (
+        <div className="relative z-10">
+          {/* Top Bar (Figma: Search + View Toggle) */}
+          <div className="sticky top-0 z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
+            <div className="flex items-center gap-[10px]">
+              <Link
+                href="/messages"
+                className="relative flex shrink-0 items-center justify-center rounded-[8px] bg-white/[0.08] p-[4px] text-white transition-colors hover:bg-white/[0.14]"
+                aria-label={tr('nav.messages')}
               >
-                <IconListBullet active={!swipeMode} className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                className={`flex items-center justify-center rounded-[13px] p-[4px] transition-colors ${
-                  swipeMode ? 'bg-white/[0.15]' : ''
-                }`}
-                aria-label={tr('nav.swipeView')}
-                aria-pressed={swipeMode}
-                onClick={handleEnterSwipe}
-              >
-                <IconSwipeStack active={swipeMode} className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-        </div>
+                <IconSatelliteDish className="h-4.5 w-4.5 text-white/50" />
+                {inboxBadgeTotal > 0 ? (
+                  <span className="absolute -right-[2px] -top-[2px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#e46d2e] px-[3px] text-[9px] font-bold leading-none text-white shadow-[0_1px_4px_rgba(228,109,46,0.6)]">
+                    {inboxBadgeTotal > 99 ? '99+' : inboxBadgeTotal}
+                  </span>
+                ) : null}
+              </Link>
 
-        {/* XP Bar — 与全屏 Swipe 共用 demoXp 曲线 */}
-        <div className="bg-[#101837] px-4">
-          <div className="h-px bg-white/10" />
-          <div className="flex items-center gap-[10px] py-2 border-b border-white/[0.06]">
-            <div className="flex items-center gap-[3px] shrink-0">
-              {([1, 2, 3, 4] as const).map((lvl) => (
-                <span
-                  key={lvl}
-                  className="h-[5px] w-[5px] rounded-full"
-                  style={{ background: xpBar.dotBg(lvl) }}
+              <div className="flex h-[32px] min-w-0 flex-[1_1_auto] max-w-[calc(100%-176px)] items-center gap-2 rounded-[20px] bg-white/[0.08] px-[14px] py-[8px]">
+                <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-[#6b7280]" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={tr('explore.searchPlaceholder')}
+                  className="min-w-0 flex-1 bg-transparent text-[13px] text-white placeholder:text-[#6b7280] focus:outline-none"
+                  aria-label={tr('explore.searchAria')}
                 />
-              ))}
+              </div>
+
+              <div className="shrink-0">
+                <LanguageSwitcher />
+              </div>
+
+              <div className="flex shrink-0 items-center gap-[2px] overflow-hidden rounded-[8px] bg-white/[0.08]">
+                <button
+                  type="button"
+                  className={`flex items-center justify-center rounded-[8px] p-[4px] transition-colors ${
+                    !swipeMode ? 'bg-white/[0.15]' : ''
+                  }`}
+                  aria-label={tr('nav.listView')}
+                  aria-pressed={!swipeMode}
+                  onClick={() => setSwipeMode(false)}
+                >
+                  <IconListBullet active={!swipeMode} className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  className={`flex items-center justify-center rounded-[13px] p-[4px] transition-colors ${
+                    swipeMode ? 'bg-white/[0.15]' : ''
+                  }`}
+                  aria-label={tr('nav.swipeView')}
+                  aria-pressed={swipeMode}
+                  onClick={handleEnterSwipe}
+                >
+                  <IconSwipeStack active={swipeMode} className="h-6 w-6" />
+                </button>
+              </div>
             </div>
-            <span
-              className="text-[11px] font-medium shrink-0 whitespace-nowrap"
-              style={{ color: xpBar.levelColor }}
-            >
-              {xpBar.label}
-            </span>
-            <div className="flex-1 min-w-0 h-1 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${xpBar.fillPct}%`,
-                  backgroundColor: xpBar.levelColor,
-                  boxShadow: `0px 0px 6px ${xpBar.levelColor}80`,
-                }}
-              />
-            </div>
-            <span className="text-[10px] text-white/45 shrink-0 whitespace-nowrap">{xpBar.countLabel}</span>
           </div>
-        </div>
 
-        {/* Filter Row (Figma) */}
-        <div className="px-4 pt-3">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] border border-[#e46d2e]/40 bg-[#e46d2e]/15 px-3 py-[5px] text-[12px] font-medium text-[#e46d2e]"
-              onClick={() => setSort('best')}
-            >
-              {tr('explore.bestMatch')}
-            </button>
-            <button
-              type="button"
-              className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
-                sameTrackOnly
-                  ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
-                  : 'bg-white/10 text-[#6b7280]'
-              }`}
-              onClick={() => setSameTrackOnly((v) => !v)}
-              disabled={!user?.hackathon_track}
-              title={user?.hackathon_track ? tr('explore.sameTrackOnlyTitleOn') : tr('explore.sameTrackOnlyTitleOff')}
-            >
-              {tr('onboarding.sameTrack')}{sameTrackOnly ? ' ✓' : ''}
-            </button>
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-              onClick={() => setPicker('skill')}
-            >
-              {skill ? `${skill} ▾` : `${tr('explore.skill')} ▾`}
-            </button>
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-              onClick={() => setPicker('role')}
-            >
-              {role ? `${role} ▾` : `${tr('explore.role')} ▾`}
-            </button>
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-              onClick={() => setPicker('location')}
-            >
-              {location ? `${location} ▾` : `${tr('explore.location')} ▾`}
-            </button>
-            <button
-              type="button"
-              className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-              onClick={() => setSort('new')}
-            >
-              {tr('explore.latest')}
-            </button>
-          </div>
-        </div>
-
-        {/* Incomplete-profile banner (keep, but align spacing) */}
-        {user && !user.onboarding_complete && (
-          <div className="mt-3 bg-amber-500/10 border-y border-amber-500/30 px-4 py-2 text-center">
-            <span className="text-amber-300 text-sm">
-              {tr('onboarding.completeProfileBanner')}{' '}
-              <button
-                onClick={() => router.push('/onboarding')}
-                className="underline text-amber-200 hover:text-white font-medium"
-              >
-                {tr('onboarding.completeNow')}
-              </button>
-            </span>
-          </div>
-        )}
-
-        <main className="mx-auto max-w-2xl px-4 sm:px-6 py-4 pb-28">
-          <Suspense
-            fallback={
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[128px] rounded-[16px] border border-white/5 bg-white/5 animate-pulse"
+          <div className="bg-[#101837] px-4">
+            <div className="h-px bg-white/10" />
+            <div className="flex items-center gap-[10px] py-2 border-b border-white/[0.06]">
+              <div className="flex items-center gap-[3px] shrink-0">
+                {([1, 2, 3, 4] as const).map((lvl) => (
+                  <span
+                    key={lvl}
+                    className="h-[5px] w-[5px] rounded-full"
+                    style={{ background: xpBar.dotBg(lvl) }}
                   />
                 ))}
               </div>
-            }
-          >
-            <CreatorsFeed
-              key={feedRefreshKey}
-              query={query}
-              role={role}
-              skill={skill}
-              location={location}
-              sort={sort}
-              sameTrackOnly={sameTrackOnly}
-            />
-          </Suspense>
-        </main>
-      </div>
-
-      <BottomTabs />
-
-      {picker && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setPicker(null)
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-white">
-                {picker === 'skill' ? tr('explore.skill') : picker === 'role' ? tr('explore.role') : tr('explore.location')}
-              </p>
-              <button
-                type="button"
-                className="text-xs text-white/50 underline"
-                onClick={() => {
-                  if (picker === 'skill') setSkill('')
-                  if (picker === 'role') setRole('')
-                  if (picker === 'location') setLocation('')
-                  setPicker(null)
-                }}
+              <span
+                className="text-[11px] font-medium shrink-0 whitespace-nowrap"
+                style={{ color: xpBar.levelColor }}
               >
-                {tr('common.clear')}
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {(picker === 'skill' ? SKILL_OPTIONS : picker === 'role' ? ROLE_OPTIONS : LOCATION_OPTIONS).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className="rounded-[14px] bg-white/10 px-3 py-2 text-xs text-white/80 hover:bg-white/15"
-                  onClick={() => {
-                    if (picker === 'skill') setSkill(opt)
-                    if (picker === 'role') setRole(opt)
-                    if (picker === 'location') setLocation(opt)
-                    setPicker(null)
+                {xpBar.label}
+              </span>
+              <div className="flex-1 min-w-0 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${xpBar.fillPct}%`,
+                    backgroundColor: xpBar.levelColor,
+                    boxShadow: `0px 0px 6px ${xpBar.levelColor}80`,
                   }}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <Button
-                variant="ghost"
-                className="text-white/70 hover:text-white"
-                onClick={() => setPicker(null)}
-              >
-                {tr('common.done')}
-              </Button>
+                />
+              </div>
+              <span className="text-[10px] text-white/45 shrink-0 whitespace-nowrap">{xpBar.countLabel}</span>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ── Swipe Mode Full-Screen Overlay (Demo-aligned) ── */}
-      {swipeMode && (
-        <div className="fixed inset-0 z-50 flex h-dvh w-full flex-col bg-[#101837]">
+          <div className="px-4 pt-3">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] border border-[#e46d2e]/40 bg-[#e46d2e]/15 px-3 py-[5px] text-[12px] font-medium text-[#e46d2e]"
+                onClick={() => setSort('best')}
+              >
+                {tr('explore.bestMatch')}
+              </button>
+              <button
+                type="button"
+                className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                  sameTrackOnly
+                    ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                    : 'bg-white/10 text-[#6b7280]'
+                }`}
+                onClick={() => setSameTrackOnly((v) => !v)}
+                disabled={!user?.hackathon_track}
+                title={user?.hackathon_track ? tr('explore.sameTrackOnlyTitleOn') : tr('explore.sameTrackOnlyTitleOff')}
+              >
+                {tr('onboarding.sameTrack')}{sameTrackOnly ? ' ✓' : ''}
+              </button>
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
+                onClick={() => setPicker('skill')}
+              >
+                {skill ? `${skill} ▾` : `${tr('explore.skill')} ▾`}
+              </button>
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
+                onClick={() => setPicker('role')}
+              >
+                {role ? `${role} ▾` : `${tr('explore.role')} ▾`}
+              </button>
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
+                onClick={() => setPicker('location')}
+              >
+                {location ? `${location} ▾` : `${tr('explore.location')} ▾`}
+              </button>
+              <button
+                type="button"
+                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
+                onClick={() => setSort('new')}
+              >
+                {tr('explore.latest')}
+              </button>
+            </div>
+          </div>
+
+          {user && !user.onboarding_complete && (
+            <div className="mt-3 bg-amber-500/10 border-y border-amber-500/30 px-4 py-2 text-center">
+              <span className="text-amber-300 text-sm">
+                {tr('onboarding.completeProfileBanner')}{' '}
+                <button
+                  onClick={() => router.push('/onboarding')}
+                  className="underline text-amber-200 hover:text-white font-medium"
+                >
+                  {tr('onboarding.completeNow')}
+                </button>
+              </span>
+            </div>
+          )}
+
+          <main className="mx-auto max-w-2xl px-4 sm:px-6 py-4 pb-28">
+            <Suspense
+              fallback={
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-[128px] rounded-[16px] border border-white/5 bg-white/5 animate-pulse"
+                    />
+                  ))}
+                </div>
+              }
+            >
+              <CreatorsFeed
+                key={feedRefreshKey}
+                query={query}
+                role={role}
+                skill={skill}
+                location={location}
+                sort={sort}
+                sameTrackOnly={sameTrackOnly}
+              />
+            </Suspense>
+          </main>
+
+          {picker && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center p-4"
+              style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setPicker(null)
+              }}
+            >
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-white">
+                    {picker === 'skill' ? tr('explore.skill') : picker === 'role' ? tr('explore.role') : tr('explore.location')}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs text-white/50 underline"
+                    onClick={() => {
+                      if (picker === 'skill') setSkill('')
+                      if (picker === 'role') setRole('')
+                      if (picker === 'location') setLocation('')
+                      setPicker(null)
+                    }}
+                  >
+                    {tr('common.clear')}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(picker === 'skill' ? SKILL_OPTIONS : picker === 'role' ? ROLE_OPTIONS : LOCATION_OPTIONS).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className="rounded-[14px] bg-white/10 px-3 py-2 text-xs text-white/80 hover:bg-white/15"
+                      onClick={() => {
+                        if (picker === 'skill') setSkill(opt)
+                        if (picker === 'role') setRole(opt)
+                        if (picker === 'location') setLocation(opt)
+                        setPicker(null)
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    className="text-white/70 hover:text-white"
+                    onClick={() => setPicker(null)}
+                  >
+                    {tr('common.done')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="relative z-10 h-[calc(100dvh-84px)] overflow-hidden">
           <SwipeDemoExperience
             viewer={user as unknown as UserProfile | null}
             profiles={swipeProfiles}
             loading={swipeLoading}
-            onClose={handleCloseSwipe}
+            onSwitchToList={() => setSwipeMode(false)}
+            onSwitchToSwipe={() => setSwipeMode(true)}
             onSwipe={handleSwipe}
             onEmpty={handleSwipeEmpty}
             onReload={loadSwipeProfiles}
@@ -462,6 +449,8 @@ export default function ExplorePage() {
           ) : null}
         </div>
       )}
+
+      <BottomTabs />
     </div>
   )
 }
