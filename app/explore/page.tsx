@@ -44,12 +44,16 @@ export default function ExplorePage() {
   const [role, setRole] = useState('')
   const [location, setLocation] = useState('')
   const [sameTrackOnly, setSameTrackOnly] = useState(false)
-  const [picker, setPicker] = useState<null | 'skill' | 'role' | 'location'>(null)
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [demoXp, setDemoXp] = useState(SWIPE_DEMO_INITIAL_XP)
 
   const SKILL_OPTIONS = useMemo(() => SKILLS, [])
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
+  const activeFilterCount = useMemo(
+    () => [skill, role, location].filter(Boolean).length + (sameTrackOnly ? 1 : 0) + (sort !== 'best' ? 1 : 0),
+    [location, role, sameTrackOnly, skill, sort],
+  )
 
   const xpBar = useMemo(
     () =>
@@ -103,6 +107,18 @@ export default function ExplorePage() {
       if (swipeNoticeTimerRef.current) clearTimeout(swipeNoticeTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isFilterSheetOpen) return
+    const prevOverflow = document.body.style.overflow
+    const prevOverscrollBehavior = document.body.style.overscrollBehavior
+    document.body.style.overflow = 'hidden'
+    document.body.style.overscrollBehavior = 'none'
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.body.style.overscrollBehavior = prevOverscrollBehavior
+    }
+  }, [isFilterSheetOpen])
 
   useEffect(() => {
     return subscribeEntityCreated(() => setFeedRefreshKey((k) => k + 1))
@@ -184,7 +200,7 @@ export default function ExplorePage() {
       style={{ backgroundColor: '#101837' }}
     >
       {!swipeMode ? (
-        <div className="relative z-10">
+        <div className="relative">
           {/* Top Bar (Figma: Search + View Toggle) */}
           <div className="sticky top-0 z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
             <div className="flex items-center gap-[10px]">
@@ -276,10 +292,14 @@ export default function ExplorePage() {
           </div>
 
           <div className="px-4 pt-3">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 pb-1">
               <button
                 type="button"
-                className="shrink-0 rounded-[14px] border border-[#e46d2e]/40 bg-[#e46d2e]/15 px-3 py-[5px] text-[12px] font-medium text-[#e46d2e]"
+                className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                  sort === 'best'
+                    ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
+                    : 'bg-white/10 text-[#6b7280]'
+                }`}
                 onClick={() => setSort('best')}
               >
                 {tr('explore.bestMatch')}
@@ -287,43 +307,25 @@ export default function ExplorePage() {
               <button
                 type="button"
                 className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
-                  sameTrackOnly
-                    ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                  sort === 'new'
+                    ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
                     : 'bg-white/10 text-[#6b7280]'
                 }`}
-                onClick={() => setSameTrackOnly((v) => !v)}
-                disabled={!user?.hackathon_track}
-                title={user?.hackathon_track ? tr('explore.sameTrackOnlyTitleOn') : tr('explore.sameTrackOnlyTitleOff')}
-              >
-                {tr('onboarding.sameTrack')}{sameTrackOnly ? ' ✓' : ''}
-              </button>
-              <button
-                type="button"
-                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-                onClick={() => setPicker('skill')}
-              >
-                {skill ? `${skill} ▾` : `${tr('explore.skill')} ▾`}
-              </button>
-              <button
-                type="button"
-                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-                onClick={() => setPicker('role')}
-              >
-                {role ? `${role} ▾` : `${tr('explore.role')} ▾`}
-              </button>
-              <button
-                type="button"
-                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
-                onClick={() => setPicker('location')}
-              >
-                {location ? `${location} ▾` : `${tr('explore.location')} ▾`}
-              </button>
-              <button
-                type="button"
-                className="shrink-0 rounded-[14px] bg-white/10 px-3 py-[5px] text-[12px] text-[#6b7280]"
                 onClick={() => setSort('new')}
               >
                 {tr('explore.latest')}
+              </button>
+              <button
+                type="button"
+                className={`shrink-0 rounded-[14px] px-3 py-[5px] text-[12px] ${
+                  activeFilterCount > 0
+                    ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                    : 'bg-white/10 text-[#6b7280]'
+                }`}
+                onClick={() => setIsFilterSheetOpen(true)}
+              >
+                {tr('explore.filter')}
+                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
             </div>
           </div>
@@ -367,58 +369,182 @@ export default function ExplorePage() {
             </Suspense>
           </main>
 
-          {picker && (
+          {isFilterSheetOpen && (
             <div
-              className="fixed inset-0 z-50 flex items-end justify-center p-4"
+              className="fixed inset-0 z-[70] flex items-center justify-center p-4"
               style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
               onMouseDown={(e) => {
-                if (e.target === e.currentTarget) setPicker(null)
+                if (e.target === e.currentTarget) setIsFilterSheetOpen(false)
               }}
             >
-              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] p-4">
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121B3E] px-4 pt-5 pb-4 max-h-[calc(100dvh-8px)] overflow-y-auto overscroll-contain scrollbar-hide">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium text-white">
-                    {picker === 'skill' ? tr('explore.skill') : picker === 'role' ? tr('explore.role') : tr('explore.location')}
-                  </p>
+                  <p className="text-sm font-medium text-white">{tr('explore.filters')}</p>
                   <button
                     type="button"
                     className="text-xs text-white/50 underline"
                     onClick={() => {
-                      if (picker === 'skill') setSkill('')
-                      if (picker === 'role') setRole('')
-                      if (picker === 'location') setLocation('')
-                      setPicker(null)
+                      setSkill('')
+                      setRole('')
+                      setLocation('')
+                      setSameTrackOnly(false)
+                      setSort('best')
                     }}
                   >
-                    {tr('common.clear')}
+                    {tr('explore.clearAll')}
                   </button>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {(picker === 'skill' ? SKILL_OPTIONS : picker === 'role' ? ROLE_OPTIONS : LOCATION_OPTIONS).map((opt) => (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/50">{tr('explore.sortBy')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={`rounded-[14px] px-3 py-2 text-xs ${
+                          sort === 'best'
+                            ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                            : 'bg-white/10 text-white/80 hover:bg-white/15'
+                        }`}
+                        onClick={() => setSort('best')}
+                      >
+                        {tr('explore.bestMatch')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`rounded-[14px] px-3 py-2 text-xs ${
+                          sort === 'new'
+                            ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                            : 'bg-white/10 text-white/80 hover:bg-white/15'
+                        }`}
+                        onClick={() => setSort('new')}
+                      >
+                        {tr('explore.latest')}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/50">{tr('onboarding.sameTrack')}</p>
                     <button
-                      key={opt}
                       type="button"
-                      className="rounded-[14px] bg-white/10 px-3 py-2 text-xs text-white/80 hover:bg-white/15"
+                      className={`rounded-[14px] px-3 py-2 text-xs ${
+                        sameTrackOnly
+                          ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                          : 'bg-white/10 text-white/80 hover:bg-white/15'
+                      }`}
+                      title={user?.hackathon_track ? tr('explore.sameTrackOnlyTitleOn') : tr('explore.sameTrackOnlyTitleOff')}
+                      disabled={!user?.hackathon_track}
                       onClick={() => {
-                        if (picker === 'skill') setSkill(opt)
-                        if (picker === 'role') setRole(opt)
-                        if (picker === 'location') setLocation(opt)
-                        setPicker(null)
+                        setSameTrackOnly((v) => !v)
                       }}
                     >
-                      {opt}
+                      {tr('onboarding.sameTrack')}
+                      {sameTrackOnly ? ' ✓' : ''}
                     </button>
-                  ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-white/50">{tr('explore.skill')}</p>
+                      {skill ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-white/50 underline"
+                          onClick={() => setSkill('')}
+                        >
+                          {tr('common.clear')}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {SKILL_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                            skill === opt
+                              ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                              : 'bg-white/10 text-white/80 hover:bg-white/15'
+                          }`}
+                          onClick={() => setSkill(skill === opt ? '' : opt)}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-white/50">{tr('explore.role')}</p>
+                      {role ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-white/50 underline"
+                          onClick={() => setRole('')}
+                        >
+                          {tr('common.clear')}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {ROLE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                            role === opt
+                              ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                              : 'bg-white/10 text-white/80 hover:bg-white/15'
+                          }`}
+                          onClick={() => setRole(role === opt ? '' : opt)}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-white/50">{tr('explore.location')}</p>
+                      {location ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-white/50 underline"
+                          onClick={() => setLocation('')}
+                        >
+                          {tr('common.clear')}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {LOCATION_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`rounded-[14px] px-3 py-2 text-xs ${
+                            location === opt
+                              ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
+                              : 'bg-white/10 text-white/80 hover:bg-white/15'
+                          }`}
+                          onClick={() => setLocation(location === opt ? '' : opt)}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex justify-end">
                   <Button
                     variant="ghost"
                     className="text-white/70 hover:text-white"
-                    onClick={() => setPicker(null)}
+                    onClick={() => setIsFilterSheetOpen(false)}
                   >
-                    {tr('common.done')}
+                    {tr('explore.apply')}
                   </Button>
                 </div>
               </div>
