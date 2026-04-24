@@ -1,4 +1,4 @@
-# Meta-Create 
+# Meta-Create
 
 ## Who We Are
 
@@ -28,4 +28,3 @@ npm run dev
 ```
 
 Push to `main` to deploy (GitHub Actions).
-

@@ -1,0 +1,212 @@
+# MetaCreate - AI Development Rules
+
+## Project Context
+- **Product**: AI-powered creator matching platform for students/young professionals
+- **Stack**: Next.js 16 (App Router), React 19, TypeScript, Supabase, Tailwind CSS 4
+- **Launch**: April 2026 (4-6 weeks)
+- **Current Phase**: Sprint 0 - Auth & Onboarding ONLY
+
+## Core Architecture Principles
+
+### 1. Server-First Approach
+- Use Server Components for ALL reads (fetch data, pass props down)
+- Client Components ONLY for interactivity (forms, hooks, user input)
+- Mark files with 'use client' or 'use server' explicitly when needed
+- Server Actions for mutations (prefer over API routes)
+
+### 2. Data Layer Rules
+- **Single Supabase Home**: ALL Supabase code lives in `/supabase/*`
+- **No scattered calls**: Never import Supabase client outside `/supabase` directory
+- **Repository Pattern**: One repository class per entity in `/supabase/repos/`
+  - Example: `ProfileRepository`, `TeamRepository`
+  - Repos handle full CRUD (get, create, update, delete)
+  - Repos call Supabase directly with RLS checks
+  - Always include `eq('user_id', userId)` for RLS security
+  - Throw errors; let hooks handle error states
+
+### 3. Dynamic Over Hardcoded
+- **NEVER hardcode**: roles, skills, availability, collab styles, tracks, tags
+- **Fetch from DB**: All enums come from Supabase tables
+- **Fallback only**: Keep static fallbacks for offline PWA edge cases
+- If you see constants being hardcoded, STOP and fetch from DB instead
+
+### 4. Type Safety
+- **Generated types**: Use Supabase generated types from `/types/supabase.ts`
+- **Interfaces**: Create custom interfaces in `/types/interfaces/` (one file per entity)
+- **Zod schemas**: One schema per entity in `/schemas/` directory
+- **Validation**: Validate in repos using Zod before DB operations
+- Never use `any` - use `unknown` and type guards if needed
+
+### 5. File Organization
+```
+/app/                    # Next.js routes only
+  /(auth)/              # Auth routes (minimal layout)
+  /(main)/              # Main app (with navigation)
+  /onboarding/          # Onboarding wizard
+  /api/ai/              # AI endpoints only
+/components/
+  /features/            # Feature-specific components
+  /shared/              # Shared across features
+  /ui/                  # shadcn primitives only
+/supabase/
+  /repos/               # Repository classes (CRUD)
+  auth.ts               # Auth logic (magic link, session)
+  client.ts             # Browser client
+  server.ts             # Server client
+/schemas/               # Zod validation schemas
+/types/
+  supabase.ts           # Generated types
+  /interfaces/          # Custom interfaces
+/hooks/                 # Thin wrappers over repos
+/lib/                   # Non-Supabase utils only
+```
+
+### 6. Hooks Convention
+- **Thin wrappers**: Hooks call repo methods directly (no extra abstraction)
+- **Client-only**: Mark hook files with 'use client'
+- **Loading/Error**: Provide loading and error states via useState
+- **Server Components**: Call repos directly (no hooks)
+- Example pattern:
+  ```ts
+  const repo = new EntityRepository()
+  export function useEntity() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    
+    const getEntity = async (id: string) => {
+      setLoading(true)
+      setError(null)
+      try {
+        return await repo.getEntity(id)
+      } catch (err) {
+        setError((err as Error).message)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    return { getEntity, loading, error }
+  }
+  ```
+
+### 7. No Duplication
+- **Single source of truth**: Never duplicate validation logic
+- **Zod in repos**: Validate with Zod schemas in repository methods
+- **Revalidation**: Use granular revalidateTag in repos after mutations
+- **No duplicate Supabase clients**: Import from `/supabase/client.ts` or `/supabase/server.ts`
+
+### 8. Code Quality Standards
+- **No commented code**: Delete it, don't comment it out
+- **No console.logs**: Use proper error handling, not debugging logs
+- **No TODOs**: If it's important, do it now or create an issue
+- **No magic numbers**: Use named constants with clear meaning
+- **No nested ternaries**: Use if/else or early returns for clarity
+- **Descriptive names**: `getUserProfileById` not `getUP`
+
+## MetaCreate-Specific Rules
+
+### 9. The 4-Role System
+- Roles: **Visionary**, **Builder**, **Strategist**, **Connector**
+- NEVER add roles without product approval
+- Role is required in onboarding (1 selection only)
+- Fetch roles from `roles` table, never hardcode
+
+### 10. AI Integration (Claude Sonnet 4)
+- Model: `claude-sonnet-4-20250514`
+- Max 3s latency for ice-breakers, 5s for resume parse
+- ALWAYS provide fallbacks for AI timeouts
+- Store prompts in repo (not inline in components)
+- Temperature: 0.85 for tags/manifesto, 0.9 for ice-breakers
+
+### 11. Onboarding Flow (3 Steps)
+- **Step 1 (Ignition)**: Name, avatar, city, school, email
+- **Step 2 (Your Universe)**: Resume upload OR manual skill/interest selection, role selection (4 cards), collab style
+- **Step 3 (Launch)**: AI-generated tags (6-10), manifesto (1 sentence), role confirmation
+- Total time budget: ~5 minutes
+- Must be mobile-first responsive
+
+### 12. Security Rules
+- **RLS Always**: Every Supabase query must respect Row Level Security
+- **User checks**: Always filter by `user_id` for user-owned resources
+- **Never trust client**: Validate everything on server
+- **Session checks**: Verify session before any mutation
+- **No exposed secrets**: Use environment variables for API keys
+
+### 13. Performance
+- **Lazy load**: Don't fetch what you don't need right now
+- **Parallel fetches**: Use Promise.all for independent queries
+- **Edge cases**: Handle empty states, loading states, error states
+- **Image optimization**: Use next/image, WebP format, proper sizing
+- **Bundle size**: Import only what you need (no `import *`)
+
+## What NOT to Do
+
+❌ **NEVER:**
+- Hardcode roles, skills, or any enum data
+- Import Supabase outside `/supabase` directory
+- Create `.then()` chains (use async/await)
+- Use `var` (use `const` or `let`)
+- Create inline styles (use Tailwind classes)
+- Skip error handling (always try/catch async operations)
+- Create API routes when Server Actions work
+- Add TanStack Query, Redux, or other state libraries without discussion
+- Create custom auth (use Supabase auth)
+- Bypass RLS policies
+- Create god components (split at 200 lines)
+- Over-engineer (MVP first, optimize later)
+
+## Current Sprint Focus
+
+### Today's Scope: AUTH & ONBOARDING ONLY
+1. Supabase auth setup (magic link)
+2. useAuth hook
+3. Login page
+4. Auth callback
+5. 3-step onboarding wizard
+6. Profile creation in DB
+
+**DO NOT BUILD:**
+- Explore/Search page
+- Team features  
+- Works showcase
+- Event hub
+- AI ice-breakers (deferred)
+- Profile editing
+- Anything not listed above
+
+## Decision Framework
+
+When uncertain, ask yourself:
+1. Is this server or client logic? (Prefer server)
+2. Does this data come from DB or hardcode? (Prefer DB)
+3. Is this the simplest solution? (Prefer simple)
+4. Does this scale to 500 users? (That's our MVP target)
+5. Can another dev understand this in 6 months? (Prefer clarity)
+
+## Commands Reference
+
+```bash
+# Dev server
+npm run dev
+
+# Supabase types
+npx supabase gen types typescript --project-id <id> > types/supabase.ts
+
+# Add shadcn component
+npx shadcn@latest add <component-name>
+```
+
+## Questions to Ask Before Coding
+
+- Where does this data come from? (DB, API, static?)
+- Who can access this? (Auth required? RLS policy?)
+- What if it fails? (Error state, fallback?)
+- Is this a Server or Client Component?
+- Does this need to be real-time? (Not for MVP)
+
+---
+
+**Remember**: We're building an MVP for April 2026 launch. Ship working features over perfect code. But maintain architectural discipline to avoid "slop" that killed the last codebase.
+
+---
