@@ -78,6 +78,12 @@ export default function OnboardingPage() {
     }
   }, [sessionUser?.email])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    }
+  }, [step])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#121B3E]">
