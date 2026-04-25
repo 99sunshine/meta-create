@@ -16,6 +16,8 @@ import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/fe
 import { skillColorClass } from '@/constants/skills'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { getLocalizedTrackLabel } from '@/constants/taxonomy'
+import { useLocalizedManifesto, useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
 // ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
 const SKILL_COLORS = {
@@ -105,11 +107,11 @@ function EditProfileModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar_url: publicUrl }),
       })
-      if (!res.ok) throw new Error('头像保存失败')
+      if (!res.ok) throw new Error(tr('profile.avatarSaveFailed'))
       setAvatarPreview(publicUrl)
       await refreshProfile()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '头像上传失败')
+      setError(e instanceof Error ? e.message : tr('profile.avatarUploadFailed'))
     } finally {
       setAvatarUploading(false)
     }
@@ -165,10 +167,10 @@ function EditProfileModal({
           </div>
           <div>
             <label className="cursor-pointer rounded-xl border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:border-white/40 hover:text-white transition-colors">
-              {avatarUploading ? '上传中…' : '更换头像'}
+              {avatarUploading ? tr('profile.avatarUploading') : tr('profile.changeAvatar')}
               <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploading} />
             </label>
-            <p className="mt-1 text-[10px] text-white/30">JPG / PNG，建议正方形</p>
+            <p className="mt-1 text-[10px] text-white/30">{tr('profile.avatarHint')}</p>
           </div>
         </div>
 
@@ -223,6 +225,13 @@ export default function ProfilePage() {
   const [myWorks, setMyWorks] = useState<WorkWithCreator[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   const encodedProfileReturn = encodeURIComponent('/profile')
+  const profile = user
+  const skills = (profile?.skills ?? []) as string[]
+  const tags = (profile?.tags ?? []) as string[]
+  const localizedSkills = useLocalizedSkills(skills, locale)
+  const localizedTags = useLocalizedTags(tags, locale)
+  const localizedManifesto = useLocalizedManifesto(profile?.manifesto ?? '', locale)
+  const localizedTrack = profile?.hackathon_track ? getLocalizedTrackLabel(profile.hackathon_track, locale) : null
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
@@ -263,11 +272,8 @@ export default function ProfilePage() {
 
   if (!sessionUser) return null
 
-  const profile = user
   const needsOnboarding = profile?.onboarding_complete === false
   const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || tr('common.creator')
-  const skills = (profile?.skills ?? []) as string[]
-  const tags = (profile?.tags ?? []) as string[]
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
@@ -323,32 +329,32 @@ export default function ProfilePage() {
               )}
               {profile?.hackathon_track && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
-                  {tr('profile.track')}: {profile.hackathon_track}
+                  {tr('profile.track')}: {localizedTrack}
                 </span>
               )}
             </div>
-            {profile?.manifesto && (
+            {localizedManifesto && (
               <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-2">
-                &ldquo;{profile.manifesto}&rdquo;
+                &ldquo;{localizedManifesto}&rdquo;
               </p>
             )}
           </div>
         </div>
 
         {/* ── Building next (manifesto vision) ── */}
-        {profile?.manifesto && (
+        {localizedManifesto && (
           <MeProfileSection title={tr('profile.buildingNext')}>
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px]">
-              <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{profile.manifesto}</p>
+              <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{localizedManifesto}</p>
             </div>
           </MeProfileSection>
         )}
 
         {/* ── Looking for (tags in pink) ── */}
-        {tags.length > 0 && (
+        {localizedTags.length > 0 && (
           <MeProfileSection title={tr('profile.lookingFor')}>
             <div className="flex flex-wrap gap-[6px]">
-              {tags.map((t) => (
+              {localizedTags.map((t) => (
                 <span
                   key={t}
                   className="rounded-[12px] border border-[rgba(209,27,115,0.5)] bg-[rgba(209,27,115,0.2)] px-[10px] py-[5px] text-[12px] text-[#e88dba]"
@@ -361,13 +367,13 @@ export default function ProfilePage() {
         )}
 
         {/* ── Skills (4-color system) ── */}
-        {skills.length > 0 && (
+        {localizedSkills.length > 0 && (
           <MeProfileSection title={tr('profile.skills')}>
             <div className="flex flex-wrap gap-[6px]">
-              {skills.map((s) => (
+              {localizedSkills.map((s, idx) => (
                 <span
-                  key={s}
-                  className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(s)}`}
+                  key={`${skills[idx] ?? s}-${idx}`}
+                  className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(skills[idx] ?? s)}`}
                 >
                   {s}
                 </span>

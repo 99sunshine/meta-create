@@ -40,6 +40,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.locale])
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
+  }, [locale])
+
   const setLocale = useCallback(
     async (next: AppLocale) => {
       setLocaleState(next)

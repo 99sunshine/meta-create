@@ -17,6 +17,9 @@ import { useExistingRequest } from '@/hooks/useCollabRequests'
 import { trackEvent } from '@/lib/analytics'
 import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
 import { skillColorClass } from '@/constants/skills'
+import { useLocale } from '@/components/providers/LocaleProvider'
+import { getLocalizedTrackLabel } from '@/constants/taxonomy'
+import { useLocalizedManifesto, useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
 const SKILL_COLORS = {
   teal: 'bg-[rgba(15,134,136,0.2)] border-[rgba(15,134,136,0.5)] text-[#70b7b8]',
@@ -73,6 +76,7 @@ export default function CreatorProfilePage() {
   const searchParams = useSearchParams()
   const returnTo = safeReturnPath(searchParams.get('returnTo')) ?? '/explore'
   const { user: currentUser, sessionUser } = useAuth()
+  const { locale, tr } = useLocale()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [works, setWorks] = useState<WorkWithCreator[]>([])
@@ -117,6 +121,12 @@ export default function CreatorProfilePage() {
 
   const [collabOpen, setCollabOpen] = useState(false)
   const existingStatus = useExistingRequest(sessionUser?.id, id)
+  const displayName = profile?.name?.trim() || tr('common.creator')
+  const tags = (profile?.tags ?? []) as string[]
+  const skills = (profile?.skills ?? []) as string[]
+  const localizedSkills = useLocalizedSkills(skills, locale)
+  const localizedTags = useLocalizedTags(tags, locale)
+  const localizedManifesto = useLocalizedManifesto(profile?.manifesto ?? '', locale)
 
   const overallMatch =
     currentUser && profile
@@ -135,16 +145,16 @@ export default function CreatorProfilePage() {
   }
 
   const availLabel: Record<string, string> = {
-    weekends: 'Weekends only',
-    evenings: 'Evenings',
-    flexible: 'Flexible',
-    'full-time': 'Full-time',
+    weekends: locale === 'zh' ? '仅周末' : 'Weekends only',
+    evenings: locale === 'zh' ? '工作日晚间' : 'Evenings',
+    flexible: locale === 'zh' ? '灵活' : 'Flexible',
+    'full-time': locale === 'zh' ? '全职' : 'Full-time',
   }
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/50 text-sm">Loading…</p>
+        <p className="text-white/50 text-sm">{tr('common.loading')}</p>
       </div>
     )
   }
@@ -152,18 +162,15 @@ export default function CreatorProfilePage() {
   if (notFound) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6" style={{ backgroundColor: '#101837' }}>
-        <p className="text-white/50 text-sm">未找到该创作者</p>
+        <p className="text-white/50 text-sm">{locale === 'zh' ? '未找到该创作者' : 'Creator not found'}</p>
         <Button onClick={() => router.push('/explore')} variant="ghost" className="text-white/50 hover:text-white text-sm">
-          ← 返回 Explore
+          {locale === 'zh' ? '← 返回 Explore' : '← Back to Explore'}
         </Button>
       </div>
     )
   }
 
   if (!profile || !id) return null
-  const displayName = profile.name?.trim() || 'Creator'
-  const tags = (profile.tags ?? []) as string[]
-  const skills = (profile.skills ?? []) as string[]
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
@@ -173,11 +180,11 @@ export default function CreatorProfilePage() {
             type="button"
             onClick={() => router.push(returnTo)}
             className="text-white/50 hover:text-white text-sm"
-            aria-label="返回"
+            aria-label={tr('common.back')}
           >
             ←
           </button>
-          <p className="text-[15px] font-semibold text-white">创作者</p>
+          <p className="text-[15px] font-semibold text-white">{tr('common.creator')}</p>
         </div>
       </div>
 
@@ -189,7 +196,7 @@ export default function CreatorProfilePage() {
               <p className="text-[20px] font-semibold text-white leading-tight truncate">{displayName}</p>
               {profile.role && (
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${roleColor[profile.role] ?? 'bg-white/10 text-white/70'}`}>
-                  {profile.role}
+                  {tr(`roles.${String(profile.role).toLowerCase()}`)}
                 </span>
               )}
               {overallMatch !== null && overallMatch > 0 && (
@@ -214,7 +221,7 @@ export default function CreatorProfilePage() {
               )}
               {profile.hackathon_track && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
-                  Track: {profile.hackathon_track}
+                  {tr('profile.track')}: {getLocalizedTrackLabel(profile.hackathon_track, locale)}
                 </span>
               )}
               {profile.availability && (
@@ -223,8 +230,8 @@ export default function CreatorProfilePage() {
                 </span>
               )}
             </div>
-            {profile.manifesto && (
-              <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-3">&ldquo;{profile.manifesto}&rdquo;</p>
+            {localizedManifesto && (
+              <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-3">&ldquo;{localizedManifesto}&rdquo;</p>
             )}
           </div>
         </div>
@@ -242,15 +249,15 @@ export default function CreatorProfilePage() {
                 ? '已发送请求'
                 : existingStatus === 'accepted'
                   ? '已连接'
-                  : 'Connect'}
+                  : tr('creatorCard.connect')}
             </Button>
           </div>
         )}
 
-        {tags.length > 0 && (
-          <MeProfileSection title="Looking for">
+        {localizedTags.length > 0 && (
+          <MeProfileSection title={tr('profile.lookingFor')}>
             <div className="flex flex-wrap gap-[6px]">
-              {tags.map((t) => (
+              {localizedTags.map((t) => (
                 <span
                   key={t}
                   className="rounded-[12px] border border-[rgba(209,27,115,0.5)] bg-[rgba(209,27,115,0.2)] px-[10px] py-[5px] text-[12px] text-[#e88dba]"
@@ -262,11 +269,11 @@ export default function CreatorProfilePage() {
           </MeProfileSection>
         )}
 
-        {skills.length > 0 && (
-          <MeProfileSection title="Skills">
+        {localizedSkills.length > 0 && (
+          <MeProfileSection title={tr('profile.skills')}>
             <div className="flex flex-wrap gap-[6px]">
-              {skills.map((s) => (
-                <span key={s} className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(s)}`}>
+              {localizedSkills.map((s, idx) => (
+                <span key={`${skills[idx] ?? s}-${idx}`} className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(skills[idx] ?? s)}`}>
                   {s}
                 </span>
               ))}
@@ -275,7 +282,7 @@ export default function CreatorProfilePage() {
         )}
 
         {teams.length > 0 && (
-          <MeProfileSection title={`Teams (${teams.length})`}>
+          <MeProfileSection title={`${tr('profile.myTeams')} (${teams.length})`}>
             <div className="flex gap-[10px] overflow-x-auto pb-1">
               {teams.map((t) => (
                 <MeTeamPill
@@ -290,7 +297,7 @@ export default function CreatorProfilePage() {
         )}
 
         {works.length > 0 && (
-          <MeProfileSection title={`Works (${works.length})`}>
+          <MeProfileSection title={`${tr('profile.myWorks')} (${works.length})`}>
             <div className="flex gap-[10px] overflow-x-auto pb-1">
               {works.map((w) => (
                 <MeWorkPreviewCard

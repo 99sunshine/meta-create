@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { scoreUserMatch } from '@/lib/matching'
 import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useLocale } from '@/components/providers/LocaleProvider'
+import { getLocalizedTrackLabel } from '@/constants/taxonomy'
+import { useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
 function initialsFromName(name: string | null | undefined) {
   const safe = (name ?? '').trim()
@@ -28,8 +30,10 @@ type CreatorCardProps = {
 
 export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const { user, sessionUser } = useAuth()
-  const { tr } = useLocale()
+  const { locale, tr } = useLocale()
   const [open, setOpen] = useState(false)
+  const localizedTags = useLocalizedTags((creator.tags ?? []) as string[], locale)
+  const localizedSkills = useLocalizedSkills((creator.skills ?? []) as string[], locale)
   const localizedRole =
     creator.role != null
       ? tr(`roles.${String(creator.role).toLowerCase()}`)
@@ -47,12 +51,12 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const percent = typeof serverScore === 'number' ? serverScore : (match?.score ?? 0)
   const subtitleParts = [
     localizedRole,
-    creator.hackathon_track ? `${tr('creatorCard.track')}: ${String(creator.hackathon_track)}` : null,
+    creator.hackathon_track ? `${tr('creatorCard.track')}: ${getLocalizedTrackLabel(String(creator.hackathon_track), locale)}` : null,
     creator.school ? String(creator.school) : null,
     creator.city ? String(creator.city) : null,
   ].filter(Boolean)
 
-  const chips = (creator.skills ?? []).slice(0, 3)
+  const chips = localizedSkills.slice(0, 3)
   const chipStyles = [
     'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
     'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
@@ -118,9 +122,9 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
         )}
 
         {/* Tags */}
-        {(creator.tags ?? []).length > 0 && (
+        {localizedTags.length > 0 && (
           <div className="flex items-center gap-[6px] flex-wrap">
-            {(creator.tags as string[]).slice(0, 3).map((tag) => (
+            {localizedTags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
                 className="shrink-0 rounded-full border border-[rgba(231,119,15,0.35)] bg-[rgba(231,119,15,0.12)] px-2 py-0.5 text-[10px] text-[#f5a623]"
@@ -135,7 +139,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
         <div className="flex items-center gap-2 w-full">
           <p className="flex-1 text-[11px] text-[#e88dba] truncate">
             {creator.tags?.[0]
-              ? tr('creatorCard.arrowTag', { tag: String(creator.tags[0]) })
+              ? tr('creatorCard.arrowTag', { tag: String(localizedTags[0] ?? creator.tags[0]) })
               : tr('creatorCard.goConnect')}
           </p>
           {sessionUser && user?.id !== creator.id && (

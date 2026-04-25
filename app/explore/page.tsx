@@ -25,10 +25,11 @@ import {
 } from '@/components/features/explore/ExploreTopBarIcons'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { useLocalizedSkills } from '@/hooks/useLocalizedText'
 
 export default function ExplorePage() {
   const { user, sessionUser, loading, profileLoading, profileError } = useAuth()
-  const { tr } = useLocale()
+  const { locale, tr } = useLocale()
   const router = useRouter()
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
   const { subscribeEntityCreated } = useCreateFlow()
@@ -62,6 +63,7 @@ export default function ExplorePage() {
   const SKILL_OPTIONS = useMemo(() => SKILLS, [])
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
+  const localizedSkillOptions = useLocalizedSkills(SKILL_OPTIONS, locale)
   const activeFilterCount = useMemo(
     () => skills.length + roles.length + locations.length + (sameTrackOnly ? 1 : 0) + (sort !== 'best' ? 1 : 0),
     [locations.length, roles.length, sameTrackOnly, skills.length, sort],
@@ -550,7 +552,7 @@ export default function ExplorePage() {
                       ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {SKILL_OPTIONS.map((opt) => (
+                      {SKILL_OPTIONS.map((opt, idx) => (
                         <button
                           key={opt}
                           type="button"
@@ -561,7 +563,7 @@ export default function ExplorePage() {
                           }`}
                           onClick={() => setSkills((prev) => prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt])}
                         >
-                          {opt}
+                          {localizedSkillOptions[idx] ?? opt}
                         </button>
                       ))}
                     </div>
@@ -592,7 +594,7 @@ export default function ExplorePage() {
                           }`}
                           onClick={() => setRoles((prev) => prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt])}
                         >
-                          {opt}
+                          {tr(`roles.${opt.toLowerCase()}`)}
                         </button>
                       ))}
                     </div>

@@ -1,5 +1,6 @@
 import { Availability } from '@/types/interfaces/Enums'
 import { SKILLS } from '@/constants/skills'
+import { INTEREST_VALUES } from '@/constants/taxonomy'
 
 /**
  * Enum value constants for forms and displays
@@ -33,10 +34,7 @@ export const SKILLS_POOL = SKILLS
 
 // Interests pool — sourced from MetaCreate_Prototype.jsx
 export const INTERESTS_POOL = [
-  'Space Exploration', 'AI & Ethics', 'Climate Tech', 'Education', 'Healthcare',
-  'Future Cities', 'Digital Art', 'Social Impact', 'Gaming', 'Biotech',
-  'Quantum Computing', 'Neuroscience', 'Philosophy', 'Entrepreneurship', 'Music',
-  'Film & Media', 'Architecture', 'Food Tech', 'Fashion Tech', 'Web3',
+  ...INTEREST_VALUES,
 ] as const
 
 // Suggested creator tags — used as onboarding tag suggestions
