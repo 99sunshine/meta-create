@@ -18,6 +18,7 @@ import { trackEvent } from '@/lib/analytics'
 import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/features/profile/MeProfileRows'
 import { skillColorClass } from '@/constants/skills'
 import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { getLocalizedTrackLabel } from '@/constants/taxonomy'
 import { useLocalizedManifesto, useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
@@ -186,6 +187,7 @@ export default function CreatorProfilePage() {
           </button>
           <p className="text-[15px] font-semibold text-white">{tr('common.creator')}</p>
         </div>
+        <LanguageSwitcher />
       </div>
 
       <div className="px-5 pb-28">

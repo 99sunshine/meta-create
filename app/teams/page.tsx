@@ -7,6 +7,7 @@ import BottomTabs from '@/components/features/layout/BottomTabs'
 import { TeamsRepository } from '@/supabase/repos/teams'
 import type { TeamWithMembers } from '@/types'
 import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 function TeamListCard({ team, onClick }: { team: TeamWithMembers; onClick: () => void }) {
   const members = (team.members ?? []) as Array<{ id?: string; name?: string; avatar_url?: string | null; is_admin?: boolean }>
@@ -115,14 +116,17 @@ export default function TeamsPage() {
             <button type="button" onClick={() => router.back()} className="text-white/50 hover:text-white text-sm">←</button>
             <p className="text-[15px] font-semibold text-white">队伍广场</p>
           </div>
-          <button
-            type="button"
-            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-white"
-            style={{ backgroundColor: '#E7770F' }}
-            onClick={() => router.push('/teams/create')}
-          >
-            + 创建队伍
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <button
+              type="button"
+              className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-white"
+              style={{ backgroundColor: '#E7770F' }}
+              onClick={() => router.push('/teams/create')}
+            >
+              + 创建队伍
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

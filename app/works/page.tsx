@@ -7,6 +7,7 @@ import BottomTabs from '@/components/features/layout/BottomTabs'
 import { WorksRepository } from '@/supabase/repos/works'
 import type { WorkWithCreator } from '@/types'
 import { useLocale } from '@/components/providers/LocaleProvider'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 function WorkCard({ work, onClick }: { work: WorkWithCreator; onClick: () => void }) {
   const thumb = work.images?.[0]
@@ -64,14 +65,17 @@ export default function WorksPage() {
             <button type="button" onClick={() => router.back()} className="text-white/50 hover:text-white text-sm">←</button>
             <p className="text-[15px] font-semibold text-white">我的作品</p>
           </div>
-          <button
-            type="button"
-            className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-white"
-            style={{ backgroundColor: '#E7770F' }}
-            onClick={() => router.push('/works/create')}
-          >
-            + 上传作品
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <button
+              type="button"
+              className="rounded-xl px-3 py-1.5 text-[12px] font-medium text-white"
+              style={{ backgroundColor: '#E7770F' }}
+              onClick={() => router.push('/works/create')}
+            >
+              + 上传作品
+            </button>
+          </div>
         </div>
       </div>
 
