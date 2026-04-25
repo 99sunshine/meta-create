@@ -217,7 +217,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const { locale, tr } = useLocale()
   const { subscribeEntityCreated } = useCreateFlow()
-  const { user, sessionUser, loading, profileLoading, logout } = useAuth()
+  const { user, sessionUser, loading, profileLoading, profileError, logout } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
   const [myTeams, setMyTeams] = useState<TeamWithMembers[]>([])
   const [myWorks, setMyWorks] = useState<WorkWithCreator[]>([])
@@ -264,6 +264,7 @@ export default function ProfilePage() {
   if (!sessionUser) return null
 
   const profile = user
+  const needsOnboarding = profile?.onboarding_complete === false
   const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || tr('common.creator')
   const skills = (profile?.skills ?? []) as string[]
   const tags = (profile?.tags ?? []) as string[]
@@ -275,7 +276,7 @@ export default function ProfilePage() {
         <p className="text-[15px] font-semibold text-white">{tr('profile.me')}</p>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          {!profile?.onboarding_complete && (
+          {needsOnboarding && (
             <button
               type="button"
               onClick={() => router.push('/onboarding')}
@@ -298,6 +299,11 @@ export default function ProfilePage() {
 
       {/* Content */}
       <div className="px-5 pb-28">
+        {profileError && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2">
+            <p className="text-xs text-red-300">{tr('common.profileLoadFailed')}</p>
+          </div>
+        )}
 
         {/* ── Profile Header ── */}
         <div className="flex gap-[14px] items-center">

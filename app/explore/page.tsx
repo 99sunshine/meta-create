@@ -27,7 +27,7 @@ import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
 export default function ExplorePage() {
-  const { user, sessionUser, loading, profileLoading } = useAuth()
+  const { user, sessionUser, loading, profileLoading, profileError } = useAuth()
   const { tr } = useLocale()
   const router = useRouter()
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
@@ -80,6 +80,8 @@ export default function ExplorePage() {
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
   }, [loading, sessionUser, router])
+
+  const needsOnboarding = user?.onboarding_complete === false
 
   // Load swipe profiles（排除当前用户已对其右滑发过请求的 id，存储键按用户隔离）
   const loadSwipeProfiles = useCallback(async () => {
@@ -407,7 +409,13 @@ export default function ExplorePage() {
                   </div>
                 </div>
 
-                {user && !user.onboarding_complete && (
+                {profileError && (
+                  <div className="mt-3 border-y border-red-500/30 bg-red-500/10 px-4 py-2 text-center">
+                    <span className="text-sm text-red-300">{tr('common.profileLoadFailed')}</span>
+                  </div>
+                )}
+
+                {needsOnboarding && (
                   <div className="mt-3 border-y border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center">
                     <span className="text-sm text-amber-300">
                       {tr('onboarding.completeProfileBanner')}{' '}

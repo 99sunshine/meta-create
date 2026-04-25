@@ -240,7 +240,10 @@ export default function OnboardingPage() {
         const j = await res.json().catch(() => ({}))
         throw new Error(j?.error ?? tr('onboarding.saveFailed'))
       }
-      await refreshProfile()
+      const profileRefreshOk = await refreshProfile()
+      if (!profileRefreshOk) {
+        throw new Error(tr('onboarding.refreshAfterSaveFailed'))
+      }
       trackEvent('onboarding_completed', {
         role: formData.role,
         skills_count: formData.skills.length,

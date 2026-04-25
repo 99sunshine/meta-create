@@ -18,6 +18,7 @@ const translations: Record<AppLocale, Dictionary> = {
       send: 'Send',
       languageEn: 'EN',
       languageZh: '中文',
+      profileLoadFailed: 'Failed to load profile. Please refresh and try again.',
     },
     auth: {
       password: 'Password',
@@ -101,6 +102,7 @@ const translations: Record<AppLocale, Dictionary> = {
       manifestoPlaceholderAi: 'AI-suggested above - edit freely',
       manifestoPlaceholder: 'I build things that matter...',
       saveFailed: 'Failed to save profile.',
+      refreshAfterSaveFailed: 'Profile saved, but refresh failed. Please retry or reopen Explore.',
       launch: 'Launch Profile 🚀',
       launching: 'Launching...',
       backArrow: '← Back',
@@ -279,6 +281,7 @@ const translations: Record<AppLocale, Dictionary> = {
       send: '发送',
       languageEn: 'EN',
       languageZh: '中文',
+      profileLoadFailed: '资料加载失败，请刷新后重试。',
     },
     auth: {
       password: '密码',
@@ -362,6 +365,7 @@ const translations: Record<AppLocale, Dictionary> = {
       manifestoPlaceholderAi: '上方为 AI 建议，可自由编辑',
       manifestoPlaceholder: '我想做有意义的作品...',
       saveFailed: '保存资料失败。',
+      refreshAfterSaveFailed: '资料已保存，但同步失败，请重试或重新进入 Explore。',
       launch: '启动我的档案 🚀',
       launching: '提交中...',
       backArrow: '← 返回',
