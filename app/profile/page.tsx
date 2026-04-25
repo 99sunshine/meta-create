@@ -16,6 +16,8 @@ import { MeProfileSection, MeTeamPill, MeWorkPreviewCard } from '@/components/fe
 import { skillColorClass } from '@/constants/skills'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { getLocalizedTrackLabel } from '@/constants/taxonomy'
+import { useLocalizedManifesto, useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
 // ── Skill chip 4-color system (Figma Me page) ────────────────────────────────
 const SKILL_COLORS = {
@@ -83,6 +85,37 @@ function EditProfileModal({
   const [manifesto, setManifesto] = useState(profile.manifesto ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url ?? null)
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarUploading(true)
+    setError('')
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `avatars/${profile.id}/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' })
+      if (upErr) throw new Error(upErr.message)
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      // Save avatar_url to profile immediately
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: publicUrl }),
+      })
+      if (!res.ok) throw new Error(tr('profile.avatarSaveFailed'))
+      setAvatarPreview(publicUrl)
+      await refreshProfile()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr('profile.avatarUploadFailed'))
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -106,6 +139,8 @@ function EditProfileModal({
     }
   }
 
+  const initials = (name || profile.name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center p-4"
@@ -115,6 +150,30 @@ function EditProfileModal({
       <div className="w-full max-w-md rounded-2xl border border-white/10 p-5 mb-2"
         style={{ backgroundColor: '#101837' }}>
         <h2 className="mb-4 text-base font-bold text-white">{tr('profile.editProfile')}</h2>
+
+        {/* Avatar upload */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-white font-semibold text-lg">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="avatar" className="h-full w-full object-cover" />
+              ) : initials}
+            </div>
+            {avatarUploading && (
+              <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="cursor-pointer rounded-xl border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:border-white/40 hover:text-white transition-colors">
+              {avatarUploading ? tr('profile.avatarUploading') : tr('profile.changeAvatar')}
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploading} />
+            </label>
+            <p className="mt-1 text-[10px] text-white/30">{tr('profile.avatarHint')}</p>
+          </div>
+        </div>
+
         <div className="space-y-3">
           {[
             { label: tr('profile.name'), value: name, setter: setName, placeholder: tr('profile.yourName') },
@@ -160,12 +219,19 @@ export default function ProfilePage() {
   const router = useRouter()
   const { locale, tr } = useLocale()
   const { subscribeEntityCreated } = useCreateFlow()
-  const { user, sessionUser, loading, profileLoading, logout } = useAuth()
+  const { user, sessionUser, loading, profileLoading, profileError, logout } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
   const [myTeams, setMyTeams] = useState<TeamWithMembers[]>([])
   const [myWorks, setMyWorks] = useState<WorkWithCreator[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   const encodedProfileReturn = encodeURIComponent('/profile')
+  const profile = user
+  const skills = (profile?.skills ?? []) as string[]
+  const tags = (profile?.tags ?? []) as string[]
+  const localizedSkills = useLocalizedSkills(skills, locale)
+  const localizedTags = useLocalizedTags(tags, locale)
+  const localizedManifesto = useLocalizedManifesto(profile?.manifesto ?? '', locale)
+  const localizedTrack = profile?.hackathon_track ? getLocalizedTrackLabel(profile.hackathon_track, locale) : null
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
@@ -206,10 +272,8 @@ export default function ProfilePage() {
 
   if (!sessionUser) return null
 
-  const profile = user
+  const needsOnboarding = profile?.onboarding_complete === false
   const displayName = profile?.name?.trim() || sessionUser.email?.split('@')[0] || tr('common.creator')
-  const skills = (profile?.skills ?? []) as string[]
-  const tags = (profile?.tags ?? []) as string[]
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#101837' }}>
@@ -218,7 +282,7 @@ export default function ProfilePage() {
         <p className="text-[15px] font-semibold text-white">{tr('profile.me')}</p>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          {!profile?.onboarding_complete && (
+          {needsOnboarding && (
             <button
               type="button"
               onClick={() => router.push('/onboarding')}
@@ -241,6 +305,11 @@ export default function ProfilePage() {
 
       {/* Content */}
       <div className="px-5 pb-28">
+        {profileError && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2">
+            <p className="text-xs text-red-300">{tr('common.profileLoadFailed')}</p>
+          </div>
+        )}
 
         {/* ── Profile Header ── */}
         <div className="flex gap-[14px] items-center">
@@ -260,32 +329,32 @@ export default function ProfilePage() {
               )}
               {profile?.hackathon_track && (
                 <span className="rounded-[10px] bg-white/10 px-2 py-[3px] text-[11px] text-[#e6e6e6]">
-                  {tr('profile.track')}: {profile.hackathon_track}
+                  {tr('profile.track')}: {localizedTrack}
                 </span>
               )}
             </div>
-            {profile?.manifesto && (
+            {localizedManifesto && (
               <p className="text-[12px] italic text-[#e6e6e6] leading-snug line-clamp-2">
-                &ldquo;{profile.manifesto}&rdquo;
+                &ldquo;{localizedManifesto}&rdquo;
               </p>
             )}
           </div>
         </div>
 
         {/* ── Building next (manifesto vision) ── */}
-        {profile?.manifesto && (
+        {localizedManifesto && (
           <MeProfileSection title={tr('profile.buildingNext')}>
             <div className="rounded-[12px] border-[0.5px] border-white/[0.06] bg-white/[0.04] px-[14px] py-[12px]">
-              <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{profile.manifesto}</p>
+              <p className="text-[13px] text-[#d1d1d1] leading-relaxed">{localizedManifesto}</p>
             </div>
           </MeProfileSection>
         )}
 
         {/* ── Looking for (tags in pink) ── */}
-        {tags.length > 0 && (
+        {localizedTags.length > 0 && (
           <MeProfileSection title={tr('profile.lookingFor')}>
             <div className="flex flex-wrap gap-[6px]">
-              {tags.map((t) => (
+              {localizedTags.map((t) => (
                 <span
                   key={t}
                   className="rounded-[12px] border border-[rgba(209,27,115,0.5)] bg-[rgba(209,27,115,0.2)] px-[10px] py-[5px] text-[12px] text-[#e88dba]"
@@ -298,13 +367,13 @@ export default function ProfilePage() {
         )}
 
         {/* ── Skills (4-color system) ── */}
-        {skills.length > 0 && (
+        {localizedSkills.length > 0 && (
           <MeProfileSection title={tr('profile.skills')}>
             <div className="flex flex-wrap gap-[6px]">
-              {skills.map((s) => (
+              {localizedSkills.map((s, idx) => (
                 <span
-                  key={s}
-                  className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(s)}`}
+                  key={`${skills[idx] ?? s}-${idx}`}
+                  className={`rounded-[12px] border px-[10px] py-[5px] text-[12px] ${skillColor(skills[idx] ?? s)}`}
                 >
                   {s}
                 </span>
@@ -366,7 +435,7 @@ export default function ProfilePage() {
         <MeProfileSection
           title={tr('profile.myWorks')}
           action={
-            <button type="button" className="text-[12px] text-white/40">
+            <button type="button" className="text-[12px] text-white/40" onClick={() => router.push('/works')}>
               {tr('profile.viewAll')}
             </button>
           }

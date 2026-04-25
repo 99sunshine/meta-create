@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { scoreUserMatch } from '@/lib/matching'
 import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useLocale } from '@/components/providers/LocaleProvider'
+import { getLocalizedTrackLabel } from '@/constants/taxonomy'
+import { useLocalizedSkills, useLocalizedTags } from '@/hooks/useLocalizedText'
 
 function initialsFromName(name: string | null | undefined) {
   const safe = (name ?? '').trim()
@@ -28,8 +30,10 @@ type CreatorCardProps = {
 
 export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   const { user, sessionUser } = useAuth()
-  const { tr } = useLocale()
+  const { locale, tr } = useLocale()
   const [open, setOpen] = useState(false)
+  const localizedTags = useLocalizedTags((creator.tags ?? []) as string[], locale)
+  const localizedSkills = useLocalizedSkills((creator.skills ?? []) as string[], locale)
   const localizedRole =
     creator.role != null
       ? tr(`roles.${String(creator.role).toLowerCase()}`)
@@ -45,16 +49,14 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   // Prefer it so display matches server ordering.
   const serverScore = (creator as unknown as { score?: unknown }).score
   const percent = typeof serverScore === 'number' ? serverScore : (match?.score ?? 0)
-  const visionScore = (creator as unknown as { vision_score?: unknown }).vision_score
-  const visionPts = typeof visionScore === 'number' ? visionScore : null
   const subtitleParts = [
     localizedRole,
-    creator.hackathon_track ? `${tr('creatorCard.track')}: ${String(creator.hackathon_track)}` : null,
+    creator.hackathon_track ? `${tr('creatorCard.track')}: ${getLocalizedTrackLabel(String(creator.hackathon_track), locale)}` : null,
     creator.school ? String(creator.school) : null,
     creator.city ? String(creator.city) : null,
   ].filter(Boolean)
 
-  const chips = (creator.skills ?? []).slice(0, 3)
+  const chips = localizedSkills.slice(0, 3)
   const chipStyles = [
     'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
     'bg-[rgba(115,27,209,0.2)] border-[rgba(115,27,209,0.5)] text-[#b98de8]',
@@ -72,7 +74,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
       >
         {/* Header row */}
         <div className="flex items-center gap-[10px] w-full">
-          <Link href={`/creator/${creator.id}`} className="shrink-0">
+          <Link href={`/creator/${creator.id}?returnTo=/explore`} className="shrink-0">
             {creator.avatar_url ? (
               <img
                 src={creator.avatar_url}
@@ -86,7 +88,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
             )}
           </Link>
 
-          <Link href={`/creator/${creator.id}`} className="flex-1 min-w-0">
+          <Link href={`/creator/${creator.id}?returnTo=/explore`} className="flex-1 min-w-0">
             <p className="text-[15px] font-semibold text-white truncate">
               {creator.name ?? tr('common.creator')}
             </p>
@@ -119,14 +121,26 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
           </div>
         )}
 
+        {/* Tags */}
+        {localizedTags.length > 0 && (
+          <div className="flex items-center gap-[6px] flex-wrap">
+            {localizedTags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="shrink-0 rounded-full border border-[rgba(231,119,15,0.35)] bg-[rgba(231,119,15,0.12)] px-2 py-0.5 text-[10px] text-[#f5a623]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Bottom row */}
         <div className="flex items-center gap-2 w-full">
           <p className="flex-1 text-[11px] text-[#e88dba] truncate">
-            {visionPts !== null
-              ? tr('creatorCard.vision', { score: Math.max(0, Math.min(35, Math.round(visionPts))) })
-              : creator.tags?.[0]
-                ? tr('creatorCard.arrowTag', { tag: String(creator.tags[0]) })
-                : tr('creatorCard.goConnect')}
+            {creator.tags?.[0]
+              ? tr('creatorCard.arrowTag', { tag: String(localizedTags[0] ?? creator.tags[0]) })
+              : tr('creatorCard.goConnect')}
           </p>
           {sessionUser && user?.id !== creator.id && (
             connected ? (

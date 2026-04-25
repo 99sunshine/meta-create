@@ -26,6 +26,9 @@ export default function LoginPage() {
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const supabase = createClient()
 
+  // Clear error when auth method switches
+  useEffect(() => { setError('') }, [method])
+
   // Redirect as soon as we have a session — /main handles onboarding redirect.
   useEffect(() => {
     if (!loading && sessionUser) {

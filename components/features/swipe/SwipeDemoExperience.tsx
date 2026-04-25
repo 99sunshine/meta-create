@@ -11,6 +11,8 @@ import {
 } from '@/lib/swipe-demo-xp'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { localizeManifestoText, localizeTag } from '@/lib/localized-content'
+import { useLocalizedSkills } from '@/hooks/useLocalizedText'
 import {
   IconListBullet,
   IconSatelliteDish,
@@ -143,7 +145,7 @@ export function SwipeDemoExperience({
   onDemoXpChange: (next: { xp: number; level: number }) => void
   inboxBadgeTotal?: number
 }) {
-  const { tr } = useLocale()
+  const { locale, tr } = useLocale()
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const cardStackRef = useRef<HTMLDivElement>(null)
@@ -161,6 +163,7 @@ export function SwipeDemoExperience({
   const actionButtonsRef = useRef<HTMLDivElement>(null)
   const onEmptyRef = useRef(onEmpty)
   const onReloadRef = useRef(onReload)
+  const onSwipeRef = useRef(onSwipe)
   const deckEmptyNotifiedRef = useRef(false)
 
   useEffect(() => {
@@ -170,6 +173,10 @@ export function SwipeDemoExperience({
   useEffect(() => {
     onReloadRef.current = onReload
   }, [onReload])
+
+  useEffect(() => {
+    onSwipeRef.current = onSwipe
+  }, [onSwipe])
 
   useEffect(() => {
     deckEmptyNotifiedRef.current = false
@@ -198,6 +205,19 @@ export function SwipeDemoExperience({
     cardIndexRef.current = cardIndex
   }, [cardIndex])
 
+  const uniqueSkills = useMemo(
+    () => Array.from(new Set(profiles.flatMap((p) => ((p.skills ?? []) as string[])))),
+    [profiles],
+  )
+  const localizedUniqueSkills = useLocalizedSkills(uniqueSkills, locale)
+  const localizedSkillMap = useMemo(() => {
+    const map = new Map<string, string>()
+    uniqueSkills.forEach((skill, idx) => {
+      map.set(skill, localizedUniqueSkills[idx] ?? skill)
+    })
+    return map
+  }, [localizedUniqueSkills, uniqueSkills])
+
   const cards = useMemo(() => {
     const list = profiles.slice(0, 6)
     return list.map((p, idx) => {
@@ -206,8 +226,10 @@ export function SwipeDemoExperience({
       const roleKey = String(role).toLowerCase()
       const roleText = role ? tr(`roles.${roleKey}`) : ''
       const { color, variant } = roleToVisor(role)
-      const skills = ((p.skills ?? []) as string[]).slice(0, 3).map((s) => ({ text: s, cat: skillToCat(s) }))
-      const lookingFor = ((p.tags ?? []) as string[]).slice(0, 2)
+      const skills = ((p.skills ?? []) as string[])
+        .slice(0, 3)
+        .map((s) => ({ text: localizedSkillMap.get(s) ?? s, cat: skillToCat(s) }))
+      const lookingFor = ((p.tags ?? []) as string[]).slice(0, 2).map((tag) => localizeTag(tag, locale))
       const bgStyle =
         idx % 2 === 0
           ? 'radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.25) 0%, transparent 60%), radial-gradient(ellipse at 75% 75%, rgba(15,134,136,0.15) 0%, transparent 50%), #1b2440'
@@ -219,14 +241,18 @@ export function SwipeDemoExperience({
         school: p.school ? `${p.school}` : tr('swipe.noValue'),
         location: p.city ?? tr('swipe.noValue'),
         match,
-        building: p.manifesto ?? tr('swipe.noValue'),
+        building: p.manifesto ? localizeManifestoText(p.manifesto, locale) : tr('swipe.noValue'),
         skills,
         lookingFor: lookingFor.length ? lookingFor : [tr('roles.collaborator')],
         avatar: astronautSVG(color, variant),
         bgStyle,
       }
     })
-  }, [profiles, viewer, tr])
+  }, [locale, localizedSkillMap, profiles, viewer, tr])
+
+  // Keep a ref so event listeners bound once (useEffect([])) always read latest cards/onSwipe
+  const cardsRef = useRef(cards)
+  useEffect(() => { cardsRef.current = cards }, [cards])
 
   const renderXPBar = useCallback(
     (next: { xp: number; level: number }) => {
@@ -923,8 +949,8 @@ export function SwipeDemoExperience({
       if (isMatch) setTimeout(() => addXP(30), 200)
 
       const idx = Number(card.dataset.index ?? '0')
-      const data = cards[idx]
-      if (data?.profile) onSwipe(data.profile, direction)
+      const data = cardsRef.current[idx]
+      if (data?.profile) onSwipeRef.current(data.profile, direction)
 
       let advanced = false
       function advance() {
@@ -936,7 +962,7 @@ export function SwipeDemoExperience({
       card.addEventListener('transitionend', advance, { once: true })
       setTimeout(advance, 500)
     },
-    [addXP, cards, onSwipe, shiftPlanets],
+    [addXP, shiftPlanets],
   )
 
   const onPointerDown = useCallback((e: PointerEvent) => {

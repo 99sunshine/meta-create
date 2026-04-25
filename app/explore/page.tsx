@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, Suspense, useCallback, useRef, type UIEvent } from 'react'
+import { useEffect, useMemo, useState, Suspense, useCallback, useRef, type CSSProperties, type UIEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,7 +12,7 @@ import type { SwipeDirection } from '@/components/features/swipe/SwipeStack'
 import { SwipeDemoExperience } from '@/components/features/swipe/SwipeDemoExperience'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { CollabRepository } from '@/supabase/repos/collab'
-import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay } from '@/lib/swipe-demo-xp'
+import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay, readSwipeXp, writeSwipeXp } from '@/lib/swipe-demo-xp'
 import { appendSwipeSkippedId, readSwipeSkippedIds } from '@/lib/swipe-skipped-ids'
 import type { UserProfile } from '@/types'
 import { useMessagesInbox } from '@/components/providers/MessagesInboxProvider'
@@ -25,10 +25,11 @@ import {
 } from '@/components/features/explore/ExploreTopBarIcons'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { useLocalizedSkills } from '@/hooks/useLocalizedText'
 
 export default function ExplorePage() {
-  const { user, sessionUser, loading, profileLoading } = useAuth()
-  const { tr } = useLocale()
+  const { user, sessionUser, loading, profileLoading, profileError } = useAuth()
+  const { locale, tr } = useLocale()
   const router = useRouter()
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
   const { subscribeEntityCreated } = useCreateFlow()
@@ -40,12 +41,18 @@ export default function ExplorePage() {
   const swipeNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'best' | 'new'>('best')
-  const [skill, setSkill] = useState('')
-  const [role, setRole] = useState('')
-  const [location, setLocation] = useState('')
+  const [skills, setSkills] = useState<string[]>([])
+  const [roles, setRoles] = useState<string[]>([])
+  const [locations, setLocations] = useState<string[]>([])
   const [sameTrackOnly, setSameTrackOnly] = useState(false)
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [demoXp, setDemoXp] = useState(SWIPE_DEMO_INITIAL_XP)
+
+  // Load persisted XP once sessionUser is available
+  useEffect(() => {
+    if (!sessionUser) return
+    setDemoXp(readSwipeXp(sessionUser.id))
+  }, [sessionUser?.id])
   const listScrollRef = useRef<HTMLElement | null>(null)
   const collapsibleRef = useRef<HTMLDivElement | null>(null)
   const lastScrollTopRef = useRef(0)
@@ -56,9 +63,10 @@ export default function ExplorePage() {
   const SKILL_OPTIONS = useMemo(() => SKILLS, [])
   const ROLE_OPTIONS = useMemo(() => ['Visionary', 'Builder', 'Strategist', 'Connector'], [])
   const LOCATION_OPTIONS = useMemo(() => ['NYC', 'SF', 'London', 'Beijing', 'Shanghai', 'Shenzhen'], [])
+  const localizedSkillOptions = useLocalizedSkills(SKILL_OPTIONS, locale)
   const activeFilterCount = useMemo(
-    () => [skill, role, location].filter(Boolean).length + (sameTrackOnly ? 1 : 0) + (sort !== 'best' ? 1 : 0),
-    [location, role, sameTrackOnly, skill, sort],
+    () => skills.length + roles.length + locations.length + (sameTrackOnly ? 1 : 0) + (sort !== 'best' ? 1 : 0),
+    [locations.length, roles.length, sameTrackOnly, skills.length, sort],
   )
 
   const xpBar = useMemo(
@@ -70,10 +78,20 @@ export default function ExplorePage() {
       }),
     [demoXp.xp, tr],
   )
+  const sharedTopBarVars = useMemo(
+    () =>
+      ({
+        '--explore-topbar-height': '60px',
+        '--explore-topbar-padding': '14px 16px',
+      }) as CSSProperties,
+    [],
+  )
 
   useEffect(() => {
     if (!loading && !sessionUser) router.push('/login')
   }, [loading, sessionUser, router])
+
+  const needsOnboarding = user?.onboarding_complete === false
 
   // Load swipe profiles（排除当前用户已对其右滑发过请求的 id，存储键按用户隔离）
   const loadSwipeProfiles = useCallback(async () => {
@@ -254,13 +272,22 @@ export default function ExplorePage() {
   return (
     <div
       className="relative h-[100dvh] overflow-hidden"
-      style={{ backgroundColor: '#101837' }}
+      style={{
+        ...sharedTopBarVars,
+        backgroundColor: '#101837',
+      }}
     >
       {!swipeMode ? (
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
           <div className="shrink-0">
             {/* Top Bar (Figma: Search + View Toggle) */}
-            <div className="z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
+            <div
+              className="z-40 bg-[#101837]"
+              style={{
+                height: 'var(--explore-topbar-height)',
+                padding: 'var(--explore-topbar-padding)',
+              }}
+            >
               <div className="flex items-center gap-[10px]">
                 <Link
                   href="/messages"
@@ -401,7 +428,13 @@ export default function ExplorePage() {
                   </div>
                 </div>
 
-                {user && !user.onboarding_complete && (
+                {profileError && (
+                  <div className="mt-3 border-y border-red-500/30 bg-red-500/10 px-4 py-2 text-center">
+                    <span className="text-sm text-red-300">{tr('common.profileLoadFailed')}</span>
+                  </div>
+                )}
+
+                {needsOnboarding && (
                   <div className="mt-3 border-y border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center">
                     <span className="text-sm text-amber-300">
                       {tr('onboarding.completeProfileBanner')}{' '}
@@ -438,9 +471,9 @@ export default function ExplorePage() {
               <CreatorsFeed
                 key={feedRefreshKey}
                 query={query}
-                role={role}
-                skill={skill}
-                location={location}
+                roles={roles}
+                skills={skills}
+                locations={locations}
                 sort={sort}
                 sameTrackOnly={sameTrackOnly}
               />
@@ -462,9 +495,9 @@ export default function ExplorePage() {
                     type="button"
                     className="text-xs text-white/50 underline"
                     onClick={() => {
-                      setSkill('')
-                      setRole('')
-                      setLocation('')
+                      setSkills([])
+                      setRoles([])
+                      setLocations([])
                       setSameTrackOnly(false)
                       setSort('best')
                     }}
@@ -525,29 +558,29 @@ export default function ExplorePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-white/50">{tr('explore.skill')}</p>
-                      {skill ? (
+                      {skills.length > 0 ? (
                         <button
                           type="button"
                           className="text-[11px] text-white/50 underline"
-                          onClick={() => setSkill('')}
+                          onClick={() => setSkills([])}
                         >
                           {tr('common.clear')}
                         </button>
                       ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {SKILL_OPTIONS.map((opt) => (
+                      {SKILL_OPTIONS.map((opt, idx) => (
                         <button
                           key={opt}
                           type="button"
                           className={`rounded-xl px-3 py-2 text-xs ${
-                            skill === opt
+                            skills.includes(opt)
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'
                           }`}
-                          onClick={() => setSkill(skill === opt ? '' : opt)}
+                          onClick={() => setSkills((prev) => prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt])}
                         >
-                          {opt}
+                          {localizedSkillOptions[idx] ?? opt}
                         </button>
                       ))}
                     </div>
@@ -556,11 +589,11 @@ export default function ExplorePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-white/50">{tr('explore.role')}</p>
-                      {role ? (
+                      {roles.length > 0 ? (
                         <button
                           type="button"
                           className="text-[11px] text-white/50 underline"
-                          onClick={() => setRole('')}
+                          onClick={() => setRoles([])}
                         >
                           {tr('common.clear')}
                         </button>
@@ -572,13 +605,13 @@ export default function ExplorePage() {
                           key={opt}
                           type="button"
                           className={`rounded-xl px-3 py-2 text-xs ${
-                            role === opt
+                            roles.includes(opt)
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'
                           }`}
-                          onClick={() => setRole(role === opt ? '' : opt)}
+                          onClick={() => setRoles((prev) => prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt])}
                         >
-                          {opt}
+                          {tr(`roles.${opt.toLowerCase()}`)}
                         </button>
                       ))}
                     </div>
@@ -587,11 +620,11 @@ export default function ExplorePage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-white/50">{tr('explore.location')}</p>
-                      {location ? (
+                      {locations.length > 0 ? (
                         <button
                           type="button"
                           className="text-[11px] text-white/50 underline"
-                          onClick={() => setLocation('')}
+                          onClick={() => setLocations([])}
                         >
                           {tr('common.clear')}
                         </button>
@@ -603,11 +636,11 @@ export default function ExplorePage() {
                           key={opt}
                           type="button"
                           className={`rounded-xl px-3 py-2 text-xs ${
-                            location === opt
+                            locations.includes(opt)
                               ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 text-[#e46d2e]'
                               : 'bg-white/10 text-white/80 hover:bg-white/15'
                           }`}
-                          onClick={() => setLocation(location === opt ? '' : opt)}
+                          onClick={() => setLocations((prev) => prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt])}
                         >
                           {opt}
                         </button>
@@ -630,7 +663,7 @@ export default function ExplorePage() {
           )}
         </div>
       ) : (
-        <div className="relative z-10 h-[calc(100dvh-84px)] overflow-hidden">
+        <div className="relative z-10 h-[100dvh] overflow-hidden">
           <SwipeDemoExperience
             viewer={user as unknown as UserProfile | null}
             profiles={swipeProfiles}
@@ -642,7 +675,10 @@ export default function ExplorePage() {
             onEmpty={handleSwipeEmpty}
             onReload={loadSwipeProfiles}
             demoXp={demoXp}
-            onDemoXpChange={setDemoXp}
+            onDemoXpChange={(next) => {
+              setDemoXp(next)
+              if (sessionUser) writeSwipeXp(sessionUser.id, next)
+            }}
           />
           {swipeNotice ? (
             <div

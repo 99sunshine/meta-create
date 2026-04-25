@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { Button } from '@/components/ui/button'
@@ -9,38 +9,34 @@ import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { ROLES } from '@/constants/roles'
-import { AVAILABILITIES, INTERESTS_POOL } from '@/constants/enums'
+import { AVAILABILITIES } from '@/constants/enums'
 import { SKILLS } from '@/constants/skills'
+import { HACKATHON_TRACK_OPTIONS, INTEREST_OPTIONS } from '@/constants/taxonomy'
 import type { Role } from '@/types/interfaces/Role'
 import type { Availability } from '@/types/interfaces/Enums'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/supabase/utils/client'
 import {
   MetaFire,
   OnboardingProgress,
-  ResumeUpload,
   AuthBackground,
 } from '@/components/features/onboarding'
+
+const ResumeUpload = dynamic(
+  () => import('@/components/features/onboarding').then((m) => ({ default: m.ResumeUpload })),
+  { ssr: false, loading: () => <div className="h-[72px] rounded-xl bg-white/[0.06] animate-pulse" /> },
+)
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
-
-const HACKATHON_TRACKS = [
-  'AI & Machine Learning',
-  'Web3 & DeFi',
-  'Climate Tech',
-  'HealthTech',
-  'EdTech',
-  'Gaming & Metaverse',
-  'Creator Economy',
-  'Social Impact',
-  'Open Track',
-]
+import { useLocalizedSkills } from '@/hooks/useLocalizedText'
 
 type Step = 1 | 2
 
 export default function OnboardingPage() {
   const { sessionUser, loading, refreshProfile } = useAuth()
-  const { tr } = useLocale()
+  const { locale, tr } = useLocale()
   const router = useRouter()
+  const localizedSkills = useLocalizedSkills(SKILLS, locale)
 
   const [step, setStep] = useState<Step>(1)
   const [formData, setFormData] = useState({
@@ -65,6 +61,9 @@ export default function OnboardingPage() {
   const [resumePrefillHint, setResumePrefillHint] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  type ResumeExtracted = { name?: string | null; city?: string | null; skills?: string[]; interests?: string[]; school?: string | null; summary?: string | null }
+  const [pendingResume, setPendingResume] = useState<ResumeExtracted | null>(null)
+  const pendingResumeRef = useRef<ResumeExtracted | null>(null)
 
   useEffect(() => {
     if (!loading && !sessionUser) {
@@ -107,6 +106,7 @@ export default function OnboardingPage() {
           role: formData.role,
           skills: formData.skills,
           interests: formData.interests,
+          locale,
         }),
         signal: AbortSignal.timeout(15000),
       })
@@ -126,6 +126,24 @@ export default function OnboardingPage() {
     } finally {
       setAiLoading(false)
     }
+  }
+
+  const applyResumeData = (r: ResumeExtracted) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: r.name || prev.name,
+      city: r.city || prev.city,
+      school: r.school || prev.school,
+      skills: r.skills?.length ? r.skills : prev.skills,
+      interests: r.interests?.length ? r.interests : prev.interests,
+      manifesto: r.summary || prev.manifesto,
+    }))
+    setPendingResume(null)
+    pendingResumeRef.current = null
+    const inferred: string[] = []
+    if (r.name) inferred.push(tr('onboarding.inferredName') ?? '姓名')
+    if (r.city) inferred.push(tr('onboarding.inferredCity') ?? '城市')
+    if (inferred.length > 0) setResumePrefillHint(tr('onboarding.inferred', { fields: inferred.join('、') }))
   }
 
   const handleResumeSelect = async (file: File | null) => {
@@ -173,22 +191,17 @@ export default function OnboardingPage() {
         setResumePrefillHint(tr('onboarding.parseEmpty'))
         return
       }
-      const inferred: string[] = []
-      setFormData((prev) => ({
-        ...prev,
-        // only prefill if user hasn't typed yet
-        name: prev.name || (r.name ?? ''),
-        city: prev.city || (r.city ?? ''),
-        school: prev.school || (r.school ?? ''),
-        skills: prev.skills.length ? prev.skills : (r.skills ?? []),
-        interests: prev.interests.length ? prev.interests : (r.interests ?? []),
-        manifesto: prev.manifesto || (r.summary ?? ''),
-      }))
-      if (r.name) inferred.push(tr('onboarding.inferredName'))
-      if (r.city) inferred.push(tr('onboarding.inferredCity'))
-      if (inferred.length > 0) {
-        setResumePrefillHint(tr('onboarding.inferred', { fields: inferred.join('、') }))
+      // Check if any existing fields would be overwritten
+      const hasExisting = !!(formData.name || formData.city || formData.school || formData.skills.length || formData.interests.length || formData.manifesto)
+      if (hasExisting) {
+        // Show confirmation dialog instead of silently prefilling
+        pendingResumeRef.current = r
+        setPendingResume(r)
+        setResumePrefillHint(tr('onboarding.resumeExtracted'))
+        return
       }
+      // No existing data — silently prefill
+      applyResumeData(r)
     } finally {
       setResumeLoading(false)
     }
@@ -219,13 +232,17 @@ export default function OnboardingPage() {
         const j = await res.json().catch(() => ({}))
         throw new Error(j?.error ?? tr('onboarding.saveFailed'))
       }
-      await refreshProfile()
+      const profileRefreshOk = await refreshProfile()
+      if (!profileRefreshOk) {
+        throw new Error(tr('onboarding.refreshAfterSaveFailed'))
+      }
       trackEvent('onboarding_completed', {
         role: formData.role,
         skills_count: formData.skills.length,
         ai_tags: aiGenerated,
       })
       router.push('/explore')
+      router.refresh()
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : tr('onboarding.saveFailed'))
     } finally {
@@ -263,6 +280,38 @@ export default function OnboardingPage() {
               {resumePrefillHint && !resumeLoading && (
                 <div className="-mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
                   <p className="text-[12px] text-amber-200">{resumePrefillHint}</p>
+                </div>
+              )}
+
+              {/* Resume overwrite confirmation dialog */}
+              {pendingResume && (
+                <div
+                  className="fixed inset-0 z-50 flex items-end justify-center p-4"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+                >
+                  <div className="w-full max-w-md rounded-3xl border border-white/10 p-5 mb-2 space-y-4" style={{ backgroundColor: '#101837' }}>
+                    <p className="text-base font-semibold text-white">{tr('onboarding.overwriteResumeTitle')}</p>
+                    <p className="text-[13px] text-white/60 leading-relaxed">
+                      {tr('onboarding.overwriteResumeDesc')}
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        className="flex-1 rounded-xl border border-white/15 bg-white/5 py-3 text-sm text-white/70"
+                        onClick={() => { setPendingResume(null); pendingResumeRef.current = null; setResumePrefillHint(null) }}
+                      >
+                        {tr('onboarding.keepCurrent')}
+                      </button>
+                      <button
+                        type="button"
+                        className="flex-1 rounded-xl py-3 text-sm font-semibold text-white"
+                        style={{ backgroundColor: '#E7770F' }}
+                        onClick={() => applyResumeData(pendingResume)}
+                      >
+                        {tr('onboarding.overwriteWithResume')}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -309,22 +358,28 @@ export default function OnboardingPage() {
                     {tr('onboarding.track')} <span className="text-white/40 font-normal text-xs">{tr('onboarding.optional')}</span>
                   </Label>
                   <div className="flex flex-wrap gap-2">
-                    {HACKATHON_TRACKS.map((track) => (
-                      <button
-                        key={track}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, hackathon_track: formData.hackathon_track === track ? '' : track })
-                        }
-                        className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
-                          formData.hackathon_track === track
-                            ? 'bg-[#E7770F] text-white'
-                            : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-[#E7770F]/50'
-                        }`}
-                      >
-                        {track}
-                      </button>
-                    ))}
+                    {HACKATHON_TRACK_OPTIONS.map((track) => {
+                      const label = locale === 'zh' ? track.zh : track.en
+                      return (
+                        <button
+                          key={track.value}
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              hackathon_track: formData.hackathon_track === track.value ? '' : track.value,
+                            })
+                          }
+                          className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
+                            formData.hackathon_track === track.value
+                              ? 'bg-[#E7770F] text-white'
+                              : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-[#E7770F]/50'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -373,8 +428,8 @@ export default function OnboardingPage() {
                         }`}
                       >
                         <Icon className={`w-7 h-7 mb-2 ${formData.role === role.name ? 'text-[#E7770F]' : 'text-slate-400'}`} />
-                        <div className="font-semibold text-white text-sm">{role.name}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{role.description}</div>
+                        <div className="font-semibold text-white text-sm">{tr(`roles.${String(role.name).toLowerCase()}`)}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{tr(`onboarding.role${role.name}Desc`)}</div>
                       </button>
                     )
                   })}
@@ -387,7 +442,7 @@ export default function OnboardingPage() {
                   {tr('onboarding.skills')} <span className="text-slate-400 font-normal text-sm">{tr('onboarding.selectAtLeast3')}</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {SKILLS.map((skill) => (
+                  {SKILLS.map((skill, idx) => (
                     <button
                       key={skill}
                       type="button"
@@ -398,7 +453,7 @@ export default function OnboardingPage() {
                           : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-[#E7770F]/50'
                       }`}
                     >
-                      {skill}
+                      {localizedSkills[idx] ?? skill}
                     </button>
                   ))}
                 </div>
@@ -413,20 +468,23 @@ export default function OnboardingPage() {
                   {tr('onboarding.interests')} <span className="text-slate-400 font-normal text-sm">{tr('onboarding.optional')}</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {INTERESTS_POOL.map((interest) => (
-                    <button
-                      key={interest}
-                      type="button"
-                      onClick={() => toggleChip('interests', interest)}
-                      className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
-                        formData.interests.includes(interest)
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-indigo-400/50'
-                      }`}
-                    >
-                      {interest}
-                    </button>
-                  ))}
+                  {INTEREST_OPTIONS.map((interest) => {
+                    const label = locale === 'zh' ? interest.zh : interest.en
+                    return (
+                      <button
+                        key={interest.value}
+                        type="button"
+                        onClick={() => toggleChip('interests', interest.value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
+                          formData.interests.includes(interest.value)
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white/10 border border-[rgba(103,121,157,0.5)] text-slate-300 hover:border-indigo-400/50'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -522,10 +580,10 @@ export default function OnboardingPage() {
                   onClick={handleComplete}
                   disabled={!step2Valid}
                   loading={saving}
-                  loadingText="提交中..."
+                  loadingText={tr('onboarding.loadingText')}
                   className="flex-1 bg-[#E7770F] hover:bg-[#d66d0d] text-white font-semibold disabled:opacity-50"
                 >
-                  完成 onboarding
+                  {tr('onboarding.launch')}
                 </Button>
               </div>
             </div>

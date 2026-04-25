@@ -15,9 +15,9 @@ const collabRepo = new CollabRepository()
 type CreatorsFeedProps = {
   limit?: number
   query?: string
-  role?: string
-  skill?: string
-  location?: string
+  roles?: string[]
+  skills?: string[]
+  locations?: string[]
   sort?: 'best' | 'new'
   sameTrackOnly?: boolean
 }
@@ -30,9 +30,9 @@ function includesInsensitive(haystack: string | null | undefined, needle: string
 export function CreatorsFeed({
   limit = 60,
   query = '',
-  role = '',
-  skill = '',
-  location = '',
+  roles = [],
+  skills = [],
+  locations = [],
   sort = 'best',
   sameTrackOnly = false,
 }: CreatorsFeedProps) {
@@ -92,8 +92,8 @@ export function CreatorsFeed({
   const visible = useMemo(
     () => {
       const q = query.trim().toLowerCase()
-      const s = skill.trim().toLowerCase()
-      const loc = location.trim().toLowerCase()
+      const normalizedSkills = skills.map((s) => s.trim().toLowerCase())
+      const normalizedLocations = locations.map((l) => l.trim().toLowerCase())
 
       let rows = creators.filter((c) => c.id !== user?.id)
 
@@ -102,12 +102,16 @@ export function CreatorsFeed({
         rows = rows.filter((c) => String(c.hackathon_track ?? '').toLowerCase() === me)
       }
 
-      if (role) rows = rows.filter((c) => String(c.role ?? '') === role)
-      if (s) rows = rows.filter((c) => (c.skills ?? []).some((x) => String(x).toLowerCase() === s))
-      if (loc) {
+      if (roles.length > 0) rows = rows.filter((c) => roles.includes(String(c.role ?? '')))
+      if (normalizedSkills.length > 0) {
+        rows = rows.filter((c) =>
+          (c.skills ?? []).some((x) => normalizedSkills.some((s) => String(x).toLowerCase().includes(s)))
+        )
+      }
+      if (normalizedLocations.length > 0) {
         rows = rows.filter((c) => {
           const city = String((c as unknown as Record<string, unknown>).city ?? c.city ?? '')
-          return includesInsensitive(city, loc)
+          return normalizedLocations.some((loc) => includesInsensitive(city, loc))
         })
       }
 
@@ -154,7 +158,7 @@ export function CreatorsFeed({
       )
       return scored.map((x) => x.c)
     },
-    [creators, user?.id, user, query, role, skill, location, sort, sameTrackOnly],
+    [creators, user?.id, user, query, roles, skills, locations, sort, sameTrackOnly],
   )
 
   if (loading) {

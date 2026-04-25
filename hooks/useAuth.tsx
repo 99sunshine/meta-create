@@ -25,8 +25,10 @@ interface AuthContextType {
   // profileLoading: true while the UserProfile row is being fetched from Supabase.
   // Pages that need profile data (e.g. /main) should also check this.
   profileLoading: boolean
+  // profileError: non-null when the latest profile fetch failed.
+  profileError: string | null
   logout: () => Promise<void>
-  refreshProfile: () => Promise<void>
+  refreshProfile: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -34,8 +36,9 @@ const AuthContext = createContext<AuthContextType>({
   sessionUser: null,
   loading: true,
   profileLoading: false,
+  profileError: null,
   logout: async () => {},
-  refreshProfile: async () => {},
+  refreshProfile: async () => false,
 })
 
 export const useAuth = () => useContext(AuthContext)
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   // profileLoading: covers the async Supabase DB fetch for the UserProfile row.
   const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
   // Stable ref avoids the lint warning about missing useEffect dependency
   // while ensuring the client is created only once per provider mount.
   const supabaseRef = useRef(createClient())
@@ -55,13 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true)
+    setProfileError(null)
     try {
       const profileRepo = new ProfileRepository()
       const profile = await profileRepo.getProfile(userId)
       setUser(profile)
+      return true
     } catch (err) {
       console.error('Profile fetch failed:', err)
       setUser(null)
+      setProfileError(err instanceof Error ? err.message : 'PROFILE_FETCH_FAILED')
+      return false
     } finally {
       setProfileLoading(false)
     }
@@ -73,7 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { session },
     } = await supabase.auth.getSession()
     const uid = session?.user?.id
-    if (uid) await fetchProfile(uid)
+    if (!uid) {
+      setUser(null)
+      setProfileError('NO_ACTIVE_SESSION')
+      return false
+    }
+    return fetchProfile(uid)
   }, [supabase, fetchProfile])
 
   useEffect(() => {
@@ -84,17 +97,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionUser(session?.user ?? null)
       setLoading(false)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        void fetchProfile(session.user.id)
+      } else {
+        setProfileError(null)
       }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSessionUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        void fetchProfile(session.user.id)
       } else {
         setUser(null)
         setProfileLoading(false)
+        setProfileError(null)
       }
     })
 
@@ -123,10 +139,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionUser,
       loading,
       profileLoading,
+      profileError,
       logout,
       refreshProfile,
     }),
-    [user, sessionUser, loading, profileLoading, logout, refreshProfile],
+    [user, sessionUser, loading, profileLoading, profileError, logout, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
