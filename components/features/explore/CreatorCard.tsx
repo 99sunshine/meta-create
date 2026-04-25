@@ -45,8 +45,6 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
   // Prefer it so display matches server ordering.
   const serverScore = (creator as unknown as { score?: unknown }).score
   const percent = typeof serverScore === 'number' ? serverScore : (match?.score ?? 0)
-  const visionScore = (creator as unknown as { vision_score?: unknown }).vision_score
-  const visionPts = typeof visionScore === 'number' ? visionScore : null
   const subtitleParts = [
     localizedRole,
     creator.hackathon_track ? `${tr('creatorCard.track')}: ${String(creator.hackathon_track)}` : null,
@@ -72,7 +70,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
       >
         {/* Header row */}
         <div className="flex items-center gap-[10px] w-full">
-          <Link href={`/creator/${creator.id}`} className="shrink-0">
+          <Link href={`/creator/${creator.id}?returnTo=/explore`} className="shrink-0">
             {creator.avatar_url ? (
               <img
                 src={creator.avatar_url}
@@ -86,7 +84,7 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
             )}
           </Link>
 
-          <Link href={`/creator/${creator.id}`} className="flex-1 min-w-0">
+          <Link href={`/creator/${creator.id}?returnTo=/explore`} className="flex-1 min-w-0">
             <p className="text-[15px] font-semibold text-white truncate">
               {creator.name ?? tr('common.creator')}
             </p>
@@ -119,14 +117,26 @@ export function CreatorCard({ creator, connected = false }: CreatorCardProps) {
           </div>
         )}
 
+        {/* Tags */}
+        {(creator.tags ?? []).length > 0 && (
+          <div className="flex items-center gap-[6px] flex-wrap">
+            {(creator.tags as string[]).slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="shrink-0 rounded-full border border-[rgba(231,119,15,0.35)] bg-[rgba(231,119,15,0.12)] px-2 py-0.5 text-[10px] text-[#f5a623]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Bottom row */}
         <div className="flex items-center gap-2 w-full">
           <p className="flex-1 text-[11px] text-[#e88dba] truncate">
-            {visionPts !== null
-              ? tr('creatorCard.vision', { score: Math.max(0, Math.min(35, Math.round(visionPts))) })
-              : creator.tags?.[0]
-                ? tr('creatorCard.arrowTag', { tag: String(creator.tags[0]) })
-                : tr('creatorCard.goConnect')}
+            {creator.tags?.[0]
+              ? tr('creatorCard.arrowTag', { tag: String(creator.tags[0]) })
+              : tr('creatorCard.goConnect')}
           </p>
           {sessionUser && user?.id !== creator.id && (
             connected ? (

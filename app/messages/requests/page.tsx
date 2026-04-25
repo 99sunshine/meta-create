@@ -249,7 +249,7 @@ function RequestCard({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push(`/creator/${rep.sender_id}`)}
+          onClick={() => router.push(`/creator/${rep.sender_id}?returnTo=/messages/requests`)}
           className="shrink-0"
         >
           <Avatar name={rep.sender?.name ?? '?'} src={rep.sender?.avatar_url} size={44} />
@@ -259,7 +259,7 @@ function RequestCard({
             <button
               type="button"
               className="text-sm font-semibold text-white text-left truncate"
-              onClick={() => router.push(`/creator/${rep.sender_id}`)}
+              onClick={() => router.push(`/creator/${rep.sender_id}?returnTo=/messages/requests`)}
             >
               {rep.sender?.name ?? tr('common.creator')}
             </button>

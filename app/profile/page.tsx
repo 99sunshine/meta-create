@@ -83,6 +83,37 @@ function EditProfileModal({
   const [manifesto, setManifesto] = useState(profile.manifesto ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url ?? null)
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarUploading(true)
+    setError('')
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `avatars/${profile.id}/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' })
+      if (upErr) throw new Error(upErr.message)
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      // Save avatar_url to profile immediately
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: publicUrl }),
+      })
+      if (!res.ok) throw new Error('头像保存失败')
+      setAvatarPreview(publicUrl)
+      await refreshProfile()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '头像上传失败')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -106,6 +137,8 @@ function EditProfileModal({
     }
   }
 
+  const initials = (name || profile.name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center p-4"
@@ -115,6 +148,30 @@ function EditProfileModal({
       <div className="w-full max-w-md rounded-2xl border border-white/10 p-5 mb-2"
         style={{ backgroundColor: '#101837' }}>
         <h2 className="mb-4 text-base font-bold text-white">{tr('profile.editProfile')}</h2>
+
+        {/* Avatar upload */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-white font-semibold text-lg">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="avatar" className="h-full w-full object-cover" />
+              ) : initials}
+            </div>
+            {avatarUploading && (
+              <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="cursor-pointer rounded-xl border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:border-white/40 hover:text-white transition-colors">
+              {avatarUploading ? '上传中…' : '更换头像'}
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploading} />
+            </label>
+            <p className="mt-1 text-[10px] text-white/30">JPG / PNG，建议正方形</p>
+          </div>
+        </div>
+
         <div className="space-y-3">
           {[
             { label: tr('profile.name'), value: name, setter: setName, placeholder: tr('profile.yourName') },
@@ -366,7 +423,7 @@ export default function ProfilePage() {
         <MeProfileSection
           title={tr('profile.myWorks')}
           action={
-            <button type="button" className="text-[12px] text-white/40">
+            <button type="button" className="text-[12px] text-white/40" onClick={() => router.push('/works')}>
               {tr('profile.viewAll')}
             </button>
           }

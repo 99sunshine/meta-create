@@ -103,15 +103,22 @@ function TeamDetailInner() {
   const handleLeave = async () => {
     if (!sessionUser || !teamId || isOwner) return
     setLeaving(true)
+    setError('')
     try {
-      await supabase
+      const { error: leaveError } = await supabase
         .from('team_members')
         .delete()
         .eq('team_id', teamId)
         .eq('user_id', sessionUser.id)
-      router.push('/profile')
-    } catch {}
-    finally { setLeaving(false) }
+      if (leaveError) throw new Error(leaveError.message)
+      // Refresh team data so join button reappears on same page
+      const updated = await new TeamsRepository().getTeamById(teamId)
+      if (updated) setTeam(updated)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '退出失败，请重试')
+    } finally {
+      setLeaving(false)
+    }
   }
 
   const handleHeaderBack = () => {

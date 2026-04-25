@@ -34,10 +34,26 @@ export const profileSchema = z.object({
   updated_at: z.string(),
 })
 
-// Profile update schema (partial, exclude immutable fields)
+// Profile update schema (partial, exclude immutable fields).
+// Fields with .default() in profileSchema are explicitly re-declared as plain .optional()
+// so that missing keys parse as undefined (not filled with default values), preventing
+// accidental overwrites of onboarding_complete / locale / subscription_tier on partial updates.
 export const profileUpdateSchema = profileSchema
-  .omit({ id: true, email: true, created_at: true })
+  .omit({
+    id: true,
+    email: true,
+    created_at: true,
+    updated_at: true,
+    onboarding_complete: true,
+    locale: true,
+    subscription_tier: true,
+  })
   .partial()
+  .extend({
+    onboarding_complete: z.boolean().optional(),
+    locale: z.enum(['en', 'zh']).optional(),
+    subscription_tier: z.enum(['free', 'premium']).optional(),
+  })
 
 // Initial profile creation (after magic link signup)
 export const profileCreateSchema = z.object({

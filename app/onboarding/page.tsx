@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { Button } from '@/components/ui/button'
@@ -13,13 +13,18 @@ import { AVAILABILITIES, INTERESTS_POOL } from '@/constants/enums'
 import { SKILLS } from '@/constants/skills'
 import type { Role } from '@/types/interfaces/Role'
 import type { Availability } from '@/types/interfaces/Enums'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/supabase/utils/client'
 import {
   MetaFire,
   OnboardingProgress,
-  ResumeUpload,
   AuthBackground,
 } from '@/components/features/onboarding'
+
+const ResumeUpload = dynamic(
+  () => import('@/components/features/onboarding').then((m) => ({ default: m.ResumeUpload })),
+  { ssr: false, loading: () => <div className="h-[72px] rounded-xl bg-white/[0.06] animate-pulse" /> },
+)
 import { useLocale } from '@/components/providers/LocaleProvider'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 
@@ -65,6 +70,9 @@ export default function OnboardingPage() {
   const [resumePrefillHint, setResumePrefillHint] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  type ResumeExtracted = { name?: string | null; city?: string | null; skills?: string[]; interests?: string[]; school?: string | null; summary?: string | null }
+  const [pendingResume, setPendingResume] = useState<ResumeExtracted | null>(null)
+  const pendingResumeRef = useRef<ResumeExtracted | null>(null)
 
   useEffect(() => {
     if (!loading && !sessionUser) {
@@ -128,6 +136,24 @@ export default function OnboardingPage() {
     }
   }
 
+  const applyResumeData = (r: ResumeExtracted) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: r.name || prev.name,
+      city: r.city || prev.city,
+      school: r.school || prev.school,
+      skills: r.skills?.length ? r.skills : prev.skills,
+      interests: r.interests?.length ? r.interests : prev.interests,
+      manifesto: r.summary || prev.manifesto,
+    }))
+    setPendingResume(null)
+    pendingResumeRef.current = null
+    const inferred: string[] = []
+    if (r.name) inferred.push(tr('onboarding.inferredName') ?? '姓名')
+    if (r.city) inferred.push(tr('onboarding.inferredCity') ?? '城市')
+    if (inferred.length > 0) setResumePrefillHint(tr('onboarding.inferred', { fields: inferred.join('、') }))
+  }
+
   const handleResumeSelect = async (file: File | null) => {
     setFormData((prev) => ({ ...prev, resume: file }))
     setResumePrefillHint(null)
@@ -173,22 +199,17 @@ export default function OnboardingPage() {
         setResumePrefillHint(tr('onboarding.parseEmpty'))
         return
       }
-      const inferred: string[] = []
-      setFormData((prev) => ({
-        ...prev,
-        // only prefill if user hasn't typed yet
-        name: prev.name || (r.name ?? ''),
-        city: prev.city || (r.city ?? ''),
-        school: prev.school || (r.school ?? ''),
-        skills: prev.skills.length ? prev.skills : (r.skills ?? []),
-        interests: prev.interests.length ? prev.interests : (r.interests ?? []),
-        manifesto: prev.manifesto || (r.summary ?? ''),
-      }))
-      if (r.name) inferred.push(tr('onboarding.inferredName'))
-      if (r.city) inferred.push(tr('onboarding.inferredCity'))
-      if (inferred.length > 0) {
-        setResumePrefillHint(tr('onboarding.inferred', { fields: inferred.join('、') }))
+      // Check if any existing fields would be overwritten
+      const hasExisting = !!(formData.name || formData.city || formData.school || formData.skills.length || formData.interests.length || formData.manifesto)
+      if (hasExisting) {
+        // Show confirmation dialog instead of silently prefilling
+        pendingResumeRef.current = r
+        setPendingResume(r)
+        setResumePrefillHint(tr('onboarding.resumeExtracted') ?? '已解析完成，请选择是否覆盖当前填写内容')
+        return
       }
+      // No existing data — silently prefill
+      applyResumeData(r)
     } finally {
       setResumeLoading(false)
     }
@@ -226,6 +247,7 @@ export default function OnboardingPage() {
         ai_tags: aiGenerated,
       })
       router.push('/explore')
+      router.refresh()
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : tr('onboarding.saveFailed'))
     } finally {
@@ -263,6 +285,38 @@ export default function OnboardingPage() {
               {resumePrefillHint && !resumeLoading && (
                 <div className="-mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center">
                   <p className="text-[12px] text-amber-200">{resumePrefillHint}</p>
+                </div>
+              )}
+
+              {/* Resume overwrite confirmation dialog */}
+              {pendingResume && (
+                <div
+                  className="fixed inset-0 z-50 flex items-end justify-center p-4"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+                >
+                  <div className="w-full max-w-md rounded-3xl border border-white/10 p-5 mb-2 space-y-4" style={{ backgroundColor: '#101837' }}>
+                    <p className="text-base font-semibold text-white">使用简历内容覆盖？</p>
+                    <p className="text-[13px] text-white/60 leading-relaxed">
+                      已解析出简历内容，是否用提取的信息覆盖当前已填写的内容？
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        className="flex-1 rounded-xl border border-white/15 bg-white/5 py-3 text-sm text-white/70"
+                        onClick={() => { setPendingResume(null); pendingResumeRef.current = null; setResumePrefillHint(null) }}
+                      >
+                        保留现有内容
+                      </button>
+                      <button
+                        type="button"
+                        className="flex-1 rounded-xl py-3 text-sm font-semibold text-white"
+                        style={{ backgroundColor: '#E7770F' }}
+                        onClick={() => applyResumeData(pendingResume)}
+                      >
+                        覆盖填写
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 

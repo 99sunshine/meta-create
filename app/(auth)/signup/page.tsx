@@ -37,6 +37,9 @@ export default function SignUpPage() {
   // = false). Without this, onAuthStateChange can race with the INSERT and
   // fetchProfile returns null, causing the /main onboarding banner to not show.
   // 只跳转一次：避免 refreshProfile / Context value 变化导致 effect 连发 router.push。
+  // Clear error when auth method switches
+  useEffect(() => { setError('') }, [method])
+
   useEffect(() => {
     if (!signingUp || authLoading || !sessionUser || onboardingRedirectRef.current) return
     onboardingRedirectRef.current = true

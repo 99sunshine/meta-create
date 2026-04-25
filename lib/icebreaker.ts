@@ -56,7 +56,7 @@ export async function generateIceBreakerAI(params: IceBreakerParams): Promise<st
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
-      signal: AbortSignal.timeout(8000), // 8 s timeout
+      signal: AbortSignal.timeout(4000), // 4 s timeout — fallback to template if slow
     })
     if (!res.ok) throw new Error(`AI route returned ${res.status}`)
     const { text } = await res.json()

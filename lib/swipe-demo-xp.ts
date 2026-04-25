@@ -54,3 +54,26 @@ export function getSwipeXpBarDisplay(xp: number, i18n?: SwipeXpBarI18n): SwipeXp
     dotBg,
   }
 }
+
+// ── localStorage persistence ─────────────────────────────────────────────────
+
+const xpStorageKey = (uid: string) => `mc_xp:${uid}`
+
+export function readSwipeXp(uid: string): { xp: number; level: number } {
+  try {
+    const raw = localStorage.getItem(xpStorageKey(uid))
+    if (!raw) return { ...SWIPE_DEMO_INITIAL_XP }
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed === 'object' && parsed !== null && 'xp' in parsed && typeof (parsed as { xp: unknown }).xp === 'number') {
+      const xp = (parsed as { xp: number }).xp
+      return { xp, level: swipeDemoLevelFromXp(xp) }
+    }
+  } catch {}
+  return { ...SWIPE_DEMO_INITIAL_XP }
+}
+
+export function writeSwipeXp(uid: string, val: { xp: number; level: number }): void {
+  try {
+    localStorage.setItem(xpStorageKey(uid), JSON.stringify(val))
+  } catch {}
+}

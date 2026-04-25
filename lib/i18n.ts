@@ -1,6 +1,8 @@
 export type AppLocale = 'en' | 'zh'
 
-type Dictionary = Record<string, string | Dictionary>
+interface Dictionary {
+  [key: string]: string | Dictionary
+}
 
 const translations: Record<AppLocale, Dictionary> = {
   en: {

@@ -161,6 +161,7 @@ export function SwipeDemoExperience({
   const actionButtonsRef = useRef<HTMLDivElement>(null)
   const onEmptyRef = useRef(onEmpty)
   const onReloadRef = useRef(onReload)
+  const onSwipeRef = useRef(onSwipe)
   const deckEmptyNotifiedRef = useRef(false)
 
   useEffect(() => {
@@ -170,6 +171,10 @@ export function SwipeDemoExperience({
   useEffect(() => {
     onReloadRef.current = onReload
   }, [onReload])
+
+  useEffect(() => {
+    onSwipeRef.current = onSwipe
+  }, [onSwipe])
 
   useEffect(() => {
     deckEmptyNotifiedRef.current = false
@@ -227,6 +232,10 @@ export function SwipeDemoExperience({
       }
     })
   }, [profiles, viewer, tr])
+
+  // Keep a ref so event listeners bound once (useEffect([])) always read latest cards/onSwipe
+  const cardsRef = useRef(cards)
+  useEffect(() => { cardsRef.current = cards }, [cards])
 
   const renderXPBar = useCallback(
     (next: { xp: number; level: number }) => {
@@ -923,8 +932,8 @@ export function SwipeDemoExperience({
       if (isMatch) setTimeout(() => addXP(30), 200)
 
       const idx = Number(card.dataset.index ?? '0')
-      const data = cards[idx]
-      if (data?.profile) onSwipe(data.profile, direction)
+      const data = cardsRef.current[idx]
+      if (data?.profile) onSwipeRef.current(data.profile, direction)
 
       let advanced = false
       function advance() {
@@ -936,7 +945,7 @@ export function SwipeDemoExperience({
       card.addEventListener('transitionend', advance, { once: true })
       setTimeout(advance, 500)
     },
-    [addXP, cards, onSwipe, shiftPlanets],
+    [addXP, shiftPlanets],
   )
 
   const onPointerDown = useCallback((e: PointerEvent) => {

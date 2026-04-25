@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import BottomTabs from '@/components/features/layout/BottomTabs'
 import { Button } from '@/components/ui/button'
@@ -62,9 +62,16 @@ function Avatar({ name, src, size = 80 }: { name: string; src?: string | null; s
   )
 }
 
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+}
+
 export default function CreatorProfilePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = safeReturnPath(searchParams.get('returnTo')) ?? '/explore'
   const { user: currentUser, sessionUser } = useAuth()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -164,7 +171,7 @@ export default function CreatorProfilePage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push(returnTo)}
             className="text-white/50 hover:text-white text-sm"
             aria-label="返回"
           >

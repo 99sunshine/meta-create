@@ -27,7 +27,6 @@ export class CollabRepository {
       data: { user },
       error: authErr,
     } = await supabase.auth.getUser()
-
     if (authErr || !user) throw new Error('UNAUTHENTICATED')
     if (user.id !== params.senderId) throw new Error('SENDER_MISMATCH')
 
