@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, Suspense, useCallback, useRef, type UIEvent } from 'react'
+import { useEffect, useMemo, useState, Suspense, useCallback, useRef, type CSSProperties, type UIEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
@@ -77,6 +77,14 @@ export default function ExplorePage() {
         countLabel: (xp, max) => tr('swipe.xpCountLabel', { xp, max }),
       }),
     [demoXp.xp, tr],
+  )
+  const sharedTopBarVars = useMemo(
+    () =>
+      ({
+        '--explore-topbar-height': '60px',
+        '--explore-topbar-padding': '14px 16px',
+      }) as CSSProperties,
+    [],
   )
 
   useEffect(() => {
@@ -264,13 +272,22 @@ export default function ExplorePage() {
   return (
     <div
       className="relative h-[100dvh] overflow-hidden"
-      style={{ backgroundColor: '#101837' }}
+      style={{
+        ...sharedTopBarVars,
+        backgroundColor: '#101837',
+      }}
     >
       {!swipeMode ? (
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
           <div className="shrink-0">
             {/* Top Bar (Figma: Search + View Toggle) */}
-            <div className="z-40 h-[60px] bg-[#101837] px-4 py-[14px]">
+            <div
+              className="z-40 bg-[#101837]"
+              style={{
+                height: 'var(--explore-topbar-height)',
+                padding: 'var(--explore-topbar-padding)',
+              }}
+            >
               <div className="flex items-center gap-[10px]">
                 <Link
                   href="/messages"
