@@ -63,12 +63,25 @@ export function TeamCard({
     return translated === key ? role : translated
   }
   const subtitleText = `${tr('explore.team.memberCount', { current: team.member_count, max: team.max_members })} · ${team.category}`
+  const memberRoleSummary = (() => {
+    const roleCounts = team.members.reduce<Record<string, number>>((acc, member) => {
+      const role = String(member.role ?? '').trim()
+      if (!role) return acc
+      acc[role] = (acc[role] ?? 0) + 1
+      return acc
+    }, {})
+
+    const entries = Object.entries(roleCounts)
+    if (entries.length === 0) return tr('explore.team.noMemberRoleInfo')
+    return entries
+      .slice(0, 3)
+      .map(([role, count]) => tr('explore.team.memberRoleCount', { role: localizeRole(role), count }))
+      .join(' · ')
+  })()
 
   const isAlreadyMember = currentUserId
     ? team.members.some((member) => member.id === currentUserId)
     : false
-
-  const ownerId = team.owner_id
 
   const handleJoinClick = () => {
     if (onJoinTeam) setDialogOpen(true)
@@ -114,23 +127,32 @@ export function TeamCard({
 
         <p className="mt-[10px] line-clamp-2 text-[12px] text-[#bfbfbf]">{displayDescription}</p>
 
-        {lookingForRoles.length > 0 ? (
-          <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto">
-            {lookingForRoles.slice(0, 3).map((role, idx) => {
-              const roleMetadata = getRoleMetadata(role as Role)
-              const RoleIcon = roleMetadata?.icon
-              return (
-                <span
-                  key={`${role}-${idx}`}
-                  className="flex shrink-0 items-center gap-1 rounded-[12px] border border-[rgba(115,27,209,0.5)] bg-[rgba(115,27,209,0.2)] px-2 py-1 text-[11px] text-[#b98de8]"
-                >
-                  {RoleIcon ? <RoleIcon className="h-3 w-3" /> : null}
-                  {localizeRole(role)}
-                </span>
-              )
-            })}
+        <div className="mt-[10px] space-y-2">
+          <div className="flex items-start gap-2">
+            <p className="shrink-0 pt-[2px] text-[10px] font-medium tracking-[0.08em] text-white/55 uppercase">
+              {tr('explore.team.lookingFor')}
+            </p>
+            {lookingForRoles.length > 0 ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
+                {lookingForRoles.slice(0, 3).map((role, idx) => {
+                  const roleMetadata = getRoleMetadata(role as Role)
+                  const RoleIcon = roleMetadata?.icon
+                  return (
+                    <span
+                      key={`${role}-${idx}`}
+                      className="flex shrink-0 items-center gap-1 rounded-[12px] border border-[rgba(115,27,209,0.5)] bg-[rgba(115,27,209,0.2)] px-2 py-1 text-[11px] text-[#b98de8]"
+                    >
+                      {RoleIcon ? <RoleIcon className="h-3 w-3" /> : null}
+                      {localizeRole(role)}
+                    </span>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="truncate text-[11px] text-white/75">{tr('explore.team.noLookingFor')}</p>
+            )}
           </div>
-        ) : null}
+        </div>
 
         <div className="mt-[10px] flex items-center gap-2">
           <p className="flex-1 truncate text-[11px] text-[#e88dba]">
@@ -168,9 +190,13 @@ export function TeamCard({
 
         </div>
 
-        {displayMembers.length > 0 ? (
-          <div className="mt-[10px] flex items-center gap-2">
-            <div className="flex -space-x-2">
+        <div className="mt-[10px] flex items-center gap-2">
+          <p className="shrink-0 text-[10px] font-medium tracking-[0.08em] text-white/55 uppercase">
+            {tr('explore.team.currentMembers')}
+          </p>
+          <p className="min-w-0 flex-1 truncate text-[11px] text-white/80">{memberRoleSummary}</p>
+          {displayMembers.length > 0 ? (
+            <div className="flex shrink-0 -space-x-2">
               {displayMembers.map((member) => (
                 <Link
                   key={member.id}
@@ -191,8 +217,8 @@ export function TeamCard({
                 </div>
               ) : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
     </>
