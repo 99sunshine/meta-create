@@ -72,14 +72,14 @@ export function CommunityFeed({
 
   const handleJoinTeam = async (teamId: string, role: Role) => {
     if (!user) {
-      showToast('Please log in to join a team.', 'error')
+      showToast(tr('explore.team.loginToJoin'), 'error')
       return
     }
     try {
       await joinTeam(teamId, user.id, role)
-      showToast('You have joined the team!', 'success')
+      showToast(tr('explore.team.joinSuccess'), 'success')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to join team', 'error')
+      showToast(err instanceof Error ? err.message : tr('explore.team.joinFailed'), 'error')
     }
   }
 
@@ -156,7 +156,7 @@ export function CommunityFeed({
             onClick={() => { refetchWorks(); refetchTeams() }}
             className="text-xs text-red-300 underline hover:text-white shrink-0"
           >
-            Retry
+            {tr('common.retry')}
           </button>
         </div>
       )}
