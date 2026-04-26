@@ -6,11 +6,12 @@ import { WorkWithCreator } from '@/types'
 import { getRoleMetadata } from '@/constants/roles'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import type { Role } from '@/types/interfaces/Role'
+import type { MatchReason } from '@/lib/matching'
 
 interface WorkCardProps {
   work: WorkWithCreator
   matchScore?: number
-  matchReasons?: string[]
+  matchReasons?: MatchReason[]
 }
 
 function initialsFromName(name: string | null | undefined) {

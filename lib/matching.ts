@@ -35,8 +35,21 @@ export interface MatchResult {
   /** 0–100 integer */
   score: number
   /** ≤ 2 human-readable reasons shown on cards */
-  topReasons: string[]
+  topReasons: MatchReason[]
 }
+
+export type MatchReasonKey =
+  | 'teamNeedsRole'
+  | 'skillVarietyMatch'
+  | 'matchingDomain'
+  | 'matchingAvailability'
+
+export interface StructuredMatchReason {
+  key: MatchReasonKey
+  vars?: Record<string, string | number>
+}
+
+export type MatchReason = string | StructuredMatchReason
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -299,18 +312,23 @@ export function scoreTeamMatch(
 
   const total = Math.round(s + r + domainPts + a)
 
-  const reasons: Array<{ pts: number; label: string }> = [
-    { pts: r, label: targetRole ? `team needs a ${targetRole}` : 'complementary roles' },
-    { pts: domainPts, label: 'matching domain' },
-    { pts: s, label: 'skill variety match' },
-    { pts: a, label: 'matching availability' },
+  const reasons: Array<{ pts: number; reason: MatchReason }> = [
+    {
+      pts: r,
+      reason: targetRole
+        ? { key: 'teamNeedsRole', vars: { role: targetRole } }
+        : { key: 'teamNeedsRole', vars: { role: 'Collaborator' } },
+    },
+    { pts: domainPts, reason: { key: 'matchingDomain' } },
+    { pts: s, reason: { key: 'skillVarietyMatch' } },
+    { pts: a, reason: { key: 'matchingAvailability' } },
   ]
 
   const topReasons = reasons
     .filter((x) => x.pts > 0)
     .sort((a, b) => b.pts - a.pts)
     .slice(0, 2)
-    .map((x) => x.label)
+    .map((x) => x.reason)
 
   return { score: Math.min(total, 100), topReasons }
 }

@@ -10,6 +10,7 @@ import { JoinTeamDialog } from '@/components/features/teams/JoinTeamDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import type { Role } from '@/types/interfaces/Role'
+import type { MatchReason } from '@/lib/matching'
 
 interface TeamCardProps {
   team: TeamWithMembers
@@ -17,7 +18,7 @@ interface TeamCardProps {
   onJoinTeam?: (teamId: string, role: Role) => void | Promise<void>
   isJoining?: boolean
   matchScore?: number
-  matchReasons?: string[]
+  matchReasons?: MatchReason[]
 }
 
 function initialsFromName(name: string | null | undefined) {
@@ -63,6 +64,40 @@ export function TeamCard({
     return translated === key ? role : translated
   }
   const subtitleText = `${tr('explore.team.memberCount', { current: team.member_count, max: team.max_members })} · ${team.category}`
+  const formatMatchReason = (reason: MatchReason) => {
+    if (typeof reason === 'string') {
+      const legacyMap: Record<string, string> = {
+        'matching domain': tr('explore.matchReason.matchingDomain'),
+        'skill variety match': tr('explore.matchReason.skillVarietyMatch'),
+        'matching availability': tr('explore.matchReason.matchingAvailability'),
+      }
+
+      const teamNeedsRolePrefix = 'team needs a '
+      if (reason.toLowerCase().startsWith(teamNeedsRolePrefix)) {
+        const roleRaw = reason.slice(teamNeedsRolePrefix.length).trim()
+        return tr('explore.matchReason.teamNeedsRole', { role: localizeRole(roleRaw) })
+      }
+
+      return legacyMap[reason.toLowerCase()] ?? reason
+    }
+
+    switch (reason.key) {
+      case 'teamNeedsRole': {
+        const roleText = String(reason.vars?.role ?? '')
+        return tr('explore.matchReason.teamNeedsRole', {
+          role: roleText ? localizeRole(roleText) : tr('explore.matchReason.unknown'),
+        })
+      }
+      case 'skillVarietyMatch':
+        return tr('explore.matchReason.skillVarietyMatch')
+      case 'matchingDomain':
+        return tr('explore.matchReason.matchingDomain')
+      case 'matchingAvailability':
+        return tr('explore.matchReason.matchingAvailability')
+      default:
+        return tr('explore.matchReason.unknown')
+    }
+  }
   const memberRoleSummary = (() => {
     const roleCounts = team.members.reduce<Record<string, number>>((acc, member) => {
       const role = String(member.role ?? '').trim()
@@ -125,9 +160,11 @@ export function TeamCard({
           ) : null}
         </div>
 
-        <p className="mt-[10px] line-clamp-2 text-[12px] text-[#bfbfbf]">{displayDescription}</p>
+        <p className="mt-[10px] mb-7 line-clamp-2 text-[12px] text-[#bfbfbf]">{displayDescription}</p>
 
-        <div className="mt-[10px] space-y-2">
+        <div role="presentation" className="mb-2 -mx-1 h-px shrink-0 bg-white/10" aria-hidden />
+
+        <div className="mt-0 space-y-2">
           <div className="flex items-start gap-2">
             <p className="shrink-0 pt-[2px] text-[10px] font-medium tracking-[0.08em] text-white/55 uppercase">
               {tr('explore.team.lookingFor')}
@@ -156,7 +193,7 @@ export function TeamCard({
 
         <div className="mt-[10px] flex items-center gap-2">
           <p className="flex-1 truncate text-[11px] text-[#e88dba]">
-            {matchReasons && matchReasons.length > 0 ? matchReasons[0] : tr('explore.team.lookingFor')}
+            {matchReasons && matchReasons.length > 0 ? formatMatchReason(matchReasons[0]) : tr('explore.team.lookingFor')}
           </p>
 
           <Link

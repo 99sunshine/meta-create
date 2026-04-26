@@ -7,6 +7,7 @@ import { useWorks } from '@/hooks/useWorks'
 import { useTeams } from '@/hooks/useTeams'
 import { useAuth } from '@/hooks/useAuth'
 import { scoreTeamMatch, scoreWorkMatch } from '@/lib/matching'
+import type { MatchReason } from '@/lib/matching'
 import type { WorkWithCreator, TeamWithMembers } from '@/types'
 import type { Role } from '@/types/interfaces/Role'
 import { useLocale } from '@/components/providers/LocaleProvider'
@@ -83,7 +84,7 @@ export function CommunityFeed({
     }
   }
 
-  type FeedItem = { type: 'work' | 'team'; item: WorkWithCreator | TeamWithMembers; matchScore: number; matchReasons: string[] }
+  type FeedItem = { type: 'work' | 'team'; item: WorkWithCreator | TeamWithMembers; matchScore: number; matchReasons: MatchReason[] }
 
   // ── Client-side filtering ──
   const applyFilters = (): FeedItem[] => {

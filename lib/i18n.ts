@@ -178,6 +178,13 @@ const translations: Record<AppLocale, Dictionary> = {
         joinSuccess: 'You have joined the team!',
         joinFailed: 'Failed to join team',
       },
+      matchReason: {
+        teamNeedsRole: 'Team needs a {role}',
+        skillVarietyMatch: 'Skill variety match',
+        matchingDomain: 'Matching domain',
+        matchingAvailability: 'Matching availability',
+        unknown: 'Good match',
+      },
     },
     creatorCard: {
       track: 'Track',
@@ -487,6 +494,13 @@ const translations: Record<AppLocale, Dictionary> = {
         loginToJoin: '请先登录后再加入队伍。',
         joinSuccess: '你已加入队伍！',
         joinFailed: '加入队伍失败',
+      },
+      matchReason: {
+        teamNeedsRole: '队伍需要 {role}',
+        skillVarietyMatch: '技能互补匹配',
+        matchingDomain: '赛道/领域匹配',
+        matchingAvailability: '时间匹配',
+        unknown: '匹配度较高',
       },
     },
     creatorCard: {
