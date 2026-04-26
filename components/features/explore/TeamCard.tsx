@@ -86,7 +86,7 @@ export function TeamCard({
         )}
 
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <Link href={`/teams/${team.id}`} className="flex min-w-0 items-center gap-2 hover:opacity-90 transition-opacity">
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shrink-0">
               <Users className="h-5 w-5 text-white" />
             </div>
@@ -96,7 +96,7 @@ export function TeamCard({
                 {team.member_count}/{team.max_members} members
               </span>
             </div>
-          </div>
+          </Link>
           <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
             {team.category}
           </span>
@@ -157,6 +157,14 @@ export function TeamCard({
 
         {/* Action buttons */}
         <div className="flex gap-2 pt-1">
+          <Link
+            href={`/teams/${team.id}`}
+            className={`rounded-full border border-white/20 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 ${
+              team.is_open && onJoinTeam ? '' : 'flex-1 text-center text-sm py-2'
+            }`}
+          >
+            View Team
+          </Link>
           {team.is_open && onJoinTeam && (
             <>
               <Button

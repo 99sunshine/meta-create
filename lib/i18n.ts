@@ -123,6 +123,11 @@ const translations: Record<AppLocale, Dictionary> = {
     explore: {
       searchPlaceholder: 'Search creators...',
       searchAria: 'Search creators',
+      contentType: {
+        creators: 'Creators',
+        teams: 'Teams',
+        works: 'Works',
+      },
       bestMatch: 'Best Match',
       filter: 'Filter',
       filters: 'Filters',
@@ -146,6 +151,14 @@ const translations: Record<AppLocale, Dictionary> = {
       alreadySent: 'You already sent a pending request',
       alreadyConnected: 'You are already connected',
       sendFailed: 'Send failed, try again later',
+      feedLoadFailed: 'Could not load feed: {message}',
+      noMatches: 'No matches found',
+      nothingHereYet: 'Nothing here yet',
+      adjustFiltersHint: 'Try adjusting your search or filters to discover more creators.',
+      communityEmptyHint: 'The community feed is empty. Start by creating works or teams!',
+      resultsCount: '{count} results',
+      filteredSuffix: '- filtered',
+      sortedByMatchSuffix: '- sorted by match',
     },
     creatorCard: {
       track: 'Track',
@@ -401,6 +414,11 @@ const translations: Record<AppLocale, Dictionary> = {
     explore: {
       searchPlaceholder: '搜索创作者...',
       searchAria: '搜索创作者',
+      contentType: {
+        creators: '选手',
+        teams: '队伍',
+        works: '作品',
+      },
       bestMatch: '最佳匹配',
       filter: '筛选',
       filters: '筛选条件',
@@ -424,6 +442,14 @@ const translations: Record<AppLocale, Dictionary> = {
       alreadySent: '你已向对方发送过待处理请求',
       alreadyConnected: '你们已连接',
       sendFailed: '发送失败，请稍后再试',
+      feedLoadFailed: '加载列表失败：{message}',
+      noMatches: '未找到匹配结果',
+      nothingHereYet: '这里还没有内容',
+      adjustFiltersHint: '试试调整搜索关键词或筛选条件。',
+      communityEmptyHint: '社区内容为空，先创建作品或队伍吧！',
+      resultsCount: '{count} 条结果',
+      filteredSuffix: '- 已筛选',
+      sortedByMatchSuffix: '- 按匹配度排序',
     },
     creatorCard: {
       track: '赛道',

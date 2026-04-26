@@ -32,13 +32,13 @@ export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
   return (
     <Card className="overflow-hidden border-slate-700 bg-slate-800/50 backdrop-blur-sm hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10">
       {work.images && work.images.length > 0 && (
-        <div className="aspect-video w-full overflow-hidden bg-slate-900/50">
+        <Link href={`/works/${work.id}`} className="block aspect-video w-full overflow-hidden bg-slate-900/50">
           <img
             src={work.images[0]}
             alt={work.title}
             className="h-full w-full object-cover"
           />
-        </div>
+        </Link>
       )}
 
       <div className="p-5 space-y-3">
@@ -58,7 +58,9 @@ export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
         )}
 
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-lg font-semibold text-white line-clamp-2">{work.title}</h3>
+          <Link href={`/works/${work.id}`} className="min-w-0 hover:opacity-90 transition-opacity">
+            <h3 className="text-lg font-semibold text-white line-clamp-2">{work.title}</h3>
+          </Link>
           <span className="shrink-0 text-xs font-medium px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
             {work.category}
           </span>
@@ -112,6 +114,12 @@ export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
                 <span>{work.save_count}</span>
               </div>
             )}
+            <Link
+              href={`/works/${work.id}`}
+              className="text-xs px-3 py-1.5 rounded-full border border-white/20 text-white/80 hover:bg-white/10 transition-colors font-medium"
+            >
+              View Work
+            </Link>
             {canConnect && (
               <button
                 onClick={() => setConnectOpen(true)}

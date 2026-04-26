@@ -8,6 +8,7 @@ import BottomTabs from '@/components/features/layout/BottomTabs'
 import { Button } from '@/components/ui/button'
 import { useCreateFlow } from '@/components/providers/CreateFlowProvider'
 import { CreatorsFeed } from '@/components/features/explore/CreatorsFeed'
+import { CommunityFeed } from '@/components/features/explore/CommunityFeed'
 import type { SwipeDirection } from '@/components/features/swipe/SwipeStack'
 import { SwipeDemoExperience } from '@/components/features/swipe/SwipeDemoExperience'
 import { ProfileRepository } from '@/supabase/repos/profile'
@@ -20,6 +21,9 @@ import { SKILLS } from '@/constants/skills'
 import { generateIceBreakerAI } from '@/lib/icebreaker'
 import {
   IconSatelliteDish,
+  IconCreator,
+  IconTeam,
+  IconWork,
   IconListBullet,
   IconSwipeStack,
 } from '@/components/features/explore/ExploreTopBarIcons'
@@ -40,6 +44,7 @@ export default function ExplorePage() {
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null)
   const swipeNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [query, setQuery] = useState('')
+  const [contentType, setContentType] = useState<'creators' | 'teams' | 'works'>('creators')
   const [sort, setSort] = useState<'best' | 'new'>('best')
   const [skills, setSkills] = useState<string[]>([])
   const [roles, setRoles] = useState<string[]>([])
@@ -454,30 +459,81 @@ export default function ExplorePage() {
           <main
             ref={listScrollRef}
             onScroll={handleListScroll}
-            className="mx-auto w-full min-h-0 max-w-2xl flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-28 sm:px-6"
+            className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 items-start gap-2 overflow-y-auto overscroll-contain px-3 py-4 pb-28 sm:px-6"
           >
-            <Suspense
-              fallback={
-                <div className="flex flex-col gap-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-[128px] rounded-[16px] border border-white/5 bg-white/5 animate-pulse"
-                    />
-                  ))}
-                </div>
-              }
-            >
-              <CreatorsFeed
-                key={feedRefreshKey}
-                query={query}
-                roles={roles}
-                skills={skills}
-                locations={locations}
-                sort={sort}
-                sameTrackOnly={sameTrackOnly}
-              />
-            </Suspense>
+            <div className="sticky top-4 z-10 flex shrink-0 items-center self-center">
+              <div className="flex flex-col items-center gap-[6px] rounded-[14px] border border-white/[0.08] bg-white/[0.08] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+                <button
+                  type="button"
+                  onClick={() => setContentType('creators')}
+                  aria-label={tr('explore.contentType.creators')}
+                  aria-pressed={contentType === 'creators'}
+                  className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
+                    contentType === 'creators' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <IconCreator active={contentType === 'creators'} className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentType('teams')}
+                  aria-label={tr('explore.contentType.teams')}
+                  aria-pressed={contentType === 'teams'}
+                  className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
+                    contentType === 'teams' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <IconTeam active={contentType === 'teams'} className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentType('works')}
+                  aria-label={tr('explore.contentType.works')}
+                  aria-pressed={contentType === 'works'}
+                  className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
+                    contentType === 'works' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <IconWork active={contentType === 'works'} className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <Suspense
+                fallback={
+                  <div className="flex flex-col gap-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[128px] rounded-[16px] border border-white/5 bg-white/5 animate-pulse"
+                      />
+                    ))}
+                  </div>
+                }
+              >
+                {contentType === 'creators' ? (
+                  <CreatorsFeed
+                    key={feedRefreshKey}
+                    query={query}
+                    roles={roles}
+                    skills={skills}
+                    locations={locations}
+                    sort={sort}
+                    sameTrackOnly={sameTrackOnly}
+                  />
+                ) : (
+                  <CommunityFeed
+                    key={`${feedRefreshKey}-${contentType}`}
+                    refreshKey={feedRefreshKey}
+                    contentType={contentType === 'teams' ? 'teams' : 'works'}
+                    query={query}
+                    sort={sort}
+                    embedded
+                  />
+                )}
+              </Suspense>
+            </div>
           </main>
 
           {isFilterSheetOpen && (

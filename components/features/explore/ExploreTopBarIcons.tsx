@@ -78,3 +78,63 @@ export function IconSwipeStack({ active, className }: { active: boolean; classNa
     </svg>
   )
 }
+
+export function IconCreator({ active, className }: { active: boolean; className?: string }) {
+  const color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)'
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 256 256"
+      fill="none"
+      aria-hidden
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M128 132a52 52 0 1 0-52-52a52.06 52.06 0 0 0 52 52m0-88a36 36 0 1 1-36 36a36 36 0 0 1 36-36m0 104c-42.08 0-80 20.15-80 52a8 8 0 0 0 16 0c0-21.66 29.91-36 64-36s64 14.34 64 36a8 8 0 0 0 16 0c0-31.85-37.92-52-80-52"
+        fill={color}
+      />
+    </svg>
+  )
+}
+
+export function IconTeam({ active, className }: { active: boolean; className?: string }) {
+  const color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)'
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 256 256"
+      fill="none"
+      aria-hidden
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M84 116a32 32 0 1 0-32-32a32 32 0 0 0 32 32m88 0a32 32 0 1 0-32-32a32 32 0 0 0 32 32M40 196a44 44 0 0 1 88 0a8 8 0 0 0 16 0a59.71 59.71 0 0 0-19.5-44.17A47.89 47.89 0 0 1 172 132a48 48 0 0 1 48 48a8 8 0 0 0 16 0a64 64 0 0 0-108.13-46.16A59.72 59.72 0 0 0 24 196a8 8 0 0 0 16 0"
+        fill={color}
+      />
+    </svg>
+  )
+}
+
+export function IconWork({ active, className }: { active: boolean; className?: string }) {
+  const color = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)'
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 256 256"
+      fill="none"
+      aria-hidden
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M224 72h-56V48a24 24 0 0 0-24-24h-32a24 24 0 0 0-24 24v24H32A16 16 0 0 0 16 88v104a16 16 0 0 0 16 16h192a16 16 0 0 0 16-16V88a16 16 0 0 0-16-16m-120-24a8 8 0 0 1 8-8h32a8 8 0 0 1 8 8v24h-48Zm120 144H32V120h192zm0-88H32V88h192z"
+        fill={color}
+      />
+    </svg>
+  )
+}

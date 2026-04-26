@@ -1,20 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { WorkCard } from './WorkCard'
 import { TeamCard } from './TeamCard'
-import { SearchFilterBar, type ExploreFilters } from './SearchFilterBar'
 import { useWorks } from '@/hooks/useWorks'
 import { useTeams } from '@/hooks/useTeams'
 import { useAuth } from '@/hooks/useAuth'
 import { scoreTeamMatch, scoreWorkMatch } from '@/lib/matching'
-import { NewCreatorsSection } from './NewCreatorsSection'
 import type { WorkWithCreator, TeamWithMembers } from '@/types'
 import type { Role } from '@/types/interfaces/Role'
+import { useLocale } from '@/components/providers/LocaleProvider'
 
 interface CommunityFeedProps {
   refreshKey?: number
+  contentType?: 'all' | 'teams' | 'works'
+  query?: string
+  sort?: 'best' | 'new'
+  embedded?: boolean
 }
 
 interface Toast {
@@ -33,43 +35,17 @@ function matchesSearch(query: string, fields: (string | null | undefined)[]): bo
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
+export function CommunityFeed({
+  refreshKey = 0,
+  contentType = 'all',
+  query = '',
+  sort = 'best',
+  embedded = false,
+}: CommunityFeedProps) {
   const { user } = useAuth()
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-
-  // ── Initialise filters from URL params ──
-  const [filters, setFilters] = useState<ExploreFilters>({
-    searchQuery: searchParams.get('q') ?? '',
-    roleFilter: searchParams.get('role') ?? '',
-    categoryFilter: searchParams.get('category') ?? '',
-    availabilityFilter: searchParams.get('availability') ?? '',
-    trackFilter: searchParams.get('track') ?? '',
-    contentType: (searchParams.get('type') as ExploreFilters['contentType']) ?? 'all',
-  })
-
-  // ── Sync URL when filters change ──
-  const updateUrl = useCallback(
-    (next: ExploreFilters) => {
-      const params = new URLSearchParams()
-      if (next.searchQuery) params.set('q', next.searchQuery)
-      if (next.roleFilter) params.set('role', next.roleFilter)
-      if (next.categoryFilter) params.set('category', next.categoryFilter)
-      if (next.availabilityFilter) params.set('availability', next.availabilityFilter)
-      if (next.trackFilter) params.set('track', next.trackFilter)
-      if (next.contentType !== 'all') params.set('type', next.contentType)
-      const qs = params.toString()
-      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
-    },
-    [router, pathname],
-  )
-
-  const handleFilterChange = (delta: Partial<ExploreFilters>) => {
-    const next = { ...filters, ...delta }
-    setFilters(next)
-    updateUrl(next)
-  }
+  const { tr } = useLocale()
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [toastSeed, setToastSeed] = useState(0)
 
   // ── Data fetching ──
   const { works, loading: worksLoading, error: worksError, refetch: refetchWorks } = useWorks({ limit: 50 })
@@ -87,12 +63,9 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
     }
   }, [refreshKey, stableRefetchWorks, stableRefetchTeams])
 
-  // ── Toasts ──
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const toastIdRef = useRef(0)
-
   const showToast = (message: string, type: Toast['type']) => {
-    const id = ++toastIdRef.current
+    const id = toastSeed + 1
+    setToastSeed(id)
     setToasts((prev) => [...prev, { id, message, type }])
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
   }
@@ -114,19 +87,14 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
 
   // ── Client-side filtering ──
   const applyFilters = (): FeedItem[] => {
-    const { searchQuery, roleFilter, categoryFilter, availabilityFilter, trackFilter, contentType } = filters
+    const normalizedQuery = (query ?? '').trim().toLowerCase()
+    const activeContentType = contentType ?? 'all'
 
     const workItems: FeedItem[] = works
       .filter((w) => {
-        if (contentType === 'teams') return false
+        if (activeContentType === 'teams') return false
         const creator = w.creator
-        if (roleFilter && creator.role !== roleFilter) return false
-        if (categoryFilter && w.category !== categoryFilter) return false
-        if (!matchesSearch(searchQuery, [w.title, w.description, creator.name, ...(w.tags ?? [])])) return false
-        // availability / track filter: apply on creator fields if available
-        const creatorAny = creator as unknown as Record<string, unknown>
-        if (availabilityFilter && creatorAny.availability && creatorAny.availability !== availabilityFilter) return false
-        if (trackFilter && creatorAny.hackathon_track && creatorAny.hackathon_track !== trackFilter) return false
+        if (!matchesSearch(normalizedQuery, [w.title, w.description, creator.name, ...(w.tags ?? [])])) return false
         return true
       })
       .map((w) => {
@@ -136,17 +104,8 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
 
     const teamItems: FeedItem[] = teams
       .filter((t) => {
-        if (contentType === 'works') return false
-        if (categoryFilter && t.category !== categoryFilter) return false
-        if (trackFilter) {
-          const teamAny = t as unknown as Record<string, unknown>
-          if (teamAny.event_track && teamAny.event_track !== trackFilter) return false
-        }
-        if (roleFilter) {
-          const hasRole = t.members?.some((m) => m.role === roleFilter)
-          if (!hasRole) return false
-        }
-        if (!matchesSearch(searchQuery, [t.name, t.description, ...(t.members?.map((m) => m.role) ?? [])])) return false
+        if (activeContentType === 'works') return false
+        if (!matchesSearch(normalizedQuery, [t.name, t.description, ...(t.members?.map((m) => m.role) ?? [])])) return false
         return true
       })
       .map((t) => {
@@ -156,10 +115,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
 
     const combined: FeedItem[] = [...workItems, ...teamItems]
 
-    if (user) {
-      combined.sort((a, b) => b.matchScore - a.matchScore || getDate(b.item) - getDate(a.item))
-    } else {
+    if (sort === 'new' || !user) {
       combined.sort((a, b) => getDate(b.item) - getDate(a.item))
+    } else {
+      combined.sort((a, b) => b.matchScore - a.matchScore || getDate(b.item) - getDate(a.item))
     }
 
     return combined
@@ -171,20 +130,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
   const loading = worksLoading || teamsLoading
   const fetchError = worksError || teamsError
   const items = applyFilters()
-  const hasActiveFilter =
-    filters.searchQuery ||
-    filters.roleFilter ||
-    filters.categoryFilter ||
-    filters.availabilityFilter ||
-    filters.trackFilter ||
-    filters.contentType !== 'all'
+  const hasActiveFilter = Boolean((query ?? '').trim()) || (contentType ?? 'all') !== 'all'
 
   return (
     <div className="space-y-5">
-      {/* New Creators This Week */}
-      <NewCreatorsSection />
-
-      {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
@@ -198,14 +147,10 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
         ))}
       </div>
 
-      {/* Search + filter bar */}
-      <SearchFilterBar filters={filters} onChange={handleFilterChange} />
-
-      {/* Fetch error */}
       {fetchError && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg">
           <span className="text-red-400 text-sm flex-1">
-            Could not load feed: {fetchError}
+            {tr('explore.feedLoadFailed', { message: fetchError })}
           </span>
           <button
             onClick={() => { refetchWorks(); refetchTeams() }}
@@ -216,44 +161,31 @@ export function CommunityFeed({ refreshKey = 0 }: CommunityFeedProps) {
         </div>
       )}
 
-      {/* Results */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={embedded ? 'flex flex-col gap-[14px]' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-64 rounded-lg bg-slate-800/30 animate-pulse border border-slate-700" />
+            <div key={i} className={`${embedded ? 'h-[128px] rounded-[16px] border border-white/5 bg-white/5' : 'h-64 rounded-lg bg-slate-800/30 border border-slate-700'} animate-pulse`} />
           ))}
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="h-20 w-20 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-slate-700">
-            <span className="text-4xl">{hasActiveFilter ? '🔭' : '🌌'}</span>
-          </div>
           <h3 className="text-xl font-semibold text-white mb-2">
-            {hasActiveFilter ? 'No matches found' : 'Nothing here yet'}
+            {hasActiveFilter ? tr('explore.noMatches') : tr('explore.nothingHereYet')}
           </h3>
           <p className="text-slate-400 max-w-md text-sm">
             {hasActiveFilter
-              ? 'Try adjusting your search or filters to discover more creators.'
-              : 'The community feed is empty. Start by creating works or teams!'}
+              ? tr('explore.adjustFiltersHint')
+              : tr('explore.communityEmptyHint')}
           </p>
-          {hasActiveFilter && (
-            <button
-              onClick={() => handleFilterChange({ searchQuery: '', roleFilter: '', categoryFilter: '', contentType: 'all' })}
-              className="mt-4 text-sm text-orange-400 hover:text-orange-300 underline"
-            >
-              Clear all filters
-            </button>
-          )}
         </div>
       ) : (
         <>
-          {/* Result count */}
           <p className="text-xs text-white/30">
-            {items.length} result{items.length !== 1 ? 's' : ''}
-            {hasActiveFilter ? ' — filtered' : ''}
-            {user ? ' · sorted by match' : ''}
+            {tr('explore.resultsCount', { count: items.length })}
+            {hasActiveFilter ? ` ${tr('explore.filteredSuffix')}` : ''}
+            {user && sort !== 'new' ? ` ${tr('explore.sortedByMatchSuffix')}` : ''}
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={embedded ? 'flex flex-col gap-[14px]' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}>
             {items.map((item, idx) => (
               <div key={idx}>
                 {item.type === 'work' ? (
