@@ -284,44 +284,6 @@ export default function ExplorePage() {
     >
       {!swipeMode ? (
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-          <div className="pointer-events-none fixed left-2 top-1/2 z-[65] -translate-y-1/2 sm:left-3">
-            <div className="pointer-events-auto flex flex-col items-center gap-[6px] rounded-[14px] border border-white/[0.08] bg-white/[0.08] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.24)] backdrop-blur-sm">
-              <button
-                type="button"
-                onClick={() => setContentType('creators')}
-                aria-label={tr('explore.contentType.creators')}
-                aria-pressed={contentType === 'creators'}
-                className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
-                  contentType === 'creators' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
-                }`}
-              >
-                <IconCreator active={contentType === 'creators'} className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setContentType('teams')}
-                aria-label={tr('explore.contentType.teams')}
-                aria-pressed={contentType === 'teams'}
-                className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
-                  contentType === 'teams' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
-                }`}
-              >
-                <IconTeam active={contentType === 'teams'} className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setContentType('works')}
-                aria-label={tr('explore.contentType.works')}
-                aria-pressed={contentType === 'works'}
-                className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors ${
-                  contentType === 'works' ? 'bg-white/[0.15]' : 'hover:bg-white/[0.08]'
-                }`}
-              >
-                <IconWork active={contentType === 'works'} className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
           <div className="shrink-0">
             {/* Top Bar (Figma: Search + View Toggle) */}
             <div
@@ -468,6 +430,48 @@ export default function ExplorePage() {
                       {tr('explore.filter')}
                       {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
                     </button>
+
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContentType('creators')}
+                        aria-label={tr('explore.contentType.creators')}
+                        aria-pressed={contentType === 'creators'}
+                        className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
+                          contentType === 'creators'
+                            ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
+                            : 'bg-white/10 text-[#6b7280]'
+                        }`}
+                      >
+                        {tr('explore.contentType.creators')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentType('teams')}
+                        aria-label={tr('explore.contentType.teams')}
+                        aria-pressed={contentType === 'teams'}
+                        className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
+                          contentType === 'teams'
+                            ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
+                            : 'bg-white/10 text-[#6b7280]'
+                        }`}
+                      >
+                        {tr('explore.contentType.teams')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentType('works')}
+                        aria-label={tr('explore.contentType.works')}
+                        aria-pressed={contentType === 'works'}
+                        className={`shrink-0 rounded-xl px-3 py-[5px] text-[12px] ${
+                          contentType === 'works'
+                            ? 'border border-[#e46d2e]/40 bg-[#e46d2e]/15 font-medium text-[#e46d2e]'
+                            : 'bg-white/10 text-[#6b7280]'
+                        }`}
+                      >
+                        {tr('explore.contentType.works')}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
