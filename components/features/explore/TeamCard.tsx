@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { TeamWithMembers } from '@/types'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users } from 'lucide-react'
 import { getRoleMetadata } from '@/constants/roles'
@@ -20,6 +19,18 @@ interface TeamCardProps {
   isJoining?: boolean
   matchScore?: number
   matchReasons?: string[]
+}
+
+function initialsFromName(name: string | null | undefined) {
+  const safe = (name ?? '').trim()
+  if (!safe) return '?'
+  return safe
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 }
 
 export function TeamCard({
@@ -53,6 +64,7 @@ export function TeamCard({
     const translated = tr(key)
     return translated === key ? role : translated
   }
+  const subtitleText = `${tr('explore.team.memberCount', { current: team.member_count, max: team.max_members })} · ${team.category}`
 
   const isAlreadyMember = currentUserId
     ? team.members.some((member) => member.id === currentUserId)
@@ -75,116 +87,75 @@ export function TeamCard({
   }
 
   return (
-    <Card
-      className="overflow-hidden rounded-[16px] border border-[rgba(255,255,255,0.06)] p-[14px] shadow-[0px_4px_16px_0px_rgba(0,0,0,0.2)] transition-all duration-300 hover:border-[rgba(255,255,255,0.14)]"
-      style={{
-        backgroundImage:
-          'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.1) 100%), linear-gradient(180deg, rgba(25,76,178,0.25) 0%, rgba(244,140,36,0.25) 100%)',
-      }}
-    >
-      <div className="space-y-[10px]">
-        {/* Match score badge */}
-        {matchScore !== undefined && matchScore > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-              style={{ backgroundColor: 'rgba(231,119,15,0.15)', color: '#f5a623', border: '1px solid rgba(231,119,15,0.3)' }}
-            >
-              🎯 {tr('explore.matchPercent', { score: matchScore })}
-            </span>
-            {matchReasons?.map((r) => (
-              <span key={r} className="text-xs text-white/40">{r}</span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-start justify-between gap-3">
-          <Link href={`/teams/${team.id}`} className="flex min-w-0 items-center gap-2 hover:opacity-90 transition-opacity">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-white line-clamp-1">{team.name}</h3>
-              <span className="text-xs text-[#bfbfbf]">
-                {tr('explore.team.memberCount', { current: team.member_count, max: team.max_members })}
+    <>
+      <div
+        className="overflow-hidden rounded-[16px] border border-[rgba(255,255,255,0.06)] p-[14px] shadow-[0px_4px_16px_0px_rgba(0,0,0,0.2)] transition-all duration-300 hover:border-[rgba(255,255,255,0.14)]"
+        style={{
+          backgroundImage:
+            'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.1) 100%), linear-gradient(180deg, rgba(25,76,178,0.25) 0%, rgba(244,140,36,0.25) 100%)',
+        }}
+      >
+        <div className="flex w-full items-center gap-[10px]">
+          <Link href={`/teams/${team.id}`} className="shrink-0">
+            <div className="relative flex h-[44px] w-[44px] items-center justify-center overflow-hidden rounded-[22px] bg-white/10 text-sm font-semibold text-white/85">
+              {initialsFromName(team.name)}
+              <span className="absolute -bottom-[2px] -right-[2px] rounded-full bg-[rgba(25,76,178,0.95)] p-[2px]">
+                <Users className="h-3 w-3 text-white" />
               </span>
             </div>
           </Link>
-          <span className="shrink-0 rounded-full border border-[rgba(115,27,209,0.45)] bg-[rgba(115,27,209,0.18)] px-2 py-1 text-xs font-medium text-[#d0b0f4]">
-            {team.category}
-          </span>
-        </div>
 
-        <p className="line-clamp-2 text-sm text-[#bfbfbf]">{displayDescription}</p>
+          <Link href={`/teams/${team.id}`} className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold text-white">{team.name}</p>
+            <p className="truncate text-[12px] text-[#bfbfbf]">{subtitleText}</p>
+          </Link>
 
-        {/* Members row */}
-        <div className="flex items-center gap-2">
-          <div className="flex -space-x-2">
-            {displayMembers.map((member) => (
-              <Link
-                key={member.id}
-                href={`/creator/${member.id}`}
-                title={`${member.name} (${localizeRole(member.role)})`}
-                className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium border-2 border-slate-800 hover:opacity-80 transition-opacity overflow-hidden"
-              >
-                {member.avatar_url ? (
-                  <img
-                    src={member.avatar_url}
-                    alt={member.name}
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  member.name.charAt(0).toUpperCase()
-                )}
-              </Link>
-            ))}
-            {hasMoreMembers && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1b2548] bg-white/10 text-xs font-medium text-white/75">
-                +{team.members.length - 5}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Looking for roles */}
-        {lookingForRoles.length > 0 && (
-          <div className="border-t border-white/10 pt-2">
-            <p className="mb-2 text-xs text-white/55">{tr('explore.team.lookingFor')}</p>
-            <div className="flex flex-wrap gap-2">
-              {lookingForRoles.slice(0, 3).map((role, idx) => {
-                const roleMetadata = getRoleMetadata(role as Role)
-                const RoleIcon = roleMetadata?.icon
-                return (
-                  <span
-                    key={idx}
-                    className="flex items-center gap-1 rounded-[12px] border border-[rgba(115,27,209,0.5)] bg-[rgba(115,27,209,0.2)] px-2 py-1 text-xs text-[#b98de8]"
-                  >
-                    {RoleIcon && <RoleIcon className="h-3 w-3" />}
-                    {localizeRole(role)}
-                  </span>
-                )
-              })}
+          {matchScore !== undefined && matchScore > 0 ? (
+            <div className="shrink-0 rounded-[10px] border border-[rgba(228,109,46,0.5)] bg-[rgba(228,109,46,0.15)] px-2 py-1">
+              <p className="whitespace-nowrap text-[12px] font-semibold text-[#e46d2e]">{Math.round(matchScore)}%</p>
             </div>
-          </div>
-        )}
+          ) : null}
+        </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2 pt-1">
+        <p className="mt-[10px] line-clamp-2 text-[12px] text-[#bfbfbf]">{displayDescription}</p>
+
+        {lookingForRoles.length > 0 ? (
+          <div className="mt-[10px] flex items-center gap-[6px] overflow-x-auto">
+            {lookingForRoles.slice(0, 3).map((role, idx) => {
+              const roleMetadata = getRoleMetadata(role as Role)
+              const RoleIcon = roleMetadata?.icon
+              return (
+                <span
+                  key={`${role}-${idx}`}
+                  className="flex shrink-0 items-center gap-1 rounded-[12px] border border-[rgba(115,27,209,0.5)] bg-[rgba(115,27,209,0.2)] px-2 py-1 text-[11px] text-[#b98de8]"
+                >
+                  {RoleIcon ? <RoleIcon className="h-3 w-3" /> : null}
+                  {localizeRole(role)}
+                </span>
+              )
+            })}
+          </div>
+        ) : null}
+
+        <div className="mt-[10px] flex items-center gap-2">
+          <p className="flex-1 truncate text-[11px] text-[#e88dba]">
+            {matchReasons && matchReasons.length > 0 ? matchReasons[0] : tr('explore.team.lookingFor')}
+          </p>
+
           <Link
             href={`/teams/${team.id}`}
-            className={`rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-white/15 ${
-              team.is_open && onJoinTeam ? '' : 'flex-1 text-center text-sm py-2'
-            }`}
+            className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-white/15"
           >
             {tr('explore.viewTeam')}
           </Link>
-          {team.is_open && onJoinTeam && (
+
+          {team.is_open && onJoinTeam ? (
             <>
               <Button
                 variant="outline"
                 onClick={handleJoinClick}
                 disabled={isJoining}
-                className="flex-1 border-[rgba(228,109,46,0.45)] bg-[rgba(228,109,46,0.15)] text-[#e46d2e] hover:border-[rgba(228,109,46,0.65)] hover:bg-[rgba(228,109,46,0.2)]"
+                className="shrink-0 rounded-[14px] border border-[rgba(228,109,46,0.45)] bg-[rgba(228,109,46,0.15)] px-[14px] py-[6px] text-[12px] font-medium text-[#e46d2e] hover:border-[rgba(228,109,46,0.65)] hover:bg-[rgba(228,109,46,0.2)]"
               >
                 {isJoining ? tr('explore.joiningTeam') : tr('explore.joinTeam')}
               </Button>
@@ -198,23 +169,46 @@ export function TeamCard({
                 isAlreadyMember={isAlreadyMember}
               />
             </>
-          )}
+          ) : null}
 
-          {canConnect && (
+          {canConnect ? (
             <button
               onClick={() => setConnectOpen(true)}
-                className={`rounded-[14px] border border-[rgba(228,109,46,0.45)] bg-[rgba(228,109,46,0.12)] px-[14px] py-[6px] text-[12px] font-medium text-[#e46d2e] transition-colors hover:bg-[rgba(228,109,46,0.2)] ${
-                team.is_open && onJoinTeam ? '' : 'w-full text-sm py-2'
-              }`}
+              className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-white/15"
             >
-                {tr('creatorCard.connect')}
+              {tr('creatorCard.connect')}
             </button>
-          )}
+          ) : null}
         </div>
+
+        {displayMembers.length > 0 ? (
+          <div className="mt-[10px] flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {displayMembers.map((member) => (
+                <Link
+                  key={member.id}
+                  href={`/creator/${member.id}`}
+                  title={`${member.name} (${localizeRole(member.role)})`}
+                  className="h-8 w-8 overflow-hidden rounded-full border-2 border-[#1b2548] bg-white/10 text-xs font-medium text-white hover:opacity-85"
+                >
+                  {member.avatar_url ? (
+                    <img src={member.avatar_url} alt={member.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">{member.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </Link>
+              ))}
+              {hasMoreMembers ? (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1b2548] bg-white/10 text-xs font-medium text-white/75">
+                  +{team.members.length - 5}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* Collab modal */}
-      {canConnect && ownerId && (
+      {canConnect && ownerId ? (
         <SendCollabModal
           open={connectOpen}
           onClose={() => setConnectOpen(false)}
@@ -226,7 +220,7 @@ export function TeamCard({
           senderName={user?.name ?? undefined}
           matchScore={matchScore}
         />
-      )}
-    </Card>
+      ) : null}
+    </>
   )
 }
