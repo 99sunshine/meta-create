@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { TeamWithMembers } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Users } from 'lucide-react'
 import { getRoleMetadata } from '@/constants/roles'
 import { JoinTeamDialog } from '@/components/features/teams/JoinTeamDialog'
 import { useAuth } from '@/hooks/useAuth'
@@ -140,11 +139,8 @@ export function TeamCard({
       >
         <div className="flex w-full items-center gap-[10px]">
           <Link href={`/teams/${team.id}`} className="shrink-0">
-            <div className="relative flex h-[44px] w-[44px] items-center justify-center overflow-hidden rounded-[22px] bg-white/10 text-sm font-semibold text-white/85">
+            <div className="flex h-[44px] w-[44px] items-center justify-center overflow-hidden rounded-[22px] bg-white/10 text-sm font-semibold text-white/85">
               {initialsFromName(team.name)}
-              <span className="absolute -bottom-[2px] -right-[2px] rounded-full bg-[rgba(25,76,178,0.95)] p-[2px]">
-                <Users className="h-3 w-3 text-white" />
-              </span>
             </div>
           </Link>
 
