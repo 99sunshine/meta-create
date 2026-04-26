@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/utils/server'
 
+async function getExcludedCreatorIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<Set<string>> {
+  const excluded = new Set<string>()
+
+  const { data: collabRows, error: collabErr } = await supabase
+    .from('collab_requests')
+    .select('sender_id, receiver_id')
+    .in('status', ['pending', 'accepted'])
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+
+  if (collabErr) throw collabErr
+  for (const row of collabRows ?? []) {
+    if (row.sender_id && row.sender_id !== userId) excluded.add(row.sender_id)
+    if (row.receiver_id && row.receiver_id !== userId) excluded.add(row.receiver_id)
+  }
+
+  const { data: myTeamRows, error: myTeamErr } = await supabase
+    .from('team_members')
+    .select('team_id')
+    .eq('user_id', userId)
+
+  if (myTeamErr) throw myTeamErr
+  const teamIds = [...new Set((myTeamRows ?? []).map((row) => row.team_id).filter(Boolean))]
+  if (teamIds.length === 0) return excluded
+
+  const { data: teamMateRows, error: teamMateErr } = await supabase
+    .from('team_members')
+    .select('user_id')
+    .in('team_id', teamIds)
+
+  if (teamMateErr) throw teamMateErr
+  for (const row of teamMateRows ?? []) {
+    if (row.user_id && row.user_id !== userId) excluded.add(row.user_id)
+  }
+
+  return excluded
+}
+
 /**
  * GET /api/match?limit=60
  *
@@ -42,17 +82,20 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Fallback: return profiles ordered by created_at (function not yet deployed)
+    // Fallback: keep behavior aligned with SQL path for fresh discovery.
+    const excludedIds = await getExcludedCreatorIds(supabase, user.id)
+
     const { data: fallback, error: fbErr } = await supabase
       .from('profiles')
       .select('*')
       .eq('onboarding_complete', true)
       .neq('id', user.id)
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .limit(Math.max(limit * 2, limit + 20))
 
     if (fbErr) throw fbErr
-    return NextResponse.json({ profiles: fallback ?? [], source: 'fallback' })
+    const filtered = (fallback ?? []).filter((row) => !excludedIds.has(String(row.id)))
+    return NextResponse.json({ profiles: filtered.slice(0, limit), source: 'fallback' })
   } catch (err) {
     console.error('[/api/match]', err)
     return NextResponse.json({ error: 'Failed to fetch matches' }, { status: 500 })

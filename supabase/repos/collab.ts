@@ -183,4 +183,24 @@ export class CollabRepository {
     }
     return ids
   }
+
+  /**
+   * Batch: return partner user IDs with pending/accepted relation
+   * in either direction (fresh-discovery filtering).
+   */
+  async getActivePartnerIds(userId: string): Promise<Set<string>> {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('collab_requests')
+      .select('sender_id, receiver_id')
+      .in('status', ['pending', 'accepted'])
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+
+    const ids = new Set<string>()
+    for (const row of data ?? []) {
+      if (row.sender_id !== userId) ids.add(row.sender_id as string)
+      if (row.receiver_id !== userId) ids.add(row.receiver_id as string)
+    }
+    return ids
+  }
 }

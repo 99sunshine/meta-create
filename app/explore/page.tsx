@@ -13,6 +13,7 @@ import type { SwipeDirection } from '@/components/features/swipe/SwipeStack'
 import { SwipeDemoExperience } from '@/components/features/swipe/SwipeDemoExperience'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { CollabRepository } from '@/supabase/repos/collab'
+import { TeamsRepository } from '@/supabase/repos/teams'
 import { SWIPE_DEMO_INITIAL_XP, getSwipeXpBarDisplay, readSwipeXp, writeSwipeXp } from '@/lib/swipe-demo-xp'
 import { appendSwipeSkippedId, readSwipeSkippedIds } from '@/lib/swipe-skipped-ids'
 import type { UserProfile } from '@/types'
@@ -105,9 +106,16 @@ export default function ExplorePage() {
     try {
       const skipped = readSwipeSkippedIds(sessionUser.id)
       const repo = new ProfileRepository()
-      const all = await repo.listCreators(30)
+      const collabRepo = new CollabRepository()
+      const teamsRepo = new TeamsRepository()
+      const [all, activePartnerIds, sameTeamIds] = await Promise.all([
+        repo.listCreators(30),
+        collabRepo.getActivePartnerIds(sessionUser.id),
+        teamsRepo.getSameTeamMemberIds(sessionUser.id),
+      ])
+      const excludedIds = new Set<string>([...activePartnerIds, ...sameTeamIds])
       const filtered = all.filter(
-        (p) => p.id !== sessionUser.id && !skipped.includes(p.id),
+        (p) => p.id !== sessionUser.id && !skipped.includes(p.id) && !excludedIds.has(p.id),
       )
       setSwipeProfiles(filtered.slice(0, 10))
     } catch (e) {

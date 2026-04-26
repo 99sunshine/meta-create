@@ -142,6 +142,40 @@ export class TeamsRepository {
     return (teams ?? []).map(parseTeamView)
   }
 
+  /**
+   * Member IDs that share at least one team with the user.
+   */
+  async getSameTeamMemberIds(userId: string): Promise<Set<string>> {
+    const supabase = createClient()
+
+    const { data: myTeams, error: myTeamsErr } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', userId)
+
+    if (myTeamsErr) {
+      throw new Error(`Failed to fetch user team ids: ${myTeamsErr.message}`)
+    }
+
+    const teamIds = [...new Set((myTeams ?? []).map((row) => row.team_id).filter(Boolean))] as string[]
+    if (teamIds.length === 0) return new Set<string>()
+
+    const { data: teammateRows, error: teammateErr } = await supabase
+      .from('team_members')
+      .select('user_id')
+      .in('team_id', teamIds)
+
+    if (teammateErr) {
+      throw new Error(`Failed to fetch teammate ids: ${teammateErr.message}`)
+    }
+
+    const ids = new Set<string>()
+    for (const row of teammateRows ?? []) {
+      if (row.user_id !== userId) ids.add(row.user_id as string)
+    }
+    return ids
+  }
+
   async getTeamsByOwnerId(ownerId: string, limit: number = 20): Promise<TeamWithMembers[]> {
     const supabase = createClient()
     

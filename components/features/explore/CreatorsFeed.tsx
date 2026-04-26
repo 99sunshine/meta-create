@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ProfileRepository } from '@/supabase/repos/profile'
 import { CollabRepository } from '@/supabase/repos/collab'
+import { TeamsRepository } from '@/supabase/repos/teams'
 import type { UserProfile } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { CreatorCard } from './CreatorCard'
@@ -11,6 +12,7 @@ import { useLocale } from '@/components/providers/LocaleProvider'
 
 const repo = new ProfileRepository()
 const collabRepo = new CollabRepository()
+const teamsRepo = new TeamsRepository()
 
 type CreatorsFeedProps = {
   limit?: number
@@ -42,6 +44,7 @@ export function CreatorsFeed({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set())
+  const [excludedCreatorIds, setExcludedCreatorIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let mounted = true
@@ -89,6 +92,34 @@ export function CreatorsFeed({
     return () => { mounted = false }
   }, [user?.id])
 
+  // Fresh discovery default: hide creators with active collab relation or same-team relation.
+  useEffect(() => {
+    if (!user?.id) {
+      setExcludedCreatorIds(new Set())
+      return
+    }
+
+    let mounted = true
+    Promise.all([
+      collabRepo.getActivePartnerIds(user.id),
+      teamsRepo.getSameTeamMemberIds(user.id),
+    ])
+      .then(([activePartnerIds, sameTeamIds]) => {
+        if (!mounted) return
+        const combined = new Set<string>([...activePartnerIds, ...sameTeamIds])
+        setExcludedCreatorIds(combined)
+      })
+      .catch(() => {
+        if (!mounted) return
+        // Fail-open to avoid blocking feed rendering if one relation query fails.
+        setExcludedCreatorIds(new Set())
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [user?.id])
+
   const visible = useMemo(
     () => {
       const q = query.trim().toLowerCase()
@@ -96,6 +127,9 @@ export function CreatorsFeed({
       const normalizedLocations = locations.map((l) => l.trim().toLowerCase())
 
       let rows = creators.filter((c) => c.id !== user?.id)
+      if (user?.id) {
+        rows = rows.filter((c) => !excludedCreatorIds.has(c.id))
+      }
 
       if (sameTrackOnly && user?.hackathon_track) {
         const me = String(user.hackathon_track).toLowerCase()
@@ -158,7 +192,7 @@ export function CreatorsFeed({
       )
       return scored.map((x) => x.c)
     },
-    [creators, user?.id, user, query, roles, skills, locations, sort, sameTrackOnly],
+    [creators, excludedCreatorIds, user?.id, user, query, roles, skills, locations, sort, sameTrackOnly],
   )
 
   if (loading) {
