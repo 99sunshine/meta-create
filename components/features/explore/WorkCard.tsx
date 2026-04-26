@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { WorkWithCreator } from '@/types'
 import { getRoleMetadata } from '@/constants/roles'
-import { useAuth } from '@/hooks/useAuth'
-import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import type { Role } from '@/types/interfaces/Role'
 
@@ -28,9 +26,7 @@ function initialsFromName(name: string | null | undefined) {
 }
 
 export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
-  const { user } = useAuth()
   const { locale, tr } = useLocale()
-  const [connectOpen, setConnectOpen] = useState(false)
   const [translatedDescription, setTranslatedDescription] = useState<string | null>(null)
   const [isTranslatingDescription, setIsTranslatingDescription] = useState(false)
   const translationCacheRef = useRef<Map<string, string>>(new Map())
@@ -53,8 +49,6 @@ export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
   const displayDescription = shownDescription.length > 150
     ? `${shownDescription.slice(0, 150)}...`
     : shownDescription
-
-  const canConnect = !!user && user.id !== work.creator.id
 
   useEffect(() => {
     let cancelled = false
@@ -181,30 +175,8 @@ export function WorkCard({ work, matchScore, matchReasons }: WorkCardProps) {
           >
             {tr('explore.viewWork')}
           </Link>
-          {canConnect ? (
-            <button
-              onClick={() => setConnectOpen(true)}
-              className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-white/15"
-            >
-              {tr('creatorCard.connect')}
-            </button>
-          ) : null}
         </div>
       </div>
-
-      {canConnect ? (
-        <SendCollabModal
-          open={connectOpen}
-          onClose={() => setConnectOpen(false)}
-          senderId={user.id}
-          receiverId={work.creator.id}
-          receiverName={work.creator.name}
-          receiverRole={work.creator.role}
-          senderRole={user.role ?? undefined}
-          senderName={user.name ?? undefined}
-          matchScore={matchScore}
-        />
-      ) : null}
     </>
   )
 }

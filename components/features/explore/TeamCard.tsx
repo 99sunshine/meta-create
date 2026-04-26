@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Users } from 'lucide-react'
 import { getRoleMetadata } from '@/constants/roles'
 import { JoinTeamDialog } from '@/components/features/teams/JoinTeamDialog'
-import { SendCollabModal } from '@/components/features/collab/SendCollabModal'
 import { useAuth } from '@/hooks/useAuth'
 import { useLocale } from '@/components/providers/LocaleProvider'
 import type { Role } from '@/types/interfaces/Role'
@@ -44,7 +43,6 @@ export function TeamCard({
   const { user } = useAuth()
   const { tr } = useLocale()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [connectOpen, setConnectOpen] = useState(false)
 
   const displayDescription = team.description
     ? team.description.length > 150
@@ -70,10 +68,7 @@ export function TeamCard({
     ? team.members.some((member) => member.id === currentUserId)
     : false
 
-  // The person to "Connect" with is the team owner
   const ownerId = team.owner_id
-  const ownerMember = team.members.find((m) => m.id === ownerId)
-  const canConnect = !!user && !!ownerId && user.id !== ownerId
 
   const handleJoinClick = () => {
     if (onJoinTeam) setDialogOpen(true)
@@ -171,14 +166,6 @@ export function TeamCard({
             </>
           ) : null}
 
-          {canConnect ? (
-            <button
-              onClick={() => setConnectOpen(true)}
-              className="shrink-0 rounded-[14px] bg-white/10 px-[14px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-white/15"
-            >
-              {tr('creatorCard.connect')}
-            </button>
-          ) : null}
         </div>
 
         {displayMembers.length > 0 ? (
@@ -208,19 +195,6 @@ export function TeamCard({
         ) : null}
       </div>
 
-      {canConnect && ownerId ? (
-        <SendCollabModal
-          open={connectOpen}
-          onClose={() => setConnectOpen(false)}
-          senderId={user!.id}
-          receiverId={ownerId}
-          receiverName={ownerMember?.name ?? team.name}
-          receiverRole={ownerMember?.role}
-          senderRole={user?.role ?? undefined}
-          senderName={user?.name ?? undefined}
-          matchScore={matchScore}
-        />
-      ) : null}
     </>
   )
 }
